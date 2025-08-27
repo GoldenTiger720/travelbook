@@ -73,6 +73,7 @@ type QuoteFormData = z.infer<typeof quoteSchema>
 
 interface QuoteFormProps {
   onSubmit: (data: any) => void
+  onCancel?: () => void
   initialData?: Quote | null
   mode?: "create" | "edit"
 }
@@ -115,7 +116,7 @@ const teamMembers = [
   "João Santos",
 ]
 
-export function QuoteForm({ onSubmit, initialData, mode = "create" }: QuoteFormProps) {
+export function QuoteForm({ onSubmit, onCancel, initialData, mode = "create" }: QuoteFormProps) {
   const [breakdown, setBreakdown] = useState<PriceBreakdownItem[]>(
     initialData?.pricing?.breakdown || []
   )
@@ -769,7 +770,7 @@ export function QuoteForm({ onSubmit, initialData, mode = "create" }: QuoteFormP
           </Alert>
           
           <div className="flex gap-2">
-            <Button type="button" variant="outline">
+            <Button type="button" variant="outline" onClick={onCancel}>
               <X className="w-4 h-4 mr-2" />
               Cancel
             </Button>

@@ -38,7 +38,8 @@ export function QuoteModal({
         </DialogHeader>
         <ScrollArea className="max-h-[calc(90vh-120px)] px-6 pb-6">
           <QuoteForm 
-            onSubmit={handleSubmit} 
+            onSubmit={handleSubmit}
+            onCancel={onClose}
             initialData={initialData}
             mode={mode}
           />
