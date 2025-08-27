@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { QuoteModal } from "@/components/QuoteModal"
+import { useToast } from "@/components/ui/use-toast"
 import { 
   Plus, 
   Search, 
@@ -27,110 +28,16 @@ import {
   Edit,
   Send,
   Copy,
-  Trash2
+  Trash2,
+  Link2,
+  FileSpreadsheet,
+  FilePlus
 } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
-
-// Mock quotes data with more details
-const mockQuotes = [
-  {
-    id: "Q001",
-    customer: "Maria González",
-    email: "maria@example.com",
-    destination: "Buenos Aires City Tour",
-    tourType: "city-tour",
-    date: new Date(2024, 0, 15),
-    passengers: 2,
-    amount: 2450,
-    currency: "USD",
-    status: "pending",
-    validUntil: new Date(2024, 0, 30),
-    responsible: "Carlos Mendez",
-    agency: "Direct",
-    createdAt: new Date(2024, 0, 1)
-  },
-  {
-    id: "Q002",
-    customer: "João Silva",
-    email: "joao@example.com",
-    destination: "Rio de Janeiro Beach Package",
-    tourType: "beach-tour",
-    date: new Date(2024, 0, 18), 
-    passengers: 4,
-    amount: 3890,
-    currency: "USD",
-    status: "approved",
-    validUntil: new Date(2024, 1, 1),
-    responsible: "Ana Costa",
-    agency: "Brazil Tours",
-    createdAt: new Date(2024, 0, 3)
-  },
-  {
-    id: "Q003",
-    customer: "Sarah Johnson",
-    email: "sarah@example.com",
-    destination: "Patagonia Adventure",
-    tourType: "adventure",
-    date: new Date(2024, 0, 22),
-    passengers: 2,
-    amount: 4200,
-    currency: "USD",
-    status: "sent",
-    validUntil: new Date(2024, 1, 5),
-    responsible: "Diego Ramirez",
-    agency: "Adventure Seekers",
-    createdAt: new Date(2024, 0, 5)
-  },
-  {
-    id: "Q004",
-    customer: "Carlos Rodriguez",
-    email: "carlos@example.com",
-    destination: "Iguazu Falls Experience",
-    tourType: "nature",
-    date: new Date(2024, 0, 25),
-    passengers: 3,
-    amount: 1650,
-    currency: "USD",
-    status: "draft",
-    validUntil: new Date(2024, 1, 10),
-    responsible: "Carlos Mendez",
-    agency: "Direct",
-    createdAt: new Date(2024, 0, 8)
-  },
-  {
-    id: "Q005",
-    customer: "Emma Williams",
-    email: "emma@example.com",
-    destination: "Wine Tour Mendoza",
-    tourType: "wine-tour",
-    date: new Date(2024, 1, 5),
-    passengers: 6,
-    amount: 5200,
-    currency: "USD",
-    status: "converted",
-    validUntil: new Date(2024, 1, 20),
-    responsible: "Ana Costa",
-    agency: "Wine Lovers",
-    createdAt: new Date(2024, 0, 10)
-  },
-  {
-    id: "Q006",
-    customer: "Liu Wei",
-    email: "liu@example.com",
-    destination: "Buenos Aires & Tango Experience",
-    tourType: "cultural",
-    date: new Date(2024, 1, 15),
-    passengers: 8,
-    amount: 8900,
-    currency: "USD",
-    status: "expired",
-    validUntil: new Date(2024, 0, 20),
-    responsible: "Diego Ramirez",
-    agency: "China Tours",
-    createdAt: new Date(2023, 11, 20)
-  }
-]
+import { Quote, QuoteFilters } from "@/types/quote"
+import { quoteService } from "@/services/quoteService"
+import { exportToExcel, exportToPDF } from "@/utils/exportUtils"
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -140,128 +47,88 @@ const getStatusColor = (status: string) => {
     case "draft": return "bg-secondary text-secondary-foreground"
     case "converted": return "bg-purple-500 text-white"
     case "expired": return "bg-destructive text-destructive-foreground"
+    case "cancelled": return "bg-muted text-muted-foreground"
     default: return "bg-muted text-muted-foreground"
   }
 }
 
-const getTourTypeColor = (type: string) => {
-  switch (type) {
-    case "city-tour": return "bg-primary text-primary-foreground"
-    case "beach-tour": return "bg-accent text-accent-foreground"
-    case "adventure": return "bg-success text-success-foreground"
-    case "wine-tour": return "bg-purple-500 text-white"
-    case "nature": return "bg-green-500 text-white"
-    case "cultural": return "bg-orange-500 text-white"
-    default: return "bg-muted text-muted-foreground"
+const getSourceIcon = (source: string) => {
+  switch (source) {
+    case "instagram": return "📷"
+    case "whatsapp": return "💬"
+    case "website": return "🌐"
+    case "email": return "✉️"
+    case "referral": return "🤝"
+    case "direct": return "🏢"
+    default: return "📌"
   }
-}
-
-interface FilterState {
-  search: string
-  status: string
-  tourType: string
-  responsible: string
-  agency: string
-  dateFrom: Date | undefined
-  dateTo: Date | undefined
-  minAmount: string
-  maxAmount: string
 }
 
 const QuotesPage = () => {
+  const [quotes, setQuotes] = useState<Quote[]>([])
+  const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalMode, setModalMode] = useState<"create" | "edit">("create")
-  const [selectedQuote, setSelectedQuote] = useState<any>(null)
+  const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null)
   const [showFilters, setShowFilters] = useState(false)
+  const { toast } = useToast()
   
-  // Filter state
-  const [filters, setFilters] = useState<FilterState>({
+  const [filters, setFilters] = useState<QuoteFilters>({
     search: "",
     status: "all",
     tourType: "all",
-    responsible: "all",
+    leadSource: "all",
+    assignedTo: "all",
     agency: "all",
     dateFrom: undefined,
     dateTo: undefined,
-    minAmount: "",
-    maxAmount: ""
+    minAmount: undefined,
+    maxAmount: undefined
   })
 
-  // Sort state
   const [sortBy, setSortBy] = useState<"date" | "amount" | "customer">("date")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
 
-  // Get unique values for filters
-  const statuses = ["all", ...Array.from(new Set(mockQuotes.map(q => q.status)))]
-  const tourTypes = ["all", ...Array.from(new Set(mockQuotes.map(q => q.tourType)))]
-  const responsibles = ["all", ...Array.from(new Set(mockQuotes.map(q => q.responsible)))]
-  const agencies = ["all", ...Array.from(new Set(mockQuotes.map(q => q.agency)))]
+  useEffect(() => {
+    loadQuotes()
+  }, [filters])
 
-  // Filter quotes
-  const filteredQuotes = mockQuotes.filter(quote => {
-    // Search filter
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase()
-      if (!quote.customer.toLowerCase().includes(searchLower) &&
-          !quote.destination.toLowerCase().includes(searchLower) &&
-          !quote.id.toLowerCase().includes(searchLower) &&
-          !quote.email.toLowerCase().includes(searchLower)) {
-        return false
-      }
+  const loadQuotes = async () => {
+    setLoading(true)
+    try {
+      const data = await quoteService.getQuotes(filters)
+      setQuotes(data)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load quotes",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
     }
+  }
 
-    // Status filter
-    if (filters.status !== "all" && quote.status !== filters.status) {
-      return false
-    }
+  const uniqueValues = {
+    statuses: ["all", ...Array.from(new Set(quotes.map(q => q.status)))],
+    tourTypes: ["all", ...Array.from(new Set(quotes.map(q => q.tourDetails.tourType)))],
+    leadSources: ["all", ...Array.from(new Set(quotes.map(q => q.leadSource)))],
+    assignees: ["all", ...Array.from(new Set(quotes.map(q => q.assignedTo)))],
+    agencies: ["all", ...Array.from(new Set(quotes.filter(q => q.agency).map(q => q.agency!)))]
+  }
 
-    // Tour type filter
-    if (filters.tourType !== "all" && quote.tourType !== filters.tourType) {
-      return false
-    }
-
-    // Responsible filter
-    if (filters.responsible !== "all" && quote.responsible !== filters.responsible) {
-      return false
-    }
-
-    // Agency filter
-    if (filters.agency !== "all" && quote.agency !== filters.agency) {
-      return false
-    }
-
-    // Date range filter
-    if (filters.dateFrom && quote.date < filters.dateFrom) {
-      return false
-    }
-    if (filters.dateTo && quote.date > filters.dateTo) {
-      return false
-    }
-
-    // Amount range filter
-    if (filters.minAmount && quote.amount < parseFloat(filters.minAmount)) {
-      return false
-    }
-    if (filters.maxAmount && quote.amount > parseFloat(filters.maxAmount)) {
-      return false
-    }
-
-    return true
-  })
-
-  // Sort quotes
-  const sortedQuotes = [...filteredQuotes].sort((a, b) => {
+  const sortedQuotes = [...quotes].sort((a, b) => {
     let comparison = 0
     
     switch (sortBy) {
       case "date":
-        comparison = a.date.getTime() - b.date.getTime()
+        comparison = a.tourDetails.startDate.getTime() - b.tourDetails.startDate.getTime()
         break
       case "amount":
-        comparison = a.amount - b.amount
+        comparison = a.pricing.amount - b.pricing.amount
         break
       case "customer":
-        comparison = a.customer.localeCompare(b.customer)
+        comparison = a.customer.name.localeCompare(b.customer.name)
         break
     }
     
@@ -273,19 +140,20 @@ const QuotesPage = () => {
       search: "",
       status: "all",
       tourType: "all",
-      responsible: "all",
+      leadSource: "all",
+      assignedTo: "all",
       agency: "all",
       dateFrom: undefined,
       dateTo: undefined,
-      minAmount: "",
-      maxAmount: ""
+      minAmount: undefined,
+      maxAmount: undefined
     })
   }
 
   const activeFilterCount = Object.entries(filters).filter(([key, value]) => {
     if (key === "search") return value !== ""
     if (key === "dateFrom" || key === "dateTo") return value !== undefined
-    if (key === "minAmount" || key === "maxAmount") return value !== ""
+    if (key === "minAmount" || key === "maxAmount") return value !== undefined
     return value !== "all"
   }).length
 
@@ -295,33 +163,155 @@ const QuotesPage = () => {
     setIsModalOpen(true)
   }
 
-  const handleEditQuote = (quote: any) => {
+  const handleEditQuote = (quote: Quote) => {
     setModalMode("edit")
     setSelectedQuote(quote)
     setIsModalOpen(true)
   }
 
-  const handleQuoteSubmit = (data: any) => {
-    console.log("Quote submitted:", data)
-    // Handle quote creation/update
+  const handleViewQuote = (quote: Quote) => {
+    window.open(`/quotes/${quote.id}`, '_blank')
+  }
+
+  const handleDuplicateQuote = async (quote: Quote) => {
+    try {
+      const newQuote = await quoteService.duplicateQuote(quote.id)
+      if (newQuote) {
+        await loadQuotes()
+        toast({
+          title: "Success",
+          description: "Quote duplicated successfully"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to duplicate quote",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleDeleteQuote = async (quote: Quote) => {
+    if (confirm(`Are you sure you want to delete quote ${quote.quoteNumber}?`)) {
+      try {
+        const success = await quoteService.deleteQuote(quote.id)
+        if (success) {
+          await loadQuotes()
+          toast({
+            title: "Success",
+            description: "Quote deleted successfully"
+          })
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to delete quote",
+          variant: "destructive"
+        })
+      }
+    }
+  }
+
+  const handleGenerateLink = async (quote: Quote) => {
+    try {
+      const link = await quoteService.generateShareableLink(quote.id)
+      await navigator.clipboard.writeText(link)
+      await loadQuotes()
+      toast({
+        title: "Link Generated",
+        description: "Shareable link copied to clipboard"
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate link",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleSendEmail = async (quote: Quote) => {
+    try {
+      await quoteService.sendQuoteByEmail(quote.id, quote.customer.email)
+      toast({
+        title: "Email Sent",
+        description: `Quote sent to ${quote.customer.email}`
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send email",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleQuoteSubmit = async (data: any) => {
+    try {
+      if (modalMode === "create") {
+        await quoteService.createQuote(data)
+        toast({
+          title: "Success",
+          description: "Quote created successfully"
+        })
+      } else if (selectedQuote) {
+        await quoteService.updateQuote(selectedQuote.id, data)
+        toast({
+          title: "Success",
+          description: "Quote updated successfully"
+        })
+      }
+      await loadQuotes()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to ${modalMode} quote`,
+        variant: "destructive"
+      })
+    }
   }
 
   const exportQuotes = (format: "excel" | "pdf") => {
-    console.log(`Exporting quotes as ${format}`)
-    // Implement export functionality
+    try {
+      const exportData = { quotes: sortedQuotes, filters }
+      
+      if (format === "excel") {
+        exportToExcel(exportData)
+      } else {
+        exportToPDF(exportData)
+      }
+      
+      toast({
+        title: "Export Successful",
+        description: `Quotes exported as ${format.toUpperCase()}`
+      })
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "Failed to export quotes",
+        variant: "destructive"
+      })
+    }
   }
 
   const printQuotes = () => {
     window.print()
-    // Implement print functionality
   }
+
+  const totalValue = sortedQuotes.reduce((sum, quote) => {
+    if (quote.pricing.currency === 'USD') {
+      return sum + quote.pricing.amount
+    }
+    return sum
+  }, 0)
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Quotes Management</h1>
+          <h1 className="text-3xl font-bold text-foreground">My Quotes</h1>
           <p className="text-muted-foreground">
             Create and manage travel quotes for your customers
           </p>
@@ -342,7 +332,7 @@ const QuotesPage = () => {
                   className="w-full justify-start"
                   onClick={() => exportQuotes("excel")}
                 >
-                  <FileText className="w-4 h-4 mr-2" />
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
                   Export to Excel
                 </Button>
                 <Button
@@ -379,7 +369,7 @@ const QuotesPage = () => {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input 
-                  placeholder="Search quotes by customer, destination, ID, or email..." 
+                  placeholder="Search by client name, quote number, lead source, or creation date..." 
                   className="pl-10"
                   value={filters.search}
                   onChange={(e) => setFilters({ ...filters, search: e.target.value })}
@@ -422,7 +412,7 @@ const QuotesPage = () => {
             {/* Expanded Filters */}
             {showFilters && (
               <div className="border-t pt-4 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                   {/* Status Filter */}
                   <div>
                     <Label>Status</Label>
@@ -434,7 +424,7 @@ const QuotesPage = () => {
                         <SelectValue placeholder="All statuses" />
                       </SelectTrigger>
                       <SelectContent>
-                        {statuses.map(status => (
+                        {uniqueValues.statuses.map(status => (
                           <SelectItem key={status} value={status}>
                             {status === "all" ? "All Statuses" : status.charAt(0).toUpperCase() + status.slice(1)}
                           </SelectItem>
@@ -443,42 +433,40 @@ const QuotesPage = () => {
                     </Select>
                   </div>
 
-                  {/* Tour Type Filter */}
+                  {/* Lead Source Filter */}
                   <div>
-                    <Label>Tour Type</Label>
+                    <Label>Lead Source</Label>
                     <Select 
-                      value={filters.tourType} 
-                      onValueChange={(value) => setFilters({ ...filters, tourType: value })}
+                      value={filters.leadSource} 
+                      onValueChange={(value) => setFilters({ ...filters, leadSource: value })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="All types" />
+                        <SelectValue placeholder="All sources" />
                       </SelectTrigger>
                       <SelectContent>
-                        {tourTypes.map(type => (
-                          <SelectItem key={type} value={type}>
-                            {type === "all" ? "All Types" : type.split("-").map(word => 
-                              word.charAt(0).toUpperCase() + word.slice(1)
-                            ).join(" ")}
+                        {uniqueValues.leadSources.map(source => (
+                          <SelectItem key={source} value={source}>
+                            {source === "all" ? "All Sources" : source.charAt(0).toUpperCase() + source.slice(1)}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
 
-                  {/* Responsible Filter */}
+                  {/* Assigned To Filter */}
                   <div>
-                    <Label>Responsible</Label>
+                    <Label>Salesperson</Label>
                     <Select 
-                      value={filters.responsible} 
-                      onValueChange={(value) => setFilters({ ...filters, responsible: value })}
+                      value={filters.assignedTo} 
+                      onValueChange={(value) => setFilters({ ...filters, assignedTo: value })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="All team members" />
+                        <SelectValue placeholder="All salespersons" />
                       </SelectTrigger>
                       <SelectContent>
-                        {responsibles.map(person => (
+                        {uniqueValues.assignees.map(person => (
                           <SelectItem key={person} value={person}>
-                            {person === "all" ? "All Team Members" : person}
+                            {person === "all" ? "All Salespersons" : person}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -496,9 +484,31 @@ const QuotesPage = () => {
                         <SelectValue placeholder="All agencies" />
                       </SelectTrigger>
                       <SelectContent>
-                        {agencies.map(agency => (
+                        {uniqueValues.agencies.map(agency => (
                           <SelectItem key={agency} value={agency}>
                             {agency === "all" ? "All Agencies" : agency}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Tour Type Filter */}
+                  <div>
+                    <Label>Tour Type</Label>
+                    <Select 
+                      value={filters.tourType} 
+                      onValueChange={(value) => setFilters({ ...filters, tourType: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="All types" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {uniqueValues.tourTypes.map(type => (
+                          <SelectItem key={type} value={type}>
+                            {type === "all" ? "All Types" : type.split("-").map(word => 
+                              word.charAt(0).toUpperCase() + word.slice(1)
+                            ).join(" ")}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -570,8 +580,8 @@ const QuotesPage = () => {
                         type="number"
                         placeholder="0"
                         className="pl-10"
-                        value={filters.minAmount}
-                        onChange={(e) => setFilters({ ...filters, minAmount: e.target.value })}
+                        value={filters.minAmount || ""}
+                        onChange={(e) => setFilters({ ...filters, minAmount: e.target.value ? parseFloat(e.target.value) : undefined })}
                       />
                     </div>
                   </div>
@@ -584,8 +594,8 @@ const QuotesPage = () => {
                         type="number"
                         placeholder="10000"
                         className="pl-10"
-                        value={filters.maxAmount}
-                        onChange={(e) => setFilters({ ...filters, maxAmount: e.target.value })}
+                        value={filters.maxAmount || ""}
+                        onChange={(e) => setFilters({ ...filters, maxAmount: e.target.value ? parseFloat(e.target.value) : undefined })}
                       />
                     </div>
                   </div>
@@ -609,105 +619,150 @@ const QuotesPage = () => {
       {/* Results Summary */}
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <p>
-          Showing {sortedQuotes.length} of {mockQuotes.length} quotes
+          Showing {sortedQuotes.length} quotes
         </p>
         <p>
-          Total value: ${sortedQuotes.reduce((sum, quote) => sum + quote.amount, 0).toLocaleString()}
+          Total value: ${totalValue.toLocaleString()} USD
         </p>
       </div>
 
       {/* Quotes List */}
-      <div className="grid grid-cols-1 gap-4">
-        {sortedQuotes.map((quote) => (
-          <Card key={quote.id} className="hover:shadow-md transition-shadow duration-200">
-            <CardContent className="pt-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">{quote.id}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {quote.customer} • {quote.email}
-                      </p>
-                    </div>
-                    <Badge className={getStatusColor(quote.status)}>
-                      {quote.status}
-                    </Badge>
-                    <Badge className={getTourTypeColor(quote.tourType)} variant="outline">
-                      {quote.tourType.split("-").map(word => 
-                        word.charAt(0).toUpperCase() + word.slice(1)
-                      ).join(" ")}
-                    </Badge>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm text-foreground">{quote.destination}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CalendarIcon className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm text-foreground">{format(quote.date, "MMM dd, yyyy")}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm text-foreground">{quote.passengers} passengers</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-semibold text-foreground">
-                        {quote.currency} ${quote.amount.toLocaleString()}
+      {loading ? (
+        <div className="text-center py-8">Loading quotes...</div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {sortedQuotes.map((quote) => (
+            <Card key={quote.id} className="hover:shadow-md transition-shadow duration-200">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                        <FileText className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-foreground">{quote.quoteNumber}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {quote.customer.name} • {quote.customer.email}
+                        </p>
+                      </div>
+                      <Badge className={getStatusColor(quote.status)}>
+                        {quote.status}
+                      </Badge>
+                      <span className="text-xl" title={quote.leadSource}>
+                        {getSourceIcon(quote.leadSource)}
                       </span>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {quote.agency} • {quote.responsible}
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm text-foreground">{quote.tourDetails.destination}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CalendarIcon className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm text-foreground">
+                          {format(quote.tourDetails.startDate, "MMM dd, yyyy")}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm text-foreground">
+                          {quote.tourDetails.passengers} PAX
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm font-semibold text-foreground">
+                          {quote.pricing.currency} ${quote.pricing.amount.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {quote.assignedTo} • {quote.agency || "Direct"}
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">
-                        Valid until: {format(quote.validUntil, "MMM dd, yyyy")}
-                        {quote.validUntil < new Date() && (
-                          <Badge variant="destructive" className="ml-2 text-xs">
-                            Expired
-                          </Badge>
+                    
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">
+                          Created: {format(quote.metadata.createdAt, "MMM dd, yyyy")}
+                          {" • "}
+                          Expires: {format(quote.validUntil, "MMM dd, yyyy")}
+                          {quote.validUntil < new Date() && (
+                            <Badge variant="destructive" className="ml-2 text-xs">
+                              Expired
+                            </Badge>
+                          )}
+                        </p>
+                        {quote.termsAccepted?.accepted && (
+                          <p className="text-xs text-green-600">
+                            ✓ Terms accepted by {quote.termsAccepted.acceptedBy} on{" "}
+                            {format(quote.termsAccepted.acceptedAt!, "MMM dd, yyyy")}
+                          </p>
                         )}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Created: {format(quote.createdAt, "MMM dd, yyyy")}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleEditQuote(quote)}>
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Send className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-destructive">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          title="View details"
+                          onClick={() => handleViewQuote(quote)}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          title="Edit quote"
+                          onClick={() => handleEditQuote(quote)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          title="Duplicate quote"
+                          onClick={() => handleDuplicateQuote(quote)}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          title="Generate shareable link"
+                          onClick={() => handleGenerateLink(quote)}
+                        >
+                          <Link2 className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          title="Send by email"
+                          onClick={() => handleSendEmail(quote)}
+                        >
+                          <Send className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-destructive"
+                          title="Delete quote"
+                          onClick={() => handleDeleteQuote(quote)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Empty State */}
-      {sortedQuotes.length === 0 && (
+      {!loading && sortedQuotes.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center">
             <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />

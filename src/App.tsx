@@ -8,6 +8,8 @@ import { AppSidebar } from "@/components/AppSidebar";
 import DashboardPage from "./pages/DashboardPage";
 import ReservationsPage from "./pages/ReservationsPage";
 import QuotesPage from "./pages/QuotesPage";
+import { QuoteDetailPage } from "./pages/QuoteDetailPage";
+import { SharedQuotePage } from "./pages/SharedQuotePage";
 import CustomersPage from "./pages/CustomersPage";
 import FinancialPage from "./pages/FinancialPage";
 import ServicesPage from "./pages/ServicesPage";
@@ -43,6 +45,8 @@ const App = () => (
                   <Route path="/all-reservations" element={<ReservationsPage />} />
                   <Route path="/quotes" element={<QuotesPage />} />
                   <Route path="/my-quotes" element={<QuotesPage />} />
+                  <Route path="/quotes/:quoteId" element={<QuoteDetailPage />} />
+                  <Route path="/quotes/share/:shareId" element={<SharedQuotePage />} />
                   <Route path="/customers" element={<CustomersPage />} />
                   <Route path="/financial" element={<FinancialPage />} />
                   <Route path="/sales-commissions" element={<FinancialPage />} />
