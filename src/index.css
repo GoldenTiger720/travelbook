@@ -163,10 +163,11 @@ All colors MUST be HSL.
   /* Calendar dropdown styles for responsive design */
   .rdp-caption_dropdowns {
     display: flex;
-    gap: 0.25rem;
+    gap: 0.5rem;
     flex-wrap: nowrap;
     align-items: center;
     justify-content: center;
+    margin-bottom: 0.5rem;
   }
   
   .rdp-dropdown_month,
@@ -178,22 +179,58 @@ All colors MUST be HSL.
   
   .rdp-dropdown_month select,
   .rdp-dropdown_year select {
-    @apply px-2 py-1 text-sm border rounded-md bg-background;
+    @apply px-3 py-1.5 text-sm border rounded-md bg-background hover:bg-accent hover:border-accent-foreground/20 transition-colors;
     appearance: none;
     cursor: pointer;
     min-width: fit-content;
+    font-weight: 500;
+  }
+  
+  /* Add subtle chevron for dropdowns */
+  .rdp-dropdown_month::after,
+  .rdp-dropdown_year::after {
+    content: "▾";
+    position: absolute;
+    right: 8px;
+    pointer-events: none;
+    opacity: 0.5;
+  }
+  
+  /* Clean calendar styling */
+  .rdp {
+    @apply bg-background rounded-lg;
+  }
+  
+  .rdp-day_selected {
+    @apply bg-primary text-primary-foreground font-semibold;
+  }
+  
+  .rdp-day_today {
+    @apply font-bold;
+  }
+  
+  .rdp-day_today:not(.rdp-day_selected) {
+    @apply bg-accent/50 text-accent-foreground;
+  }
+  
+  .rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
+    @apply bg-accent text-accent-foreground;
+  }
+  
+  .rdp-day_disabled {
+    @apply opacity-30;
   }
   
   /* Mobile responsive adjustments */
   @media (max-width: 640px) {
     .rdp-caption_dropdowns {
-      gap: 0.125rem;
+      gap: 0.25rem;
     }
     
     .rdp-dropdown_month select,
     .rdp-dropdown_year select {
-      @apply px-1 text-xs;
-      max-width: 85px;
+      @apply px-2 py-1 text-xs;
+      max-width: 100px;
     }
     
     .rdp-caption {
@@ -203,11 +240,19 @@ All colors MUST be HSL.
     .rdp-months {
       padding: 0;
     }
+    
+    .rdp-cell {
+      @apply h-8 w-8;
+    }
+    
+    .rdp-button {
+      @apply h-8 w-8 text-xs;
+    }
   }
   
   /* Prevent text overlap in dropdowns */
   .rdp-dropdown select {
-    padding-right: 1.5rem;
+    padding-right: 1.75rem;
   }
   
   .rdp-caption_label {
@@ -217,5 +262,15 @@ All colors MUST be HSL.
   /* When dropdowns are present, hide the label */
   .rdp-caption:has(.rdp-caption_dropdowns) .rdp-caption_label {
     display: none;
+  }
+  
+  /* Smooth transitions for calendar */
+  .rdp-button {
+    @apply transition-all duration-200;
+  }
+  
+  /* Clean border for calendar container */
+  .rdp-months {
+    @apply border-0;
   }
 }
