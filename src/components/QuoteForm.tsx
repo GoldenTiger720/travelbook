@@ -321,7 +321,7 @@ export function QuoteForm({ onSubmit, onCancel, initialData, mode = "create" }: 
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0 max-w-[95vw] sm:max-w-none" align="start">
                       <Calendar
                         mode="single"
                         selected={field.value}

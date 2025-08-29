@@ -159,4 +159,63 @@ All colors MUST be HSL.
   [data-sidebar] .bg-primary * {
     color: white !important;
   }
+  
+  /* Calendar dropdown styles for responsive design */
+  .rdp-caption_dropdowns {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .rdp-dropdown_month,
+  .rdp-dropdown_year {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+  
+  .rdp-dropdown_month select,
+  .rdp-dropdown_year select {
+    @apply px-2 py-1 text-sm border rounded-md bg-background;
+    appearance: none;
+    cursor: pointer;
+    min-width: fit-content;
+  }
+  
+  /* Mobile responsive adjustments */
+  @media (max-width: 640px) {
+    .rdp-caption_dropdowns {
+      gap: 0.125rem;
+    }
+    
+    .rdp-dropdown_month select,
+    .rdp-dropdown_year select {
+      @apply px-1 text-xs;
+      max-width: 85px;
+    }
+    
+    .rdp-caption {
+      padding: 0.25rem 0;
+    }
+    
+    .rdp-months {
+      padding: 0;
+    }
+  }
+  
+  /* Prevent text overlap in dropdowns */
+  .rdp-dropdown select {
+    padding-right: 1.5rem;
+  }
+  
+  .rdp-caption_label {
+    display: none;
+  }
+  
+  /* When dropdowns are present, hide the label */
+  .rdp-caption:has(.rdp-caption_dropdowns) .rdp-caption_label {
+    display: none;
+  }
 }
