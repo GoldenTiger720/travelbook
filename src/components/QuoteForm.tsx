@@ -37,7 +37,6 @@ import {
   Instagram,
   MessageCircle,
   Link2,
-  Cake
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Quote } from "@/types/quote"
@@ -55,7 +54,6 @@ const quoteSchema = z.object({
   customerEmail: z.string().email("Invalid email address"),
   customerPhone: z.string().optional(),
   customerCompany: z.string().optional(),
-  customerBirthday: z.date().optional(),
   destination: z.string().min(3, "Destination is required"),
   tourType: z.string().min(1, "Please select a tour type"),
   startDate: z.date({ required_error: "Start date is required" }),
@@ -130,7 +128,6 @@ export function QuoteForm({ onSubmit, onCancel, initialData, mode = "create" }: 
       customerEmail: initialData?.customer?.email || "",
       customerPhone: initialData?.customer?.phone || "",
       customerCompany: initialData?.customer?.company || "",
-      customerBirthday: initialData?.customer?.birthday || undefined,
       destination: initialData?.tourDetails?.destination || "",
       tourType: initialData?.tourDetails?.tourType || "",
       startDate: initialData?.tourDetails?.startDate || undefined,
@@ -192,7 +189,6 @@ export function QuoteForm({ onSubmit, onCancel, initialData, mode = "create" }: 
         email: data.customerEmail,
         phone: data.customerPhone,
         company: data.customerCompany,
-        birthday: data.customerBirthday,
       },
       tourDetails: {
         destination: data.destination,
@@ -290,50 +286,6 @@ export function QuoteForm({ onSubmit, onCancel, initialData, mode = "create" }: 
                       <Input placeholder="ABC Corporation" className="pl-10" {...field} />
                     </div>
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="customerBirthday"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Birthday</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          <Cake className="mr-2 h-4 w-4" />
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Select birthday</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 max-w-[95vw] sm:max-w-none" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) => date > new Date()}
-                        initialFocus
-                        captionLayout="dropdown-buttons"
-                        fromYear={1900}
-                        toYear={new Date().getFullYear()}
-                      />
-                    </PopoverContent>
-                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}

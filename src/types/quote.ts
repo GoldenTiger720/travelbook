@@ -6,7 +6,6 @@ export interface Quote {
     email: string;
     phone?: string;
     company?: string;
-    birthday?: Date;
   };
   tourDetails: {
     destination: string;
