@@ -371,9 +371,7 @@ const BookQuotePage = () => {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="date">
-                  Date <span className="text-red-500">Requerido</span>
-                </Label>
+                <Label htmlFor="date">Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -399,9 +397,7 @@ const BookQuotePage = () => {
               </div>
 
               <div>
-                <Label htmlFor="destination">
-                  Destination <span className="text-red-500">Requerido</span>
-                </Label>
+                <Label htmlFor="destination">Destination</Label>
                 <Select value={formData.destination} onValueChange={(value) => handleInputChange("destination", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Choose destination..." />
@@ -419,9 +415,7 @@ const BookQuotePage = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="tour">
-                  Tour <span className="text-red-500">Requerido</span>
-                </Label>
+                <Label htmlFor="tour">Tour</Label>
                 <Select value={formData.tour} onValueChange={(value) => handleInputChange("tour", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccione" />
@@ -437,9 +431,7 @@ const BookQuotePage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="adultsPrice">
-                    Adults PAX <span className="text-red-500">Requerido</span>
-                  </Label>
+                  <Label htmlFor="adultsPrice">Adults PAX</Label>
                   <Input
                     id="adultsPrice"
                     placeholder="0"
@@ -449,9 +441,7 @@ const BookQuotePage = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="adultsPrice">
-                    Adults price CLP$ <span className="text-red-500">Requerido</span>
-                  </Label>
+                  <Label htmlFor="adultsPrice">Adults price CLP$</Label>
                   <Input
                     id="adultsPrice"
                     type="number"
