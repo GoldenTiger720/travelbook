@@ -23,7 +23,8 @@ import {
   Download,
   Share2,
   FileText,
-  CheckCircle
+  CheckCircle,
+  Cake
 } from "lucide-react"
 
 export function SharedQuotePage() {
@@ -183,6 +184,15 @@ export function SharedQuotePage() {
                   <div className="md:col-span-2">
                     <p className="text-sm text-muted-foreground">Company</p>
                     <p className="font-medium">{quote.customer.company}</p>
+                  </div>
+                )}
+                {quote.customer.birthday && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Birthday</p>
+                    <p className="font-medium flex items-center gap-1">
+                      <Cake className="w-4 h-4" />
+                      {format(new Date(quote.customer.birthday), "PPP")}
+                    </p>
                   </div>
                 )}
               </div>
