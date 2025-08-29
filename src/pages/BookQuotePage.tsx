@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, AlertCircle, Upload } from "lucide-react"
+import { CalendarIcon, AlertCircle } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { quoteService } from "@/services/quoteService"
@@ -140,20 +140,6 @@ const BookQuotePage = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold">Book now / Get Quotation - #60</h1>
-          <Badge variant="secondary">Nuevo</Badge>
-        </div>
-        <Button 
-          variant="ghost" 
-          size="sm"
-          onClick={() => navigate("/my-quotes")}
-        >
-          Resérvame. &gt; Book now / Get Quotation
-        </Button>
-      </div>
-
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader>
@@ -317,19 +303,13 @@ const BookQuotePage = () => {
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Label>Bookings with different addresses</Label>
-                <div className="flex items-center gap-4">
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="differentAddresses"
-                      checked={!bookingsWithDifferentAddresses}
-                      onChange={() => setBookingsWithDifferentAddresses(false)}
-                    />
-                    No
-                  </label>
-                </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="different-addresses">Bookings with different addresses</Label>
+                <Switch
+                  id="different-addresses"
+                  checked={bookingsWithDifferentAddresses}
+                  onCheckedChange={setBookingsWithDifferentAddresses}
+                />
               </div>
 
               {bookingsWithDifferentAddresses && (
@@ -534,11 +514,6 @@ const BookQuotePage = () => {
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" size="icon">
-                <Upload className="h-4 w-4" />
-              </Button>
-            </div>
           </CardContent>
         </Card>
 
