@@ -171,6 +171,8 @@ const BookQuotePage = () => {
                     <SelectItem value="CLP">CLP$ - Chilean pesos</SelectItem>
                     <SelectItem value="USD">USD$ - US Dollars</SelectItem>
                     <SelectItem value="EUR">EUR€ - Euros</SelectItem>
+                    <SelectItem value="BRL">R$ - Brazilian reais</SelectItem>
+                    <SelectItem value="ARS">ARS$ - Argentine pesos</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -219,7 +221,7 @@ const BookQuotePage = () => {
               </div>
 
               <div>
-                <Label htmlFor="idPassport">RUT/ID/Passport/CPF/CNP3</Label>
+                <Label htmlFor="idPassport">DNI/CPF/CNPJ</Label>
                 <Input
                   id="idPassport"
                   placeholder="11.111.111-X"
@@ -314,51 +316,47 @@ const BookQuotePage = () => {
 
               {bookingsWithDifferentAddresses && (
                 <div>
-                  <Label htmlFor="addressAlternative">Address</Label>
+                  <Label htmlFor="addressAlternative">Hotel/Accommodation Address</Label>
                   <Input
                     id="addressAlternative"
-                    placeholder="Alonso de Córdova 6050"
+                    placeholder="Hotel name, Street address, City"
                     value={formData.addressAlternative}
                     onChange={(e) => handleInputChange("addressAlternative", e.target.value)}
                   />
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="commune">Commune</Label>
-                  <Select value={formData.commune} onValueChange={(value) => handleInputChange("commune", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="santiago">Santiago</SelectItem>
-                      <SelectItem value="providencia">Providencia</SelectItem>
-                      <SelectItem value="las-condes">Las Condes</SelectItem>
-                      <SelectItem value="vitacura">Vitacura</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="hotel">Hotel</Label>
+                  <Label htmlFor="hotel">Hotel/Accommodation Name</Label>
                   <Input
                     id="hotel"
-                    placeholder="Icon"
+                    placeholder="e.g., Hotel Icon, Airbnb Las Condes"
                     value={formData.hotel}
                     onChange={(e) => handleInputChange("hotel", e.target.value)}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="room">Room</Label>
+                  <Label htmlFor="room">Room/Unit Number</Label>
                   <Input
                     id="room"
-                    placeholder="1503"
+                    placeholder="e.g., 1503, Apt 2B"
                     value={formData.room}
                     onChange={(e) => handleInputChange("room", e.target.value)}
                   />
                 </div>
+              </div>
+
+              <div>
+                <Label htmlFor="accommodationComments">Accommodation Comments</Label>
+                <Textarea
+                  id="accommodationComments"
+                  rows={3}
+                  placeholder="Additional details about the accommodation (check-in time, special instructions, contact info, etc.)"
+                  value={formData.commune}
+                  onChange={(e) => handleInputChange("commune", e.target.value)}
+                />
               </div>
             </div>
           </CardContent>
@@ -371,9 +369,7 @@ const BookQuotePage = () => {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="date">
-                  Date <span className="text-red-500">Requerido</span>
-                </Label>
+                <Label htmlFor="date">Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -399,9 +395,7 @@ const BookQuotePage = () => {
               </div>
 
               <div>
-                <Label htmlFor="destination">
-                  Destination <span className="text-red-500">Requerido</span>
-                </Label>
+                <Label htmlFor="destination">Destination</Label>
                 <Select value={formData.destination} onValueChange={(value) => handleInputChange("destination", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Choose destination..." />
@@ -419,9 +413,7 @@ const BookQuotePage = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="tour">
-                  Tour <span className="text-red-500">Requerido</span>
-                </Label>
+                <Label htmlFor="tour">Tour</Label>
                 <Select value={formData.tour} onValueChange={(value) => handleInputChange("tour", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccione" />
@@ -437,9 +429,7 @@ const BookQuotePage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="adultsPrice">
-                    Adults PAX <span className="text-red-500">Requerido</span>
-                  </Label>
+                  <Label htmlFor="adultsPrice">Adults PAX</Label>
                   <Input
                     id="adultsPrice"
                     placeholder="0"
@@ -449,9 +439,7 @@ const BookQuotePage = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="adultsPrice">
-                    Adults price CLP$ <span className="text-red-500">Requerido</span>
-                  </Label>
+                  <Label htmlFor="adultsPrice">Adults price CLP$</Label>
                   <Input
                     id="adultsPrice"
                     type="number"
