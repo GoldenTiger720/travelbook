@@ -11,19 +11,31 @@ import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, AlertCircle } from "lucide-react"
+import { CalendarIcon, AlertCircle, Plus, Trash2, MapPin } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { quoteService } from "@/services/quoteService"
+
+interface TourBooking {
+  id: string
+  date: Date | undefined
+  destination: string
+  tour: string
+  adultsPax: string
+  adultsPrice: string
+  childrenPax: string
+  childrenPrice: string
+  pickupAddress?: string
+  comments: string
+}
 
 const BookQuotePage = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
   const [submitting, setSubmitting] = useState(false)
   const [assignFromExternal, setAssignFromExternal] = useState(false)
-  const [hasAccommodationAddress, setHasAccommodationAddress] = useState(false)
-  const [date, setDate] = useState<Date>()
-
+  const [hasMultipleAddresses, setHasMultipleAddresses] = useState(false)
+  
   const [formData, setFormData] = useState({
     salesperson: "",
     currency: "",
@@ -36,18 +48,24 @@ const BookQuotePage = () => {
     countryOfOrigin: "",
     address: "",
     cpf: "",
-    accommodationAddress: "",
-    accommodationNotes: "",
-    hotel: "",
-    room: "",
-    destination: "",
-    tour: "",
-    adultsPrice: "",
-    childrenPax: "",
-    childrenPrice: "",
-    subtotal: "",
-    comments: ""
+    defaultHotel: "",
+    defaultRoom: ""
   })
+
+  const [tourBookings, setTourBookings] = useState<TourBooking[]>([
+    {
+      id: "1",
+      date: undefined,
+      destination: "",
+      tour: "",
+      adultsPax: "",
+      adultsPrice: "",
+      childrenPax: "",
+      childrenPrice: "",
+      pickupAddress: "",
+      comments: ""
+    }
+  ])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -56,11 +74,44 @@ const BookQuotePage = () => {
     }))
   }
 
-  const calculateSubtotal = () => {
-    const adults = parseFloat(formData.adultsPrice) || 0
-    const children = parseFloat(formData.childrenPrice) || 0
-    const childrenCount = parseInt(formData.childrenPax) || 0
-    return adults + (children * childrenCount)
+  const handleTourChange = (tourId: string, field: keyof TourBooking, value: any) => {
+    setTourBookings(prev => prev.map(tour => 
+      tour.id === tourId ? { ...tour, [field]: value } : tour
+    ))
+  }
+
+  const addTourBooking = () => {
+    const newTour: TourBooking = {
+      id: Date.now().toString(),
+      date: undefined,
+      destination: "",
+      tour: "",
+      adultsPax: "",
+      adultsPrice: "",
+      childrenPax: "",
+      childrenPrice: "",
+      pickupAddress: "",
+      comments: ""
+    }
+    setTourBookings(prev => [...prev, newTour])
+  }
+
+  const removeTourBooking = (tourId: string) => {
+    if (tourBookings.length > 1) {
+      setTourBookings(prev => prev.filter(tour => tour.id !== tourId))
+    }
+  }
+
+  const calculateTourSubtotal = (tour: TourBooking) => {
+    const adults = parseFloat(tour.adultsPrice) || 0
+    const adultsPax = parseFloat(tour.adultsPax) || 1
+    const children = parseFloat(tour.childrenPrice) || 0
+    const childrenPax = parseInt(tour.childrenPax) || 0
+    return (adults * adultsPax) + (children * childrenPax)
+  }
+
+  const calculateGrandTotal = () => {
+    return tourBookings.reduce((total, tour) => total + calculateTourSubtotal(tour), 0)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -68,19 +119,25 @@ const BookQuotePage = () => {
     setSubmitting(true)
 
     try {
-      const requiredFields = ["destination", "tour", "adultsPrice"]
-      const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData])
+      // Validate that at least one tour has required fields
+      const validTours = tourBookings.filter(tour => 
+        tour.destination && tour.tour && tour.adultsPrice
+      )
       
-      if (missingFields.length > 0) {
+      if (validTours.length === 0) {
         toast({
           title: "Validation Error",
-          description: "Please fill in all required fields: " + missingFields.join(", "),
+          description: "Please add at least one complete tour booking",
           variant: "destructive"
         })
         setSubmitting(false)
         return
       }
 
+      // For now, we'll create a single quote with the first tour's details
+      // In a real implementation, you might want to handle multiple tours differently
+      const primaryTour = validTours[0]
+      
       const quoteData = {
         customer: {
           name: formData.name || "Guest",
@@ -93,27 +150,41 @@ const BookQuotePage = () => {
           address: formData.address || ""
         },
         tourDetails: {
-          destination: formData.destination,
-          tourType: formData.tour,
-          startDate: date || new Date(),
-          endDate: date || new Date(),
-          passengers: 1,
-          hotel: formData.hotel || "",
-          room: formData.room || ""
+          destination: primaryTour.destination,
+          tourType: primaryTour.tour,
+          startDate: primaryTour.date || new Date(),
+          endDate: primaryTour.date || new Date(),
+          passengers: parseInt(primaryTour.adultsPax) || 1,
+          hotel: formData.defaultHotel || "",
+          room: formData.defaultRoom || "",
+          // Store all tours information in additionalInfo
+          allTours: tourBookings.map(tour => ({
+            ...tour,
+            subtotal: calculateTourSubtotal(tour)
+          }))
         },
         pricing: {
-          amount: calculateSubtotal(),
+          amount: calculateGrandTotal(),
           currency: formData.currency || "CLP",
-          adultsPrice: parseFloat(formData.adultsPrice) || 0,
-          childrenPrice: parseFloat(formData.childrenPrice) || 0,
-          childrenCount: parseInt(formData.childrenPax) || 0
+          adultsPrice: parseFloat(primaryTour.adultsPrice) || 0,
+          childrenPrice: parseFloat(primaryTour.childrenPrice) || 0,
+          childrenCount: parseInt(primaryTour.childrenPax) || 0
         },
         leadSource: "website",
         assignedTo: formData.salesperson || "Thiago Andrade",
         agency: assignFromExternal ? "External Agency" : undefined,
         status: "draft",
         validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        additionalNotes: formData.comments,
+        additionalNotes: tourBookings.map((tour, index) => {
+          let note = `Tour ${index + 1}: ${tour.tour} - ${tour.destination}`
+          if (hasMultipleAddresses && tour.pickupAddress) {
+            note += ` | Pickup: ${tour.pickupAddress}`
+          }
+          if (tour.comments) {
+            note += ` | Notes: ${tour.comments}`
+          }
+          return note
+        }).join('\n'),
         termsAccepted: {
           accepted: false
         }
@@ -123,7 +194,7 @@ const BookQuotePage = () => {
       
       toast({
         title: "Booking Created",
-        description: `Quote #${newQuote.quoteNumber} has been created successfully.`
+        description: `Quote #${newQuote.quoteNumber} has been created successfully with ${validTours.length} tour(s).`
       })
 
       navigate(`/quotes/${newQuote.id}`)
@@ -305,206 +376,238 @@ const BookQuotePage = () => {
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="accommodation-address">Accommodation address (Hotel/Lodging during trip)</Label>
-                <Switch
-                  id="accommodation-address"
-                  checked={hasAccommodationAddress}
-                  onCheckedChange={setHasAccommodationAddress}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="defaultHotel">Default Hotel/Accommodation</Label>
+                  <Input
+                    id="defaultHotel"
+                    placeholder="Hotel Icon"
+                    value={formData.defaultHotel}
+                    onChange={(e) => handleInputChange("defaultHotel", e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="defaultRoom">Default Room</Label>
+                  <Input
+                    id="defaultRoom"
+                    placeholder="1503"
+                    value={formData.defaultRoom}
+                    onChange={(e) => handleInputChange("defaultRoom", e.target.value)}
+                  />
+                </div>
               </div>
 
-              {hasAccommodationAddress && (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="hotel">Hotel/Accommodation Name</Label>
-                      <Input
-                        id="hotel"
-                        placeholder="Hotel Icon"
-                        value={formData.hotel}
-                        onChange={(e) => handleInputChange("hotel", e.target.value)}
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <Label htmlFor="accommodationAddress">Full Address</Label>
-                      <Input
-                        id="accommodationAddress"
-                        placeholder="Street name, number, city"
-                        value={formData.accommodationAddress}
-                        onChange={(e) => handleInputChange("accommodationAddress", e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="room">Room Number/Details</Label>
-                      <Input
-                        id="room"
-                        placeholder="Room 1503"
-                        value={formData.room}
-                        onChange={(e) => handleInputChange("room", e.target.value)}
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="accommodationNotes">Additional Accommodation Notes</Label>
-                      <Input
-                        id="accommodationNotes"
-                        placeholder="Check-in/out times, special requests, etc."
-                        value={formData.accommodationNotes}
-                        onChange={(e) => handleInputChange("accommodationNotes", e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
+              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                <div>
+                  <Label htmlFor="multiple-addresses" className="text-base font-medium">
+                    Different pickup address for each tour
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Enable this if the passenger will stay at different hotels during the trip
+                  </p>
+                </div>
+                <Switch
+                  id="multiple-addresses"
+                  checked={hasMultipleAddresses}
+                  onCheckedChange={setHasMultipleAddresses}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg font-medium">Add booking</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-medium">Tour Bookings</CardTitle>
+              <Button 
+                type="button"
+                onClick={addTourBooking}
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Another Tour
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="date">Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
+          <CardContent className="space-y-6">
+            {tourBookings.map((tour, index) => (
+              <div key={tour.id} className="relative border rounded-lg p-4 space-y-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-medium text-base">Tour {index + 1}</h4>
+                  {tourBookings.length > 1 && (
                     <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !date && "text-muted-foreground"
-                      )}
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeTourBooking(tour.id)}
+                      className="text-red-500 hover:text-red-700"
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {date ? format(date, "dd/MM/yyyy") : "dd/mm/aaaa"}
+                      <Trash2 className="w-4 h-4" />
                     </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={date}
-                      onSelect={setDate}
-                      initialFocus
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !tour.date && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {tour.date ? format(tour.date, "dd/MM/yyyy") : "Select date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={tour.date}
+                          onSelect={(date) => handleTourChange(tour.id, "date", date)}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div>
+                    <Label>Destination</Label>
+                    <Select 
+                      value={tour.destination} 
+                      onValueChange={(value) => handleTourChange(tour.id, "destination", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose destination..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="santiago">Santiago</SelectItem>
+                        <SelectItem value="valparaiso">Valparaíso</SelectItem>
+                        <SelectItem value="atacama">Atacama Desert</SelectItem>
+                        <SelectItem value="patagonia">Patagonia</SelectItem>
+                        <SelectItem value="easter-island">Easter Island</SelectItem>
+                        <SelectItem value="bariloche">Bariloche</SelectItem>
+                        <SelectItem value="mendoza">Mendoza</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Tour</Label>
+                    <Select 
+                      value={tour.tour} 
+                      onValueChange={(value) => handleTourChange(tour.id, "tour", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select tour..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="city-tour">City Tour</SelectItem>
+                        <SelectItem value="wine-tour">Wine Tour</SelectItem>
+                        <SelectItem value="adventure-tour">Adventure Tour</SelectItem>
+                        <SelectItem value="cultural-tour">Cultural Tour</SelectItem>
+                        <SelectItem value="circuito-chico">Circuito Chico</SelectItem>
+                        <SelectItem value="la-cueva">La Cueva</SelectItem>
+                        <SelectItem value="seven-lakes">Seven Lakes Route</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {hasMultipleAddresses && (
+                    <div>
+                      <Label>
+                        <MapPin className="w-4 h-4 inline mr-1" />
+                        Pickup Address for this tour
+                      </Label>
+                      <Input
+                        placeholder="Hotel name or street address"
+                        value={tour.pickupAddress}
+                        onChange={(e) => handleTourChange(tour.id, "pickupAddress", e.target.value)}
+                        className="border-blue-300"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <Label>Adults PAX</Label>
+                    <Input
+                      type="number"
+                      placeholder="1"
+                      value={tour.adultsPax}
+                      onChange={(e) => handleTourChange(tour.id, "adultsPax", e.target.value)}
                     />
-                  </PopoverContent>
-                </Popover>
-              </div>
+                  </div>
 
-              <div>
-                <Label htmlFor="destination">Destination</Label>
-                <Select value={formData.destination} onValueChange={(value) => handleInputChange("destination", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose destination..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="santiago">Santiago</SelectItem>
-                    <SelectItem value="valparaiso">Valparaíso</SelectItem>
-                    <SelectItem value="atacama">Atacama Desert</SelectItem>
-                    <SelectItem value="patagonia">Patagonia</SelectItem>
-                    <SelectItem value="easter-island">Easter Island</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+                  <div>
+                    <Label>Adults Price {formData.currency || "CLP"}$</Label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={tour.adultsPrice}
+                      onChange={(e) => handleTourChange(tour.id, "adultsPrice", e.target.value)}
+                    />
+                  </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="tour">Tour</Label>
-                <Select value={formData.tour} onValueChange={(value) => handleInputChange("tour", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="city-tour">City Tour</SelectItem>
-                    <SelectItem value="wine-tour">Wine Tour</SelectItem>
-                    <SelectItem value="adventure-tour">Adventure Tour</SelectItem>
-                    <SelectItem value="cultural-tour">Cultural Tour</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div>
+                    <Label>Children PAX</Label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={tour.childrenPax}
+                      onChange={(e) => handleTourChange(tour.id, "childrenPax", e.target.value)}
+                    />
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="adultsPrice">Adults PAX</Label>
-                  <Input
-                    id="adultsPrice"
-                    placeholder="0"
-                    value={formData.adultsPrice}
-                    onChange={(e) => handleInputChange("adultsPrice", e.target.value)}
-                  />
+                  <div>
+                    <Label>Children Price {formData.currency || "CLP"}$</Label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={tour.childrenPrice}
+                      onChange={(e) => handleTourChange(tour.id, "childrenPrice", e.target.value)}
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="adultsPrice">Adults price CLP$</Label>
-                  <Input
-                    id="adultsPrice"
-                    type="number"
-                    placeholder="$"
-                    value={formData.adultsPrice}
-                    onChange={(e) => handleInputChange("adultsPrice", e.target.value)}
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Comments for this tour</Label>
+                    <Textarea
+                      rows={2}
+                      placeholder="Special requests, dietary requirements, etc."
+                      value={tour.comments}
+                      onChange={(e) => handleTourChange(tour.id, "comments", e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex flex-col justify-end">
+                    <Label>Subtotal</Label>
+                    <div className="text-2xl font-semibold text-blue-600">
+                      {formData.currency || "CLP"}$ {calculateTourSubtotal(tour).toLocaleString()}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            ))}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="childrenPax">Children PAX</Label>
-                <Input
-                  id="childrenPax"
-                  type="number"
-                  placeholder="0"
-                  value={formData.childrenPax}
-                  onChange={(e) => handleInputChange("childrenPax", e.target.value)}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="childrenPrice">Children price CLP$</Label>
-                <Input
-                  id="childrenPrice"
-                  type="number"
-                  placeholder="$"
-                  value={formData.childrenPrice}
-                  onChange={(e) => handleInputChange("childrenPrice", e.target.value)}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="subtotal">SUBTOTAL CLP$</Label>
-                <Input
-                  id="subtotal"
-                  type="number"
-                  placeholder="$"
-                  value={calculateSubtotal()}
-                  readOnly
-                  className="bg-gray-50"
-                />
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between">
+                <span className="text-lg font-medium">GRAND TOTAL</span>
+                <span className="text-2xl font-bold text-green-600">
+                  {formData.currency || "CLP"}$ {calculateGrandTotal().toLocaleString()}
+                </span>
               </div>
             </div>
-
-            <div className="text-sm text-muted-foreground">
-              Minimo: CLP $1.234
-            </div>
-
-            <div>
-              <Label htmlFor="comments">Comments on tour</Label>
-              <Textarea
-                id="comments"
-                rows={4}
-                placeholder="Enter any special requests or comments..."
-                value={formData.comments}
-                onChange={(e) => handleInputChange("comments", e.target.value)}
-              />
-            </div>
-
           </CardContent>
         </Card>
 
@@ -517,13 +620,20 @@ const BookQuotePage = () => {
           </div>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate("/my-quotes")}
+          >
+            Cancel
+          </Button>
           <Button
             type="submit"
             className="bg-green-500 hover:bg-green-600 text-white px-8"
             disabled={submitting}
           >
-            {submitting ? "Creating..." : "Add booking"}
+            {submitting ? "Creating..." : "Create Booking"}
           </Button>
         </div>
       </form>
