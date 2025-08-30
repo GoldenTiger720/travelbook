@@ -171,6 +171,8 @@ const BookQuotePage = () => {
                     <SelectItem value="CLP">CLP$ - Chilean pesos</SelectItem>
                     <SelectItem value="USD">USD$ - US Dollars</SelectItem>
                     <SelectItem value="EUR">EUR€ - Euros</SelectItem>
+                    <SelectItem value="BRL">BRL R$ - Brazilian reais</SelectItem>
+                    <SelectItem value="ARS">ARS$ - Argentine pesos</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
