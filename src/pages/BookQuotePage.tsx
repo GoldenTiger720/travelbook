@@ -221,7 +221,7 @@ const BookQuotePage = () => {
               </div>
 
               <div>
-                <Label htmlFor="idPassport">RUT/ID/Passport/CPF/CNP3</Label>
+                <Label htmlFor="idPassport">DNI/CPF/CNPJ</Label>
                 <Input
                   id="idPassport"
                   placeholder="11.111.111-X"
