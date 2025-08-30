@@ -7,6 +7,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import DashboardPage from "./pages/DashboardPage";
 import ReservationsPage from "./pages/ReservationsPage";
+import AllReservationsPage from "./pages/AllReservationsPage";
 import BookQuotePage from "./pages/BookQuotePage";
 import QuotesPage from "./pages/QuotesPage";
 import { QuoteDetailPage } from "./pages/QuoteDetailPage";
@@ -43,7 +44,7 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<DashboardPage />} />
                   <Route path="/reservations" element={<ReservationsPage />} />
-                  <Route path="/all-reservations" element={<ReservationsPage />} />
+                  <Route path="/all-reservations" element={<AllReservationsPage />} />
                   <Route path="/quotes" element={<BookQuotePage />} />
                   <Route path="/my-quotes" element={<QuotesPage />} />
                   <Route path="/quotes/:quoteId" element={<QuoteDetailPage />} />
