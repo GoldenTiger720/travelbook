@@ -21,7 +21,7 @@ const BookQuotePage = () => {
   const { toast } = useToast()
   const [submitting, setSubmitting] = useState(false)
   const [assignFromExternal, setAssignFromExternal] = useState(false)
-  const [bookingsWithDifferentAddresses, setBookingsWithDifferentAddresses] = useState(false)
+  const [hasAccommodationAddress, setHasAccommodationAddress] = useState(false)
   const [date, setDate] = useState<Date>()
 
   const [formData, setFormData] = useState({
@@ -36,8 +36,8 @@ const BookQuotePage = () => {
     countryOfOrigin: "",
     address: "",
     cpf: "",
-    addressAlternative: "",
-    commune: "",
+    accommodationAddress: "",
+    accommodationNotes: "",
     hotel: "",
     room: "",
     destination: "",
@@ -306,62 +306,61 @@ const BookQuotePage = () => {
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label htmlFor="different-addresses">Bookings with different addresses</Label>
+                <Label htmlFor="accommodation-address">Accommodation address (Hotel/Lodging during trip)</Label>
                 <Switch
-                  id="different-addresses"
-                  checked={bookingsWithDifferentAddresses}
-                  onCheckedChange={setBookingsWithDifferentAddresses}
+                  id="accommodation-address"
+                  checked={hasAccommodationAddress}
+                  onCheckedChange={setHasAccommodationAddress}
                 />
               </div>
 
-              {bookingsWithDifferentAddresses && (
-                <div>
-                  <Label htmlFor="addressAlternative">Address</Label>
-                  <Input
-                    id="addressAlternative"
-                    placeholder="Alonso de Córdova 6050"
-                    value={formData.addressAlternative}
-                    onChange={(e) => handleInputChange("addressAlternative", e.target.value)}
-                  />
-                </div>
+              {hasAccommodationAddress && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="hotel">Hotel/Accommodation Name</Label>
+                      <Input
+                        id="hotel"
+                        placeholder="Hotel Icon"
+                        value={formData.hotel}
+                        onChange={(e) => handleInputChange("hotel", e.target.value)}
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <Label htmlFor="accommodationAddress">Full Address</Label>
+                      <Input
+                        id="accommodationAddress"
+                        placeholder="Street name, number, city"
+                        value={formData.accommodationAddress}
+                        onChange={(e) => handleInputChange("accommodationAddress", e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="room">Room Number/Details</Label>
+                      <Input
+                        id="room"
+                        placeholder="Room 1503"
+                        value={formData.room}
+                        onChange={(e) => handleInputChange("room", e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="accommodationNotes">Additional Accommodation Notes</Label>
+                      <Input
+                        id="accommodationNotes"
+                        placeholder="Check-in/out times, special requests, etc."
+                        value={formData.accommodationNotes}
+                        onChange={(e) => handleInputChange("accommodationNotes", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </>
               )}
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="commune">Commune</Label>
-                  <Select value={formData.commune} onValueChange={(value) => handleInputChange("commune", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="santiago">Santiago</SelectItem>
-                      <SelectItem value="providencia">Providencia</SelectItem>
-                      <SelectItem value="las-condes">Las Condes</SelectItem>
-                      <SelectItem value="vitacura">Vitacura</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="hotel">Hotel</Label>
-                  <Input
-                    id="hotel"
-                    placeholder="Icon"
-                    value={formData.hotel}
-                    onChange={(e) => handleInputChange("hotel", e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="room">Room</Label>
-                  <Input
-                    id="room"
-                    placeholder="1503"
-                    value={formData.room}
-                    onChange={(e) => handleInputChange("room", e.target.value)}
-                  />
-                </div>
-              </div>
             </div>
           </CardContent>
         </Card>
