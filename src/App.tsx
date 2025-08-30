@@ -14,6 +14,7 @@ import { QuoteDetailPage } from "./pages/QuoteDetailPage";
 import { SharedQuotePage } from "./pages/SharedQuotePage";
 import CustomersPage from "./pages/CustomersPage";
 import FinancialPage from "./pages/FinancialPage";
+import SalesCommissionsPage from "./pages/SalesCommissionsPage";
 import ServicesPage from "./pages/ServicesPage";
 import LogisticsPage from "./pages/LogisticsPage";
 import ReportsPage from "./pages/ReportsPage";
@@ -51,7 +52,7 @@ const App = () => (
                   <Route path="/quotes/share/:shareId" element={<SharedQuotePage />} />
                   <Route path="/customers" element={<CustomersPage />} />
                   <Route path="/financial" element={<FinancialPage />} />
-                  <Route path="/sales-commissions" element={<FinancialPage />} />
+                  <Route path="/sales-commissions" element={<SalesCommissionsPage />} />
                   <Route path="/services" element={<ServicesPage />} />
                   <Route path="/tours" element={<ServicesPage />} />
                   <Route path="/logistics" element={<LogisticsPage />} />
