@@ -21,6 +21,7 @@ import {
   Filter,
   Download,
   Eye,
+  Edit,
   Users,
   DollarSign,
   MapPin,
@@ -55,6 +56,7 @@ const AllReservationsPage = () => {
   const [loading, setLoading] = useState(true)
   const [filterOptions, setFilterOptions] = useState<any>({
     salespersons: [],
+    operators: [],
     guides: [],
     drivers: [],
     agencies: [],
@@ -191,6 +193,7 @@ const AllReservationsPage = () => {
       'Total Amount',
       'Currency',
       'Salesperson',
+      'Operator',
       'Guide',
       'Driver',
       'Agency'
@@ -213,6 +216,7 @@ const AllReservationsPage = () => {
       r.pricing.totalAmount,
       r.pricing.currency,
       r.salesperson,
+      r.operator || '',
       r.guide || '',
       r.driver || '',
       r.externalAgency || ''
@@ -257,6 +261,15 @@ const AllReservationsPage = () => {
     }, { passengers: 0, adults: 0, children: 0, infants: 0, revenue: 0 })
     
     return totals
+  }
+  
+  const handleEditReservation = (reservation: Reservation) => {
+    toast({
+      title: 'Edit Reservation',
+      description: `Opening editor for reservation ${reservation.reservationNumber}`
+    })
+    // TODO: Navigate to edit page or open edit modal
+    console.log('Edit reservation:', reservation.reservationNumber)
   }
   
   return (
@@ -444,7 +457,22 @@ const AllReservationsPage = () => {
               </div>
               
               {/* Additional Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <Label className="text-xs">Operator</Label>
+                  <Select value={filters.operator || 'all'} onValueChange={(value) => handleFilterChange('operator', value === 'all' ? undefined : value)}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Operators</SelectItem>
+                      {filterOptions.operators.map((operator: string) => (
+                        <SelectItem key={operator} value={operator}>{operator}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
                 <div>
                   <Label className="text-xs">Guide</Label>
                   <Select value={filters.guide || 'all'} onValueChange={(value) => handleFilterChange('guide', value === 'all' ? undefined : value)}>
@@ -592,7 +620,7 @@ const AllReservationsPage = () => {
                   <TableHead className="w-[100px] text-right">Total</TableHead>
                   <TableHead className="w-[80px]">Status</TableHead>
                   <TableHead className="w-[80px]">Payment</TableHead>
-                  <TableHead className="w-[40px] text-center">View</TableHead>
+                  <TableHead className="w-[80px] text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -701,17 +729,30 @@ const AllReservationsPage = () => {
                         <TableCell>{getStatusBadge(reservation.status)}</TableCell>
                         <TableCell>{getPaymentBadge(reservation.paymentStatus)}</TableCell>
                         <TableCell className="text-center">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              // Handle view action
-                            }}
-                          >
-                            <Eye className="w-3 h-3" />
-                          </Button>
+                          <div className="flex gap-1 justify-center">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                // Handle view action
+                              }}
+                            >
+                              <Eye className="w-3 h-3" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleEditReservation(reservation)
+                              }}
+                            >
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                       {expandedRows.has(reservation.id) && (
@@ -731,6 +772,7 @@ const AllReservationsPage = () => {
                               <div>
                                 <p className="font-semibold mb-1">Operations</p>
                                 <p>Salesperson: {reservation.salesperson}</p>
+                                {reservation.operator && <p>Operator: {reservation.operator}</p>}
                                 {reservation.guide && <p>Guide: {reservation.guide}</p>}
                                 {reservation.driver && <p>Driver: {reservation.driver}</p>}
                                 {reservation.externalAgency && <p>Agency: {reservation.externalAgency}</p>}

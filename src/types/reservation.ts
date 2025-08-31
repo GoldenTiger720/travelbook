@@ -34,6 +34,7 @@ export interface Reservation {
     currency: string
   }
   salesperson: string
+  operator?: string
   guide?: string
   driver?: string
   externalAgency?: string
@@ -50,6 +51,7 @@ export interface ReservationFilters {
   status?: string
   paymentStatus?: string
   salesperson?: string
+  operator?: string
   tour?: string
   guide?: string
   driver?: string

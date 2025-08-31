@@ -10,6 +10,7 @@ const generateMockReservations = (): Reservation[] => {
   const paymentStatuses: Reservation['paymentStatus'][] = ['paid', 'pending', 'partial', 'refunded', 'overdue']
   
   const salespersons = ['Thiago Andrade', 'Maria Silva', 'Juan Rodriguez', 'Ana Martinez']
+  const operators = ['Direct Operations', 'Partner Tours Chile', 'Andes Adventures', 'Patagonia Expeditions', 'Wine Valley Tours']
   const guides = ['Carlos Mendez', 'Sofia Lopez', 'Diego Torres', 'Laura Garcia', '']
   const drivers = ['Pedro Sanchez', 'Miguel Rodriguez', 'Roberto Silva', 'Fernando Costa', '']
   const agencies = ['Travel Plus', 'World Tours', 'Adventure Agency', 'Sunset Travel', '']
@@ -89,6 +90,7 @@ const generateMockReservations = (): Reservation[] => {
     
     const totalAmount = (adults * adultPrice) + (children * childPrice) + (infants * infantPrice)
     
+    const operator = operators[Math.floor(Math.random() * operators.length)]
     const guide = guides[Math.floor(Math.random() * guides.length)]
     const driver = drivers[Math.floor(Math.random() * drivers.length)]
     const agency = agencies[Math.floor(Math.random() * agencies.length)]
@@ -120,6 +122,7 @@ const generateMockReservations = (): Reservation[] => {
         currency
       },
       salesperson: salespersons[Math.floor(Math.random() * salespersons.length)],
+      operator,
       guide: guide || undefined,
       driver: driver || undefined,
       externalAgency: agency || undefined,
@@ -182,6 +185,11 @@ class ReservationService {
       filtered = filtered.filter(r => r.driver === filters.driver)
     }
     
+    // Operator filter
+    if (filters.operator && filters.operator !== 'all') {
+      filtered = filtered.filter(r => r.operator === filters.operator)
+    }
+    
     // External agency filter
     if (filters.externalAgency && filters.externalAgency !== 'all') {
       filtered = filtered.filter(r => r.externalAgency === filters.externalAgency)
@@ -207,6 +215,7 @@ class ReservationService {
   
   async getUniqueValues() {
     const salespersons = new Set<string>()
+    const operators = new Set<string>()
     const guides = new Set<string>()
     const drivers = new Set<string>()
     const agencies = new Set<string>()
@@ -214,6 +223,7 @@ class ReservationService {
     
     this.reservations.forEach(r => {
       salespersons.add(r.salesperson)
+      if (r.operator) operators.add(r.operator)
       if (r.guide) guides.add(r.guide)
       if (r.driver) drivers.add(r.driver)
       if (r.externalAgency) agencies.add(r.externalAgency)
@@ -222,6 +232,7 @@ class ReservationService {
     
     return {
       salespersons: Array.from(salespersons).sort(),
+      operators: Array.from(operators).sort(),
       guides: Array.from(guides).sort(),
       drivers: Array.from(drivers).sort(),
       agencies: Array.from(agencies).sort(),
