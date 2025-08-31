@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Badge } from '@/components/ui/badge'
+import ViewReservationModal from '@/components/ViewReservationModal'
+import EditReservationModal from '@/components/EditReservationModal'
 import {
   Table,
   TableBody,
@@ -78,6 +80,9 @@ const AllReservationsPage = () => {
 
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   const [filtersOpen, setFiltersOpen] = useState(true)
+  const [viewModalOpen, setViewModalOpen] = useState(false)
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
   
   useEffect(() => {
     loadInitialData()
@@ -263,13 +268,22 @@ const AllReservationsPage = () => {
     return totals
   }
   
+  const handleViewReservation = (reservation: Reservation) => {
+    setSelectedReservation(reservation)
+    setViewModalOpen(true)
+  }
+
   const handleEditReservation = (reservation: Reservation) => {
-    toast({
-      title: 'Edit Reservation',
-      description: `Opening editor for reservation ${reservation.reservationNumber}`
-    })
-    // TODO: Navigate to edit page or open edit modal
-    console.log('Edit reservation:', reservation.reservationNumber)
+    setSelectedReservation(reservation)
+    setEditModalOpen(true)
+  }
+
+  const handleSaveReservation = (updatedReservation: Reservation) => {
+    // Update the reservation in the local state
+    const updatedReservations = reservations.map(r => 
+      r.id === updatedReservation.id ? updatedReservation : r
+    )
+    setReservations(updatedReservations)
   }
   
   return (
@@ -736,7 +750,7 @@ const AllReservationsPage = () => {
                               className="h-7 w-7 p-0"
                               onClick={(e) => {
                                 e.stopPropagation()
-                                // Handle view action
+                                handleViewReservation(reservation)
                               }}
                             >
                               <Eye className="w-3 h-3" />
@@ -804,6 +818,21 @@ const AllReservationsPage = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Modals */}
+      <ViewReservationModal
+        reservation={selectedReservation}
+        open={viewModalOpen}
+        onOpenChange={setViewModalOpen}
+      />
+      
+      <EditReservationModal
+        reservation={selectedReservation}
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        onSave={handleSaveReservation}
+        filterOptions={filterOptions}
+      />
     </div>
   )
 }
