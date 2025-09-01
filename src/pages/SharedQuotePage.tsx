@@ -24,7 +24,9 @@ import {
   Share2,
   FileText,
   CheckCircle,
-  Cake
+  Cake,
+  Baby,
+  UserPlus
 } from "lucide-react"
 
 export function SharedQuotePage() {
@@ -233,10 +235,36 @@ export function SharedQuotePage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Number of Travelers</p>
-                  <p className="font-medium flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    {quote.tourDetails.passengers} PAX
-                  </p>
+                  {quote.tourDetails.passengerBreakdown ? (
+                    <div className="space-y-1">
+                      {quote.tourDetails.passengerBreakdown.adults > 0 && (
+                        <p className="font-medium flex items-center gap-1">
+                          <Users className="w-4 h-4" />
+                          {quote.tourDetails.passengerBreakdown.adults} {quote.tourDetails.passengerBreakdown.adults === 1 ? 'Adult' : 'Adults'}
+                        </p>
+                      )}
+                      {quote.tourDetails.passengerBreakdown.children > 0 && (
+                        <p className="font-medium flex items-center gap-1">
+                          <UserPlus className="w-4 h-4" />
+                          {quote.tourDetails.passengerBreakdown.children} {quote.tourDetails.passengerBreakdown.children === 1 ? 'Child' : 'Children'}
+                        </p>
+                      )}
+                      {quote.tourDetails.passengerBreakdown.infants > 0 && (
+                        <p className="font-medium flex items-center gap-1">
+                          <Baby className="w-4 h-4" />
+                          {quote.tourDetails.passengerBreakdown.infants} {quote.tourDetails.passengerBreakdown.infants === 1 ? 'Infant' : 'Infants'}
+                        </p>
+                      )}
+                      <p className="text-sm text-muted-foreground pt-1">
+                        Total: {quote.tourDetails.passengers} PAX
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="font-medium flex items-center gap-1">
+                      <Users className="w-4 h-4" />
+                      {quote.tourDetails.passengers} PAX
+                    </p>
+                  )}
                 </div>
               </div>
               {quote.tourDetails.description && (
@@ -259,36 +287,65 @@ export function SharedQuotePage() {
             <CardContent className="space-y-4">
               {quote.pricing.breakdown && quote.pricing.breakdown.length > 0 ? (
                 <>
-                  <div className="space-y-3">
-                    {quote.pricing.breakdown.map((item, index) => (
-                      <div key={index} className="flex justify-between items-start py-2">
-                        <div className="flex-1">
-                          <p className="font-medium">{item.item}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {item.quantity} {item.quantity > 1 ? 'units' : 'unit'} × {quote.pricing.currency} ${item.unitPrice.toLocaleString()}
-                          </p>
-                        </div>
-                        <p className="font-medium ml-4">
-                          {quote.pricing.currency} ${item.total.toLocaleString()}
-                        </p>
-                      </div>
-                    ))}
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-2 text-sm font-medium text-muted-foreground">Item/Service</th>
+                          <th className="text-center py-2 text-sm font-medium text-muted-foreground">Quantity</th>
+                          <th className="text-right py-2 text-sm font-medium text-muted-foreground">Unit Price</th>
+                          <th className="text-right py-2 text-sm font-medium text-muted-foreground">Subtotal</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {quote.pricing.breakdown.map((item, index) => (
+                          <tr key={index} className="border-b">
+                            <td className="py-3">
+                              <p className="font-medium">{item.item}</p>
+                            </td>
+                            <td className="text-center py-3">
+                              <p>{item.quantity}</p>
+                            </td>
+                            <td className="text-right py-3">
+                              <p>{quote.pricing.currency} ${item.unitPrice.toLocaleString()}</p>
+                            </td>
+                            <td className="text-right py-3">
+                              <p className="font-medium">
+                                {quote.pricing.currency} ${item.total.toLocaleString()}
+                              </p>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-primary/5">
+                          <td colSpan={3} className="py-3 px-2">
+                            <p className="text-lg font-semibold">GRAND TOTAL</p>
+                            <p className="text-sm text-muted-foreground">Total Investment</p>
+                          </td>
+                          <td className="text-right py-3 px-2">
+                            <p className="text-xl font-bold text-primary">
+                              {quote.pricing.currency} ${quote.pricing.amount.toLocaleString()}
+                            </p>
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
                   </div>
-                  <Separator />
                 </>
-              ) : null}
-              
-              <div className="bg-primary/5 rounded-lg p-4">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-lg font-semibold">Total Investment</p>
-                    <p className="text-sm text-muted-foreground">Per person prices may apply</p>
+              ) : (
+                <div className="bg-primary/5 rounded-lg p-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-lg font-semibold">Total Investment</p>
+                      <p className="text-sm text-muted-foreground">Per person prices may apply</p>
+                    </div>
+                    <p className="text-3xl font-bold text-primary">
+                      {quote.pricing.currency} ${quote.pricing.amount.toLocaleString()}
+                    </p>
                   </div>
-                  <p className="text-3xl font-bold text-primary">
-                    {quote.pricing.currency} ${quote.pricing.amount.toLocaleString()}
-                  </p>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 

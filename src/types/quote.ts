@@ -14,6 +14,11 @@ export interface Quote {
     startDate: Date;
     endDate?: Date;
     passengers: number;
+    passengerBreakdown?: {
+      adults: number;
+      children: number;
+      infants: number;
+    };
     description?: string;
   };
   pricing: {

@@ -25,7 +25,9 @@ import {
   FileText,
   Globe,
   CheckCircle,
-  Cake
+  Cake,
+  Baby,
+  UserPlus
 } from "lucide-react"
 
 const getStatusColor = (status: string) => {
@@ -243,10 +245,36 @@ export function QuoteDetailPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Passengers</p>
-                  <p className="font-medium flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    {quote.tourDetails.passengers} PAX
-                  </p>
+                  {quote.tourDetails.passengerBreakdown ? (
+                    <div className="space-y-1">
+                      {quote.tourDetails.passengerBreakdown.adults > 0 && (
+                        <p className="font-medium flex items-center gap-1">
+                          <Users className="w-4 h-4" />
+                          {quote.tourDetails.passengerBreakdown.adults} {quote.tourDetails.passengerBreakdown.adults === 1 ? 'Adult' : 'Adults'}
+                        </p>
+                      )}
+                      {quote.tourDetails.passengerBreakdown.children > 0 && (
+                        <p className="font-medium flex items-center gap-1">
+                          <UserPlus className="w-4 h-4" />
+                          {quote.tourDetails.passengerBreakdown.children} {quote.tourDetails.passengerBreakdown.children === 1 ? 'Child' : 'Children'}
+                        </p>
+                      )}
+                      {quote.tourDetails.passengerBreakdown.infants > 0 && (
+                        <p className="font-medium flex items-center gap-1">
+                          <Baby className="w-4 h-4" />
+                          {quote.tourDetails.passengerBreakdown.infants} {quote.tourDetails.passengerBreakdown.infants === 1 ? 'Infant' : 'Infants'}
+                        </p>
+                      )}
+                      <p className="text-sm text-muted-foreground pt-1">
+                        Total: {quote.tourDetails.passengers} PAX
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="font-medium flex items-center gap-1">
+                      <Users className="w-4 h-4" />
+                      {quote.tourDetails.passengers} PAX
+                    </p>
+                  )}
                 </div>
               </div>
               {quote.tourDetails.description && (
@@ -269,31 +297,61 @@ export function QuoteDetailPage() {
             <CardContent className="space-y-4">
               {quote.pricing.breakdown && quote.pricing.breakdown.length > 0 ? (
                 <>
-                  <div className="space-y-2">
-                    {quote.pricing.breakdown.map((item, index) => (
-                      <div key={index} className="flex justify-between py-2">
-                        <div>
-                          <p className="font-medium">{item.item}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {item.quantity} x {quote.pricing.currency} ${item.unitPrice}
-                          </p>
-                        </div>
-                        <p className="font-medium">
-                          {quote.pricing.currency} ${item.total.toLocaleString()}
-                        </p>
-                      </div>
-                    ))}
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-2 text-sm font-medium text-muted-foreground">Item/Service</th>
+                          <th className="text-center py-2 text-sm font-medium text-muted-foreground">Quantity</th>
+                          <th className="text-right py-2 text-sm font-medium text-muted-foreground">Unit Price</th>
+                          <th className="text-right py-2 text-sm font-medium text-muted-foreground">Subtotal</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {quote.pricing.breakdown.map((item, index) => (
+                          <tr key={index} className="border-b">
+                            <td className="py-3">
+                              <p className="font-medium">{item.item}</p>
+                            </td>
+                            <td className="text-center py-3">
+                              <p>{item.quantity}</p>
+                            </td>
+                            <td className="text-right py-3">
+                              <p>{quote.pricing.currency} ${item.unitPrice.toLocaleString()}</p>
+                            </td>
+                            <td className="text-right py-3">
+                              <p className="font-medium">
+                                {quote.pricing.currency} ${item.total.toLocaleString()}
+                              </p>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-primary/5">
+                          <td colSpan={3} className="py-3 px-2">
+                            <p className="text-lg font-semibold">GRAND TOTAL</p>
+                          </td>
+                          <td className="text-right py-3 px-2">
+                            <p className="text-xl font-bold text-primary">
+                              {quote.pricing.currency} ${quote.pricing.amount.toLocaleString()}
+                            </p>
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
                   </div>
-                  <Separator />
                 </>
-              ) : null}
-              
-              <div className="flex justify-between items-center">
-                <p className="text-lg font-semibold">Total Amount</p>
-                <p className="text-2xl font-bold text-primary">
-                  {quote.pricing.currency} ${quote.pricing.amount.toLocaleString()}
-                </p>
-              </div>
+              ) : (
+                <div className="bg-primary/5 rounded-lg p-4">
+                  <div className="flex justify-between items-center">
+                    <p className="text-lg font-semibold">Total Amount</p>
+                    <p className="text-2xl font-bold text-primary">
+                      {quote.pricing.currency} ${quote.pricing.amount.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -383,7 +441,41 @@ export function QuoteDetailPage() {
 
           {/* Actions */}
           <Card>
-            <CardContent className="pt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Share2 className="w-5 h-5" />
+                Share & Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {quote.shareableLink && (
+                <Alert className="border-primary/20 bg-primary/5">
+                  <Share2 className="h-4 w-4" />
+                  <AlertDescription>
+                    <p className="font-medium mb-1">Share this quote with your client</p>
+                    <p className="text-sm">
+                      Send this link to your client so they can review and accept the terms directly:
+                    </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <code className="text-xs bg-background px-2 py-1 rounded flex-1">
+                        {window.location.origin}/quotes/share/{quote.shareableLink.split('/').pop()}
+                      </code>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          const shareUrl = `${window.location.origin}/quotes/share/${quote.shareableLink?.split('/').pop()}`
+                          navigator.clipboard.writeText(shareUrl)
+                          alert("Share link copied to clipboard!")
+                        }}
+                      >
+                        Copy
+                      </Button>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+              
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button onClick={handleDownloadPDF} variant="outline" className="flex-1">
                   <Download className="w-4 h-4 mr-2" />
@@ -391,7 +483,7 @@ export function QuoteDetailPage() {
                 </Button>
                 <Button onClick={handleShare} variant="outline" className="flex-1">
                   <Share2 className="w-4 h-4 mr-2" />
-                  Share Quote
+                  Copy Link
                 </Button>
                 {!isExpired && !quote.termsAccepted?.accepted && (
                   <Button className="flex-1 bg-primary">

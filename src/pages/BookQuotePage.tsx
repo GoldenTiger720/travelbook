@@ -274,12 +274,45 @@ const BookQuotePage = () => {
           startDate: tourBookings[0].date,
           endDate: tourBookings[tourBookings.length - 1].date,
           passengers: tourBookings[0].adultPax + tourBookings[0].childPax + tourBookings[0].infantPax,
+          passengerBreakdown: {
+            adults: tourBookings[0].adultPax,
+            children: tourBookings[0].childPax,
+            infants: tourBookings[0].infantPax
+          },
           hotel: formData.defaultHotel || "",
           room: formData.defaultRoom || ""
         },
         pricing: {
           amount: calculateGrandTotal(),
-          currency: formData.currency || "CLP"
+          currency: formData.currency || "CLP",
+          breakdown: tourBookings.map(tour => {
+            const items = []
+            if (tour.adultPax > 0) {
+              items.push({
+                item: `${tour.tourName} - Adults`,
+                quantity: tour.adultPax,
+                unitPrice: tour.adultPrice,
+                total: tour.adultPax * tour.adultPrice
+              })
+            }
+            if (tour.childPax > 0) {
+              items.push({
+                item: `${tour.tourName} - Children`,
+                quantity: tour.childPax,
+                unitPrice: tour.childPrice,
+                total: tour.childPax * tour.childPrice
+              })
+            }
+            if (tour.infantPax > 0) {
+              items.push({
+                item: `${tour.tourName} - Infants`,
+                quantity: tour.infantPax,
+                unitPrice: tour.infantPrice,
+                total: tour.infantPax * tour.infantPrice
+              })
+            }
+            return items
+          }).flat()
         },
         leadSource: "website",
         assignedTo: formData.salesperson || "Thiago Andrade",

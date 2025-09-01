@@ -3,8 +3,8 @@ import { format } from 'date-fns';
 
 const mockQuotes: Quote[] = [
   {
-    id: '1',
-    quoteNumber: 'Q-2024-001',
+    id: '1756682399909',
+    quoteNumber: 'Q-2025-005',
     customer: {
       name: 'Maria González',
       email: 'maria@example.com',
@@ -14,28 +14,37 @@ const mockQuotes: Quote[] = [
     tourDetails: {
       destination: 'Buenos Aires City Tour',
       tourType: 'city-tour',
-      startDate: new Date(2024, 0, 15),
-      endDate: new Date(2024, 0, 17),
-      passengers: 2,
+      startDate: new Date(2025, 0, 15),
+      endDate: new Date(2025, 0, 17),
+      passengers: 5,
+      passengerBreakdown: {
+        adults: 2,
+        children: 2,
+        infants: 1
+      },
       description: 'Complete city tour including Recoleta, La Boca, and Tango show'
     },
     pricing: {
-      amount: 2450,
+      amount: 3250,
       currency: 'USD',
       breakdown: [
-        { item: 'City Tour (2 days)', quantity: 2, unitPrice: 150, total: 300 },
-        { item: 'Hotel Accommodation', quantity: 2, unitPrice: 800, total: 1600 },
-        { item: 'Tango Show with Dinner', quantity: 2, unitPrice: 275, total: 550 }
+        { item: 'City Tour - Adults', quantity: 2, unitPrice: 150, total: 300 },
+        { item: 'City Tour - Children', quantity: 2, unitPrice: 75, total: 150 },
+        { item: 'Hotel Accommodation (Family Room)', quantity: 1, unitPrice: 1800, total: 1800 },
+        { item: 'Tango Show with Dinner - Adults', quantity: 2, unitPrice: 275, total: 550 },
+        { item: 'Tango Show with Dinner - Children', quantity: 2, unitPrice: 150, total: 300 },
+        { item: 'Airport Transfer (Van)', quantity: 2, unitPrice: 75, total: 150 }
       ]
     },
     status: 'pending',
     leadSource: 'website',
     assignedTo: 'Carlos Mendez',
     agency: 'Direct',
-    validUntil: new Date(2024, 0, 30),
+    validUntil: new Date(2025, 1, 30),
+    shareableLink: 'https://travelbook.com/quotes/share/xyz789abc',
     metadata: {
-      createdAt: new Date(2024, 0, 1),
-      updatedAt: new Date(2024, 0, 1),
+      createdAt: new Date(2025, 0, 1),
+      updatedAt: new Date(2025, 0, 1),
       createdBy: 'Carlos Mendez'
     }
   },
@@ -53,16 +62,22 @@ const mockQuotes: Quote[] = [
       startDate: new Date(2024, 0, 18),
       endDate: new Date(2024, 0, 25),
       passengers: 4,
+      passengerBreakdown: {
+        adults: 2,
+        children: 1,
+        infants: 1
+      },
       description: 'Beach resort package with excursions to Christ the Redeemer and Sugarloaf'
     },
     pricing: {
       amount: 3890,
       currency: 'USD',
       breakdown: [
-        { item: 'Beach Resort (7 nights)', quantity: 2, unitPrice: 1400, total: 2800 },
-        { item: 'City Excursions', quantity: 4, unitPrice: 120, total: 480 },
-        { item: 'Airport Transfers', quantity: 2, unitPrice: 80, total: 160 },
-        { item: 'Breakfast Package', quantity: 4, unitPrice: 112.5, total: 450 }
+        { item: 'Beach Resort (7 nights) - Adults', quantity: 2, unitPrice: 1400, total: 2800 },
+        { item: 'Beach Resort (7 nights) - Child', quantity: 1, unitPrice: 700, total: 700 },
+        { item: 'City Excursions - Adults', quantity: 2, unitPrice: 120, total: 240 },
+        { item: 'City Excursions - Child', quantity: 1, unitPrice: 60, total: 60 },
+        { item: 'Airport Transfers', quantity: 2, unitPrice: 45, total: 90 }
       ]
     },
     status: 'approved',
@@ -196,6 +211,7 @@ class QuoteService {
       ...quoteData,
       id: Date.now().toString(),
       quoteNumber: `Q-${new Date().getFullYear()}-${String(this.quotes.length + 1).padStart(3, '0')}`,
+      shareableLink: `https://travelbook.com/quotes/share/${Date.now().toString()}`,
       metadata: {
         createdAt: new Date(),
         updatedAt: new Date(),
