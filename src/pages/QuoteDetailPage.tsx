@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useToast } from "@/components/ui/use-toast"
 import { 
   MapPin, 
   Calendar, 
@@ -45,6 +46,7 @@ const getStatusColor = (status: string) => {
 
 export function QuoteDetailPage() {
   const { quoteId } = useParams()
+  const { toast } = useToast()
   const [quote, setQuote] = useState<Quote | null>(null)
   const [loading, setLoading] = useState(true)
   const [termsAccepted, setTermsAccepted] = useState(false)
@@ -93,9 +95,19 @@ export function QuoteDetailPage() {
     const url = window.location.href
     try {
       await navigator.clipboard.writeText(url)
-      alert("Link copied to clipboard!")
+      toast({
+        title: "✨ Link Copied!",
+        description: "The quote link has been copied to your clipboard.",
+        duration: 3000,
+      })
     } catch (error) {
       console.error("Failed to copy link:", error)
+      toast({
+        title: "Failed to copy",
+        description: "Please try copying the link manually.",
+        variant: "destructive",
+        duration: 3000,
+      })
     }
   }
 
@@ -463,10 +475,23 @@ export function QuoteDetailPage() {
                       <Button 
                         size="sm" 
                         variant="outline"
-                        onClick={() => {
+                        onClick={async () => {
                           const shareUrl = `${window.location.origin}/quotes/share/${quote.shareableLink?.split('/').pop()}`
-                          navigator.clipboard.writeText(shareUrl)
-                          alert("Share link copied to clipboard!")
+                          try {
+                            await navigator.clipboard.writeText(shareUrl)
+                            toast({
+                              title: "🔗 Share Link Copied!",
+                              description: "The client share link has been copied to your clipboard. You can now send it to your client.",
+                              duration: 4000,
+                            })
+                          } catch (error) {
+                            toast({
+                              title: "Failed to copy",
+                              description: "Please try copying the link manually.",
+                              variant: "destructive",
+                              duration: 3000,
+                            })
+                          }
                         }}
                       >
                         Copy

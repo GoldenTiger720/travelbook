@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useToast } from "@/components/ui/use-toast"
 import { 
   MapPin, 
   Calendar, 
@@ -31,6 +32,7 @@ import {
 
 export function SharedQuotePage() {
   const { shareId } = useParams()
+  const { toast } = useToast()
   const [quote, setQuote] = useState<Quote | null>(null)
   const [loading, setLoading] = useState(true)
   const [termsAccepted, setTermsAccepted] = useState(false)
@@ -71,11 +73,20 @@ export function SharedQuotePage() {
       const success = await quoteService.acceptTerms(quote.id, acceptedBy)
       if (success) {
         await loadQuoteByShareId()
-        alert("Terms accepted successfully! Our team will contact you soon.")
+        toast({
+          title: "✅ Terms Accepted Successfully!",
+          description: "Thank you for accepting the terms. Our team will contact you soon to finalize your booking.",
+          duration: 5000,
+        })
       }
     } catch (error) {
       console.error("Failed to accept terms:", error)
-      alert("Failed to accept terms. Please try again.")
+      toast({
+        title: "Failed to accept terms",
+        description: "There was an error accepting the terms. Please try again.",
+        variant: "destructive",
+        duration: 4000,
+      })
     } finally {
       setAcceptingTerms(false)
     }
@@ -92,10 +103,22 @@ export function SharedQuotePage() {
         })
       } else {
         await navigator.clipboard.writeText(url)
-        alert("Link copied to clipboard!")
+        toast({
+          title: "🔗 Link Copied!",
+          description: "The quote link has been copied to your clipboard.",
+          duration: 3000,
+        })
       }
     } catch (error) {
       console.error("Failed to share:", error)
+      if (error instanceof Error && !error.message.includes('abort')) {
+        toast({
+          title: "Failed to share",
+          description: "Please try copying the link manually.",
+          variant: "destructive",
+          duration: 3000,
+        })
+      }
     }
   }
 
