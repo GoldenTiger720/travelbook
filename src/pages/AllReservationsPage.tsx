@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -52,6 +53,7 @@ import {
 } from "@/components/ui/collapsible"
 
 const AllReservationsPage = () => {
+  const { t } = useLanguage()
   const { toast } = useToast()
   const navigate = useNavigate()
   const [reservations, setReservations] = useState<Reservation[]>([])
@@ -104,8 +106,8 @@ const AllReservationsPage = () => {
       setFilterOptions(uniqueValues)
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to load reservations',
+        title: t('allReservations.error'),
+        description: t('allReservations.failedToLoad'),
         variant: 'destructive'
       })
     } finally {
@@ -155,29 +157,29 @@ const AllReservationsPage = () => {
   }
   
   const getStatusBadge = (status: Reservation['status']) => {
-    const variants: Record<Reservation['status'], { className: string; label: string }> = {
-      confirmed: { className: 'bg-green-100 text-green-800', label: 'Confirmed' },
-      pending: { className: 'bg-yellow-100 text-yellow-800', label: 'Pending' },
-      cancelled: { className: 'bg-red-100 text-red-800', label: 'Cancelled' },
-      completed: { className: 'bg-blue-100 text-blue-800', label: 'Completed' },
-      'no-show': { className: 'bg-gray-100 text-gray-800', label: 'No Show' }
+    const variants: Record<Reservation['status'], { className: string; labelKey: string }> = {
+      confirmed: { className: 'bg-green-100 text-green-800', labelKey: 'allReservations.confirmed' },
+      pending: { className: 'bg-yellow-100 text-yellow-800', labelKey: 'allReservations.pending' },
+      cancelled: { className: 'bg-red-100 text-red-800', labelKey: 'allReservations.cancelled' },
+      completed: { className: 'bg-blue-100 text-blue-800', labelKey: 'allReservations.completed' },
+      'no-show': { className: 'bg-gray-100 text-gray-800', labelKey: 'allReservations.noShow' }
     }
     
     const variant = variants[status]
-    return <Badge className={cn(variant.className, 'text-xs')}>{variant.label}</Badge>
+    return <Badge className={cn(variant.className, 'text-xs')}>{t(variant.labelKey)}</Badge>
   }
   
   const getPaymentBadge = (status: Reservation['paymentStatus']) => {
-    const variants: Record<Reservation['paymentStatus'], { className: string; label: string }> = {
-      paid: { className: 'bg-green-100 text-green-800', label: 'Paid' },
-      pending: { className: 'bg-yellow-100 text-yellow-800', label: 'Pending' },
-      partial: { className: 'bg-orange-100 text-orange-800', label: 'Partial' },
-      refunded: { className: 'bg-purple-100 text-purple-800', label: 'Refunded' },
-      overdue: { className: 'bg-red-100 text-red-800', label: 'Overdue' }
+    const variants: Record<Reservation['paymentStatus'], { className: string; labelKey: string }> = {
+      paid: { className: 'bg-green-100 text-green-800', labelKey: 'allReservations.paid' },
+      pending: { className: 'bg-yellow-100 text-yellow-800', labelKey: 'allReservations.pending' },
+      partial: { className: 'bg-orange-100 text-orange-800', labelKey: 'allReservations.partial' },
+      refunded: { className: 'bg-purple-100 text-purple-800', labelKey: 'allReservations.refunded' },
+      overdue: { className: 'bg-red-100 text-red-800', labelKey: 'allReservations.overdue' }
     }
     
     const variant = variants[status]
-    return <Badge className={cn(variant.className, 'text-xs')}>{variant.label}</Badge>
+    return <Badge className={cn(variant.className, 'text-xs')}>{t(variant.labelKey)}</Badge>
   }
   
   const exportToCSV = () => {
@@ -241,8 +243,8 @@ const AllReservationsPage = () => {
     window.URL.revokeObjectURL(url)
     
     toast({
-      title: 'Export Successful',
-      description: `Exported ${filteredReservations.length} reservations to CSV`
+      title: t('allReservations.exportSuccessful'),
+      description: t('allReservations.exportedReservations').replace('{count}', filteredReservations.length.toString())
     })
   }
   
@@ -283,8 +285,8 @@ const AllReservationsPage = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">All Reservations</h1>
-          <p className="text-muted-foreground">Advanced search and management</p>
+          <h1 className="text-2xl font-bold">{t('allReservations.title')}</h1>
+          <p className="text-muted-foreground">{t('allReservations.subtitle')}</p>
         </div>
         <Button 
           onClick={exportToCSV} 
@@ -292,7 +294,7 @@ const AllReservationsPage = () => {
           size="sm"
         >
           <Download className="w-4 h-4 mr-2" />
-          Export CSV
+          {t('allReservations.exportCSV')}
         </Button>
       </div>
       
@@ -303,7 +305,7 @@ const AllReservationsPage = () => {
             <CollapsibleTrigger className="flex items-center justify-between w-full hover:no-underline">
               <CardTitle className="text-lg font-medium flex items-center gap-2">
                 <Filter className="w-5 h-5" />
-                Search Filters
+                {t('allReservations.searchFilters')}
               </CardTitle>
               {filtersOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </CollapsibleTrigger>
@@ -313,20 +315,20 @@ const AllReservationsPage = () => {
               {/* Date Range and Type */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <Label className="text-xs">Date Type</Label>
+                  <Label className="text-xs">{t('allReservations.dateType')}</Label>
                   <Select value={filters.dateType} onValueChange={(value) => handleFilterChange('dateType', value)}>
                     <SelectTrigger className="h-9">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="operation">Operation Date</SelectItem>
-                      <SelectItem value="sale">Sale Date</SelectItem>
+                      <SelectItem value="operation">{t('allReservations.operationDate')}</SelectItem>
+                      <SelectItem value="sale">{t('allReservations.saleDate')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 
                 <div>
-                  <Label className="text-xs">Start Date</Label>
+                  <Label className="text-xs">{t('allReservations.startDate')}</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -338,7 +340,7 @@ const AllReservationsPage = () => {
                       >
                         <CalendarIcon className="mr-2 h-3 w-3" />
                         <span className="text-xs truncate">
-                          {dateRange.from ? format(dateRange.from, "dd/MM/yy") : "Select"}
+                          {dateRange.from ? format(dateRange.from, "dd/MM/yy") : t('allReservations.select')}
                         </span>
                       </Button>
                     </PopoverTrigger>
@@ -354,7 +356,7 @@ const AllReservationsPage = () => {
                 </div>
                 
                 <div>
-                  <Label className="text-xs">End Date</Label>
+                  <Label className="text-xs">{t('allReservations.endDate')}</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -366,7 +368,7 @@ const AllReservationsPage = () => {
                       >
                         <CalendarIcon className="mr-2 h-3 w-3" />
                         <span className="text-xs truncate">
-                          {dateRange.to ? format(dateRange.to, "dd/MM/yy") : "Select"}
+                          {dateRange.to ? format(dateRange.to, "dd/MM/yy") : t('allReservations.select')}
                         </span>
                       </Button>
                     </PopoverTrigger>
@@ -382,11 +384,11 @@ const AllReservationsPage = () => {
                 </div>
                 
                 <div>
-                  <Label className="text-xs">Search</Label>
+                  <Label className="text-xs">{t('allReservations.search')}</Label>
                   <div className="relative">
                     <Search className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
                     <Input
-                      placeholder="Reservation #..."
+                      placeholder={t('allReservations.searchPlaceholder')}
                       className="pl-7 h-9 text-sm"
                       value={filters.searchTerm}
                       onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
@@ -398,47 +400,47 @@ const AllReservationsPage = () => {
               {/* Status Filters */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <Label className="text-xs">Reservation Status</Label>
+                  <Label className="text-xs">{t('allReservations.reservationStatus')}</Label>
                   <Select value={filters.status || 'all'} onValueChange={(value) => handleFilterChange('status', value === 'all' ? undefined : value)}>
                     <SelectTrigger className="h-9">
                       <SelectValue placeholder="All" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Statuses</SelectItem>
-                      <SelectItem value="confirmed">Confirmed</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="no-show">No Show</SelectItem>
+                      <SelectItem value="all">{t('allReservations.allStatuses')}</SelectItem>
+                      <SelectItem value="confirmed">{t('allReservations.confirmed')}</SelectItem>
+                      <SelectItem value="pending">{t('allReservations.pending')}</SelectItem>
+                      <SelectItem value="cancelled">{t('allReservations.cancelled')}</SelectItem>
+                      <SelectItem value="completed">{t('allReservations.completed')}</SelectItem>
+                      <SelectItem value="no-show">{t('allReservations.noShow')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 
                 <div>
-                  <Label className="text-xs">Payment Status</Label>
+                  <Label className="text-xs">{t('allReservations.paymentStatus')}</Label>
                   <Select value={filters.paymentStatus || 'all'} onValueChange={(value) => handleFilterChange('paymentStatus', value === 'all' ? undefined : value)}>
                     <SelectTrigger className="h-9">
                       <SelectValue placeholder="All" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Payments</SelectItem>
-                      <SelectItem value="paid">Paid</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="partial">Partial</SelectItem>
-                      <SelectItem value="refunded">Refunded</SelectItem>
-                      <SelectItem value="overdue">Overdue</SelectItem>
+                      <SelectItem value="all">{t('allReservations.allPayments')}</SelectItem>
+                      <SelectItem value="paid">{t('allReservations.paid')}</SelectItem>
+                      <SelectItem value="pending">{t('allReservations.pending')}</SelectItem>
+                      <SelectItem value="partial">{t('allReservations.partial')}</SelectItem>
+                      <SelectItem value="refunded">{t('allReservations.refunded')}</SelectItem>
+                      <SelectItem value="overdue">{t('allReservations.overdue')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 
                 <div>
-                  <Label className="text-xs">Tour</Label>
+                  <Label className="text-xs">{t('allReservations.tour')}</Label>
                   <Select value={filters.tour || 'all'} onValueChange={(value) => handleFilterChange('tour', value === 'all' ? undefined : value)}>
                     <SelectTrigger className="h-9">
                       <SelectValue placeholder="All" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Tours</SelectItem>
+                      <SelectItem value="all">{t('allReservations.allTours')}</SelectItem>
                       {filterOptions.tours.map((tour: any) => (
                         <SelectItem key={tour.id} value={tour.id}>{tour.name}</SelectItem>
                       ))}
@@ -447,13 +449,13 @@ const AllReservationsPage = () => {
                 </div>
                 
                 <div>
-                  <Label className="text-xs">Salesperson</Label>
+                  <Label className="text-xs">{t('allReservations.salesperson')}</Label>
                   <Select value={filters.salesperson || 'all'} onValueChange={(value) => handleFilterChange('salesperson', value === 'all' ? undefined : value)}>
                     <SelectTrigger className="h-9">
                       <SelectValue placeholder="All" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Salespersons</SelectItem>
+                      <SelectItem value="all">{t('allReservations.allSalespersons')}</SelectItem>
                       {filterOptions.salespersons.map((sp: string) => (
                         <SelectItem key={sp} value={sp}>{sp}</SelectItem>
                       ))}
@@ -465,13 +467,13 @@ const AllReservationsPage = () => {
               {/* Additional Filters */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <Label className="text-xs">Operator</Label>
+                  <Label className="text-xs">{t('allReservations.operator')}</Label>
                   <Select value={filters.operator || 'all'} onValueChange={(value) => handleFilterChange('operator', value === 'all' ? undefined : value)}>
                     <SelectTrigger className="h-9">
                       <SelectValue placeholder="All" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Operators</SelectItem>
+                      <SelectItem value="all">{t('allReservations.allOperators')}</SelectItem>
                       {filterOptions.operators.map((operator: string) => (
                         <SelectItem key={operator} value={operator}>{operator}</SelectItem>
                       ))}
@@ -480,13 +482,13 @@ const AllReservationsPage = () => {
                 </div>
                 
                 <div>
-                  <Label className="text-xs">Guide</Label>
+                  <Label className="text-xs">{t('allReservations.guide')}</Label>
                   <Select value={filters.guide || 'all'} onValueChange={(value) => handleFilterChange('guide', value === 'all' ? undefined : value)}>
                     <SelectTrigger className="h-9">
                       <SelectValue placeholder="All" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Guides</SelectItem>
+                      <SelectItem value="all">{t('allReservations.allGuides')}</SelectItem>
                       {filterOptions.guides.map((guide: string) => (
                         <SelectItem key={guide} value={guide}>{guide}</SelectItem>
                       ))}
@@ -495,13 +497,13 @@ const AllReservationsPage = () => {
                 </div>
                 
                 <div>
-                  <Label className="text-xs">Driver</Label>
+                  <Label className="text-xs">{t('allReservations.driver')}</Label>
                   <Select value={filters.driver || 'all'} onValueChange={(value) => handleFilterChange('driver', value === 'all' ? undefined : value)}>
                     <SelectTrigger className="h-9">
                       <SelectValue placeholder="All" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Drivers</SelectItem>
+                      <SelectItem value="all">{t('allReservations.allDrivers')}</SelectItem>
                       {filterOptions.drivers.map((driver: string) => (
                         <SelectItem key={driver} value={driver}>{driver}</SelectItem>
                       ))}
@@ -510,13 +512,13 @@ const AllReservationsPage = () => {
                 </div>
                 
                 <div>
-                  <Label className="text-xs">External Agency</Label>
+                  <Label className="text-xs">{t('allReservations.externalAgency')}</Label>
                   <Select value={filters.externalAgency || 'all'} onValueChange={(value) => handleFilterChange('externalAgency', value === 'all' ? undefined : value)}>
                     <SelectTrigger className="h-9">
                       <SelectValue placeholder="All" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Agencies</SelectItem>
+                      <SelectItem value="all">{t('allReservations.allAgencies')}</SelectItem>
                       {filterOptions.agencies.map((agency: string) => (
                         <SelectItem key={agency} value={agency}>{agency}</SelectItem>
                       ))}
@@ -531,7 +533,7 @@ const AllReservationsPage = () => {
                   onClick={clearFilters}
                   size="sm"
                 >
-                  Clear Filters
+                  {t('allReservations.clearFilters')}
                 </Button>
               </div>
             </CardContent>
@@ -545,7 +547,7 @@ const AllReservationsPage = () => {
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Reservations</p>
+                <p className="text-xs text-muted-foreground">{t('allReservations.reservations')}</p>
                 <p className="text-xl font-bold">{filteredReservations.length}</p>
               </div>
               <Filter className="w-5 h-5 text-muted-foreground" />
@@ -557,7 +559,7 @@ const AllReservationsPage = () => {
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Passengers</p>
+                <p className="text-xs text-muted-foreground">{t('allReservations.passengers')}</p>
                 <p className="text-xl font-bold">{getTotalSummary().passengers}</p>
               </div>
               <Users className="w-5 h-5 text-muted-foreground" />
@@ -569,7 +571,7 @@ const AllReservationsPage = () => {
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Adults</p>
+                <p className="text-xs text-muted-foreground">{t('allReservations.adults')}</p>
                 <p className="text-xl font-bold">{getTotalSummary().adults}</p>
               </div>
               <UserCheck className="w-5 h-5 text-muted-foreground" />
@@ -581,7 +583,7 @@ const AllReservationsPage = () => {
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Children/Inf</p>
+                <p className="text-xs text-muted-foreground">{t('allReservations.childrenInf')}</p>
                 <p className="text-xl font-bold">
                   {getTotalSummary().children + getTotalSummary().infants}
                 </p>
@@ -595,7 +597,7 @@ const AllReservationsPage = () => {
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Revenue</p>
+                <p className="text-xs text-muted-foreground">{t('allReservations.revenue')}</p>
                 <p className="text-xl font-bold">
                   ${Math.round(getTotalSummary().revenue).toLocaleString()}
                 </p>
@@ -610,7 +612,7 @@ const AllReservationsPage = () => {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg font-medium">
-            Reservation Details ({filteredReservations.length} results)
+            {t('allReservations.reservationDetails')} ({filteredReservations.length} {t('allReservations.results')})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -618,28 +620,28 @@ const AllReservationsPage = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[120px]">Reservation</TableHead>
-                  <TableHead className="w-[100px]">Date</TableHead>
-                  <TableHead className="w-[150px]">Client</TableHead>
-                  <TableHead className="w-[180px]">Tour</TableHead>
-                  <TableHead className="w-[60px] text-center">PAX</TableHead>
-                  <TableHead className="w-[100px] text-right">Total</TableHead>
-                  <TableHead className="w-[80px]">Status</TableHead>
-                  <TableHead className="w-[80px]">Payment</TableHead>
-                  <TableHead className="w-[80px] text-center">Actions</TableHead>
+                  <TableHead className="w-[120px]">{t('allReservations.reservation')}</TableHead>
+                  <TableHead className="w-[100px]">{t('allReservations.date')}</TableHead>
+                  <TableHead className="w-[150px]">{t('allReservations.client')}</TableHead>
+                  <TableHead className="w-[180px]">{t('allReservations.tour')}</TableHead>
+                  <TableHead className="w-[60px] text-center">{t('allReservations.pax')}</TableHead>
+                  <TableHead className="w-[100px] text-right">{t('allReservations.total')}</TableHead>
+                  <TableHead className="w-[80px]">{t('allReservations.status')}</TableHead>
+                  <TableHead className="w-[80px]">{t('allReservations.payment')}</TableHead>
+                  <TableHead className="w-[80px] text-center">{t('allReservations.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8">
-                      Loading reservations...
+                      {t('allReservations.loading')}
                     </TableCell>
                   </TableRow>
                 ) : filteredReservations.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8">
-                      No reservations found with the current filters
+                      {t('allReservations.noReservationsFound')}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -654,7 +656,7 @@ const AllReservationsPage = () => {
                             <div className="text-xs font-semibold">{reservation.reservationNumber}</div>
                             {reservation.purchaseOrderNumber && (
                               <div className="text-xs text-muted-foreground">
-                                PO: {reservation.purchaseOrderNumber}
+                                {t('allReservations.po')}: {reservation.purchaseOrderNumber}
                               </div>
                             )}
                           </div>
@@ -766,31 +768,31 @@ const AllReservationsPage = () => {
                           <TableCell colSpan={9} className="bg-muted/30 p-3">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
                               <div>
-                                <p className="font-semibold mb-1">Passenger Details</p>
-                                <p>Adults: {reservation.passengers.adults} × {reservationService.formatCurrency(reservation.pricing.adultPrice, reservation.pricing.currency)}</p>
+                                <p className="font-semibold mb-1">{t('allReservations.passengerDetails')}</p>
+                                <p>{t('allReservations.adults')}: {reservation.passengers.adults} × {reservationService.formatCurrency(reservation.pricing.adultPrice, reservation.pricing.currency)}</p>
                                 {reservation.passengers.children > 0 && (
-                                  <p>Children: {reservation.passengers.children} × {reservationService.formatCurrency(reservation.pricing.childPrice, reservation.pricing.currency)}</p>
+                                  <p>{t('allReservations.children')}: {reservation.passengers.children} × {reservationService.formatCurrency(reservation.pricing.childPrice, reservation.pricing.currency)}</p>
                                 )}
                                 {reservation.passengers.infants > 0 && (
-                                  <p>Infants: {reservation.passengers.infants} × {reservationService.formatCurrency(reservation.pricing.infantPrice, reservation.pricing.currency)}</p>
+                                  <p>{t('allReservations.infants')}: {reservation.passengers.infants} × {reservationService.formatCurrency(reservation.pricing.infantPrice, reservation.pricing.currency)}</p>
                                 )}
                               </div>
                               <div>
-                                <p className="font-semibold mb-1">Operations</p>
-                                <p>Salesperson: {reservation.salesperson}</p>
-                                {reservation.operator && <p>Operator: {reservation.operator}</p>}
-                                {reservation.guide && <p>Guide: {reservation.guide}</p>}
-                                {reservation.driver && <p>Driver: {reservation.driver}</p>}
-                                {reservation.externalAgency && <p>Agency: {reservation.externalAgency}</p>}
+                                <p className="font-semibold mb-1">{t('allReservations.operations')}</p>
+                                <p>{t('allReservations.salesperson')}: {reservation.salesperson}</p>
+                                {reservation.operator && <p>{t('allReservations.operator')}: {reservation.operator}</p>}
+                                {reservation.guide && <p>{t('allReservations.guide')}: {reservation.guide}</p>}
+                                {reservation.driver && <p>{t('allReservations.driver')}: {reservation.driver}</p>}
+                                {reservation.externalAgency && <p>{t('allReservations.externalAgency')}: {reservation.externalAgency}</p>}
                               </div>
                               <div>
-                                <p className="font-semibold mb-1">Pickup Details</p>
+                                <p className="font-semibold mb-1">{t('allReservations.pickupDetails')}</p>
                                 <p className="flex items-center gap-1">
                                   <MapPin className="w-3 h-3" />
                                   {reservation.tour.pickupAddress}
                                 </p>
-                                <p>Time: {reservation.tour.pickupTime}</p>
-                                {reservation.notes && <p className="mt-1">Notes: {reservation.notes}</p>}
+                                <p>{t('allReservations.time')}: {reservation.tour.pickupTime}</p>
+                                {reservation.notes && <p className="mt-1">{t('allReservations.notes')}: {reservation.notes}</p>}
                               </div>
                             </div>
                           </TableCell>
@@ -805,7 +807,7 @@ const AllReservationsPage = () => {
           
           {filteredReservations.length > 50 && (
             <div className="p-4 text-center text-sm text-muted-foreground border-t">
-              Showing first 50 results of {filteredReservations.length} total reservations
+              {t('allReservations.showingFirst')} {filteredReservations.length} {t('allReservations.totalReservations')}
             </div>
           )}
         </CardContent>
