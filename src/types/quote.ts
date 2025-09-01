@@ -35,6 +35,7 @@ export interface Quote {
   leadSource: 'instagram' | 'whatsapp' | 'website' | 'email' | 'referral' | 'direct' | 'other';
   assignedTo: string;
   agency?: string;
+  operator?: string;
   validUntil: Date;
   shareableLink?: string;
   termsAccepted?: {

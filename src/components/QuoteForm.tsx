@@ -66,6 +66,7 @@ const quoteSchema = z.object({
   leadSource: z.string().min(1, "Please select lead source"),
   assignedTo: z.string().min(1, "Please assign to someone"),
   agency: z.string().optional(),
+  operator: z.string().optional(),
   validUntil: z.date({ required_error: "Valid until date is required" }),
   description: z.string().optional(),
   notes: z.string().optional(),
@@ -118,6 +119,19 @@ const teamMembers = [
   "João Santos",
 ]
 
+const suppliers = [
+  "ABC Travel Agency",
+  "Global Tours",
+  "Adventure Expeditions",
+  "Luxury Destinations",
+  "Local Experience Tours",
+  "Mountain Guides Co.",
+  "Beach Resort Partners",
+  "City Tours Express",
+  "Heritage Tours Ltd.",
+  "Safari Adventures Inc."
+]
+
 export function QuoteForm({ onSubmit, onCancel, initialData, mode = "create" }: QuoteFormProps) {
   const [breakdown, setBreakdown] = useState<PriceBreakdownItem[]>(
     initialData?.pricing?.breakdown || []
@@ -141,6 +155,7 @@ export function QuoteForm({ onSubmit, onCancel, initialData, mode = "create" }: 
       leadSource: initialData?.leadSource || "",
       assignedTo: initialData?.assignedTo || "",
       agency: initialData?.agency || "",
+      operator: initialData?.operator || "",
       validUntil: initialData?.validUntil || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       description: initialData?.tourDetails?.description || "",
       notes: initialData?.notes || "",
@@ -211,6 +226,7 @@ export function QuoteForm({ onSubmit, onCancel, initialData, mode = "create" }: 
       leadSource: data.leadSource as any,
       assignedTo: data.assignedTo,
       agency: data.agency,
+      operator: data.operator,
       validUntil: data.validUntil,
       notes: data.notes,
     }
@@ -683,7 +699,7 @@ export function QuoteForm({ onSubmit, onCancel, initialData, mode = "create" }: 
             <CardTitle>Lead Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="leadSource"
@@ -749,6 +765,44 @@ export function QuoteForm({ onSubmit, onCancel, initialData, mode = "create" }: 
                     <FormControl>
                       <Input placeholder="Agency name (if applicable)" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="operator"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Service Operator</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value || "own-operation"}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select operator" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="own-operation">
+                          <div className="flex items-center gap-2">
+                            <Building className="w-4 h-4" />
+                            Own Operation
+                          </div>
+                        </SelectItem>
+                        <Separator className="my-1" />
+                        {suppliers.map((supplier) => (
+                          <SelectItem key={supplier} value={supplier}>
+                            {supplier}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription className="text-xs">
+                      Select if the tour is handled internally or by an external supplier
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
