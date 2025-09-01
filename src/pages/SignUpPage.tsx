@@ -27,7 +27,7 @@ const SignUpPage = () => {
       description: "Connect with fellow travelers and share your adventures. Discover hidden gems and create lasting friendships along the way."
     },
     {
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1920&h=1080&fit=crop",
+      image: "https://images.unsplash.com/photo-1503220317375-aaad61436b1b?w=1920&h=1080&fit=crop",
       title: "Exclusive Member Benefits",
       description: "Get access to special deals, early bird discounts, and personalized travel recommendations tailored to your preferences."
     },
@@ -71,19 +71,19 @@ const SignUpPage = () => {
   return (
     <div className="min-h-screen flex">
       {/* Left side - Sign Up Form (1/3 of screen) */}
-      <div className="w-full lg:w-1/3 flex items-center justify-center p-8 bg-background">
-        <div className="w-full max-w-md space-y-8">
+      <div className="w-full lg:w-1/3 flex items-center justify-center p-4 lg:p-6 bg-background overflow-y-auto">
+        <div className="w-full max-w-md space-y-4">
           {/* Logo */}
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-primary">TravelBook</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Create Account</p>
+            <h1 className="text-2xl lg:text-3xl font-bold text-primary">TravelBook</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Create Account</p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label htmlFor="fullName" className="text-sm">Full Name</Label>
                 <Input
                   id="fullName"
                   name="fullName"
@@ -92,12 +92,12 @@ const SignUpPage = () => {
                   value={formData.fullName}
                   onChange={handleInputChange}
                   required
-                  className="h-12"
+                  className="h-10"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
+              <div className="space-y-1">
+                <Label htmlFor="email" className="text-sm">Email Address</Label>
                 <Input
                   id="email"
                   name="email"
@@ -106,12 +106,12 @@ const SignUpPage = () => {
                   value={formData.email}
                   onChange={handleInputChange}
                   required
-                  className="h-12"
+                  className="h-10"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+              <div className="space-y-1">
+                <Label htmlFor="password" className="text-sm">Password</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -121,7 +121,7 @@ const SignUpPage = () => {
                     value={formData.password}
                     onChange={handleInputChange}
                     required
-                    className="h-12 pr-10"
+                    className="h-10 pr-10"
                   />
                   <button
                     type="button"
@@ -133,8 +133,8 @@ const SignUpPage = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <div className="space-y-1">
+                <Label htmlFor="confirmPassword" className="text-sm">Confirm Password</Label>
                 <div className="relative">
                   <Input
                     id="confirmPassword"
@@ -144,7 +144,7 @@ const SignUpPage = () => {
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
                     required
-                    className="h-12 pr-10"
+                    className="h-10 pr-10"
                   />
                   <button
                     type="button"
@@ -174,7 +174,7 @@ const SignUpPage = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full h-12 text-base">
+            <Button type="submit" className="w-full h-10 text-sm">
               Create Account
             </Button>
 
@@ -187,7 +187,7 @@ const SignUpPage = () => {
           </form>
 
           {/* Social Sign Up */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t" />
@@ -202,13 +202,13 @@ const SignUpPage = () => {
             <Button
               type="button"
               variant="outline"
-              className="w-full h-12"
+              className="w-full h-10"
               onClick={() => console.log("Google signup")}
             >
-              <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center mr-2">
+              <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center mr-2">
                 <span className="text-white text-xs font-bold">G</span>
               </div>
-              Google
+              <span className="text-sm">Google</span>
             </Button>
           </div>
         </div>
@@ -283,7 +283,7 @@ const SignUpPage = () => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes rise {
           0% {
             transform: translateY(100vh) rotate(0deg);

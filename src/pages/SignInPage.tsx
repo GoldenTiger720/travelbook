@@ -229,7 +229,7 @@ const SignInPage = () => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes rise {
           0% {
             transform: translateY(100vh) rotate(0deg);
