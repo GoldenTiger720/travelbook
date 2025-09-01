@@ -20,6 +20,7 @@ import CustomersPage from "./pages/CustomersPage";
 import FinancialPage from "./pages/FinancialPage";
 import SalesCommissionsPage from "./pages/SalesCommissionsPage";
 import ServicesPage from "./pages/ServicesPage";
+import ToursPage from "./pages/ToursPage";
 import LogisticsPage from "./pages/LogisticsPage";
 import ReportsPage from "./pages/ReportsPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -202,7 +203,7 @@ const AppContent = () => {
                   <Route path="/financial" element={<FinancialPage />} />
                   <Route path="/sales-commissions" element={<SalesCommissionsPage />} />
                   <Route path="/services" element={<ServicesPage />} />
-                  <Route path="/tours" element={<ServicesPage />} />
+                  <Route path="/tours" element={<ToursPage />} />
                   <Route path="/logistics" element={<LogisticsPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/support" element={<SettingsPage />} />
