@@ -46,6 +46,7 @@ export interface TourBooking {
   infantPax: number
   infantPrice: number
   subtotal: number
+  operator?: string
   comments?: string
 }
 

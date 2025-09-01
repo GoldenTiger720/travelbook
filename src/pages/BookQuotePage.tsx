@@ -17,7 +17,8 @@ import {
   Trash2, 
   Edit2, 
   Plus,
-  MapPin
+  MapPin,
+  Building
 } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
@@ -32,6 +33,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+
+// List of registered suppliers
+const suppliers = [
+  "ABC Travel Agency",
+  "Global Tours",
+  "Adventure Expeditions",
+  "Luxury Destinations",
+  "Local Experience Tours",
+  "Mountain Guides Co.",
+  "Beach Resort Partners",
+  "City Tours Express",
+  "Heritage Tours Ltd.",
+  "Safari Adventures Inc."
+]
 
 const BookQuotePage = () => {
   const navigate = useNavigate()
@@ -74,6 +89,7 @@ const BookQuotePage = () => {
     childPrice: 0,
     infantPax: 0,
     infantPrice: 0,
+    operator: "own-operation",
     comments: ""
   })
 
@@ -191,6 +207,7 @@ const BookQuotePage = () => {
       infantPax: currentTour.infantPax || 0,
       infantPrice: currentTour.infantPrice || 0,
       subtotal: calculateSubtotal(currentTour),
+      operator: currentTour.operator,
       comments: currentTour.comments
     }
 
@@ -215,6 +232,7 @@ const BookQuotePage = () => {
       childPrice: 0,
       infantPax: 0,
       infantPrice: 0,
+      operator: "own-operation",
       comments: ""
     })
   }
@@ -231,6 +249,7 @@ const BookQuotePage = () => {
       childPrice: tour.childPrice,
       infantPax: tour.infantPax,
       infantPrice: tour.infantPrice,
+      operator: tour.operator || "own-operation",
       comments: tour.comments || ""
     })
     setEditingTourId(tour.id)
@@ -589,7 +608,7 @@ const BookQuotePage = () => {
             <CardTitle className="text-lg font-medium">Add Tour Booking</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <Label>Destination</Label>
                 <Select value={selectedDestination} onValueChange={setSelectedDestination}>
@@ -648,6 +667,32 @@ const BookQuotePage = () => {
                     />
                   </PopoverContent>
                 </Popover>
+              </div>
+
+              <div>
+                <Label>Operator</Label>
+                <Select 
+                  value={currentTour.operator} 
+                  onValueChange={(value) => handleTourFieldChange("operator", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select operator" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="own-operation">
+                      <div className="flex items-center gap-2">
+                        <Building className="w-4 h-4" />
+                        Own Operation
+                      </div>
+                    </SelectItem>
+                    <div className="h-px bg-border my-1" />
+                    {suppliers.map((supplier) => (
+                      <SelectItem key={supplier} value={supplier}>
+                        {supplier}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -776,6 +821,7 @@ const BookQuotePage = () => {
                   <TableRow>
                     <TableHead>Operation Date</TableHead>
                     <TableHead>Tour</TableHead>
+                    <TableHead>Operator</TableHead>
                     <TableHead className="text-center">Adult PAX</TableHead>
                     <TableHead className="text-right">Adult Price</TableHead>
                     <TableHead className="text-center">Child PAX</TableHead>
@@ -799,6 +845,14 @@ const BookQuotePage = () => {
                               {tour.pickupAddress}
                             </div>
                           )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {tour.operator === "own-operation" && <Building className="w-3 h-3" />}
+                          <span className="text-sm">
+                            {tour.operator === "own-operation" ? "Own Operation" : tour.operator}
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell className="text-center">{tour.adultPax}</TableCell>
