@@ -78,7 +78,7 @@ const App = () => {
             <div className="min-h-screen flex w-full">
               <AppSidebar />
               <div className="flex-1 flex flex-col">
-                <header className="h-16 flex items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 relative z-50">
+                <header className="sticky top-0 h-16 flex items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 z-50">
                   <div className="flex items-center">
                     <SidebarTrigger className="mr-4" />
                     <img 
