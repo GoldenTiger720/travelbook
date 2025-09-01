@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { useLanguage } from "@/contexts/LanguageContext"
 import { 
   Calendar, 
   DollarSign, 
@@ -88,41 +89,7 @@ const monthlyReservationData = [
   { month: "Dec", reservations: 69, pax: 242 }
 ]
 
-// Mock data for metrics
-const metrics = [
-  {
-    title: "Total Revenue",
-    value: "$127,450",
-    change: "+12.5%",
-    trend: "up",
-    icon: DollarSign,
-    color: "text-success"
-  },
-  {
-    title: "Active Reservations",
-    value: "89",
-    change: "+8.2%",
-    trend: "up",
-    icon: Calendar,
-    color: "text-primary"
-  },
-  {
-    title: "Total Customers",
-    value: "1,247",
-    change: "+5.1%",
-    trend: "up",
-    icon: Users,
-    color: "text-accent"
-  },
-  {
-    title: "Total PAX (Year)",
-    value: "2,644",
-    change: "+15.3%",
-    trend: "up",
-    icon: Users,
-    color: "text-primary"
-  }
-]
+// Metrics will be created inside the component to use translations
 
 const recentReservations = [
   {
@@ -173,19 +140,56 @@ const getStatusColor = (status: string) => {
 }
 
 export function Dashboard() {
+  const { t } = useLanguage();
+  
+  const metrics = [
+    {
+      title: t('dashboard.totalRevenue'),
+      value: "$127,450",
+      change: "+12.5%",
+      trend: "up",
+      icon: DollarSign,
+      color: "text-success"
+    },
+    {
+      title: t('dashboard.activeReservations'),
+      value: "89",
+      change: "+8.2%",
+      trend: "up",
+      icon: Calendar,
+      color: "text-primary"
+    },
+    {
+      title: t('dashboard.totalCustomers'),
+      value: "1,247",
+      change: "+5.1%",
+      trend: "up",
+      icon: Users,
+      color: "text-accent"
+    },
+    {
+      title: t('dashboard.totalPax'),
+      value: "2,644",
+      change: "+15.3%",
+      trend: "up",
+      icon: Users,
+      color: "text-primary"
+    }
+  ];
+  
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-foreground">{t('dashboard.title')}</h1>
           <p className="text-muted-foreground">
-            Key indicators and performance overview
+            {t('dashboard.subtitle')}
           </p>
         </div>
         <Button className="bg-blue-600 hover:bg-blue-700">
           <Plus className="w-4 h-4 mr-2" />
-          New Reservation
+          {t('dashboard.newReservation')}
         </Button>
       </div>
 
@@ -198,7 +202,7 @@ export function Dashboard() {
             ) : (
               <Clock className="h-4 w-4" />
             )}
-            <AlertTitle>{alert.title}</AlertTitle>
+            <AlertTitle>{t(`dashboard.${alert.type === 'overdue' ? 'overduePayment' : 'pendingPayment'}`)}</AlertTitle>
             <AlertDescription className="flex justify-between items-center">
               <span>{alert.description}</span>
               <span className="font-semibold">{alert.amount}</span>

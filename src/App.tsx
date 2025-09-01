@@ -7,6 +7,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Bell, ChevronDown, User, LogOut, UserCircle } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { LanguageProvider, useLanguage } from "@/contexts/LanguageContext";
 import DashboardPage from "./pages/DashboardPage";
 import ReservationsPage from "./pages/ReservationsPage";
 import AllReservationsPage from "./pages/AllReservationsPage";
@@ -26,8 +27,8 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => {
-  const [currentLanguage, setCurrentLanguage] = useState('en');
+const AppContent = () => {
+  const { language, setLanguage, t } = useLanguage();
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -46,7 +47,7 @@ const App = () => {
     { code: 'en', name: 'English', country: 'United States', flag: '/flags/us.jpg' }
   ];
 
-  const selectedLanguage = languages.find(lang => lang.code === currentLanguage) || languages[2];
+  const selectedLanguage = languages.find(lang => lang.code === language) || languages[2];
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -69,12 +70,8 @@ const App = () => {
   }, [isLanguageOpen, isUserMenuOpen]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <SidebarProvider>
+    <BrowserRouter>
+      <SidebarProvider>
             <div className="min-h-screen flex w-full">
               <AppSidebar />
               <div className="flex-1 flex flex-col">
@@ -89,7 +86,7 @@ const App = () => {
                   </div>
                   
                   <div className="flex items-center gap-4">
-                    <span className="text-sm font-medium text-muted-foreground">CLP$</span>
+                    <span className="text-sm font-medium text-muted-foreground">{t('navbar.currency')}</span>
                     
                     <div className="relative" ref={dropdownRef}>
                       <button
@@ -110,7 +107,7 @@ const App = () => {
                             <button
                               key={lang.code}
                               onClick={() => {
-                                setCurrentLanguage(lang.code);
+                                setLanguage(lang.code as 'en' | 'es' | 'pt');
                                 setIsLanguageOpen(false);
                               }}
                               className="flex items-center gap-3 w-full px-4 py-2.5 text-sm hover:bg-accent transition-colors text-left"
@@ -173,7 +170,7 @@ const App = () => {
                               className="flex items-center gap-3 w-full px-3 py-2 text-sm hover:bg-accent transition-colors rounded-md"
                             >
                               <UserCircle className="h-4 w-4" />
-                              <span>My Profile</span>
+                              <span>{t('navbar.profile')}</span>
                             </button>
                             <button
                               onClick={() => {
@@ -183,7 +180,7 @@ const App = () => {
                               className="flex items-center gap-3 w-full px-3 py-2 text-sm hover:bg-accent transition-colors rounded-md text-destructive"
                             >
                               <LogOut className="h-4 w-4" />
-                              <span>Log Out</span>
+                              <span>{t('navbar.logout')}</span>
                             </button>
                           </div>
                         </div>
@@ -217,8 +214,20 @@ const App = () => {
           </div>
         </SidebarProvider>
       </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  );
+};
+
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <LanguageProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <AppContent />
+        </TooltipProvider>
+      </LanguageProvider>
+    </QueryClientProvider>
   );
 };
 
