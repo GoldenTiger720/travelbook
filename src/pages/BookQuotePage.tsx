@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import { useLanguage } from "@/contexts/LanguageContext"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -51,6 +52,7 @@ const suppliers = [
 const BookQuotePage = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { t } = useLanguage()
   const [submitting, setSubmitting] = useState(false)
   const [assignFromExternal, setAssignFromExternal] = useState(false)
   const [hasMultipleAddresses, setHasMultipleAddresses] = useState(false)
@@ -182,8 +184,8 @@ const BookQuotePage = () => {
   const addTour = async () => {
     if (!currentTour.tourId || !currentTour.date) {
       toast({
-        title: "Validation Error",
-        description: "Please select a tour and date",
+        title: t('quotes.validationError'),
+        description: t('quotes.selectTourAndDate'),
         variant: "destructive"
       })
       return
@@ -266,8 +268,8 @@ const BookQuotePage = () => {
     try {
       if (tourBookings.length === 0) {
         toast({
-          title: "Validation Error",
-          description: "Please add at least one tour to the booking",
+          title: t('quotes.validationError'),
+          description: t('quotes.addAtLeastOneTour'),
           variant: "destructive"
         })
         setSubmitting(false)
@@ -277,7 +279,7 @@ const BookQuotePage = () => {
       // Create quote with new structure
       const quoteData = {
         customer: {
-          name: formData.name || "Guest",
+          name: formData.name || t('quotes.guest'),
           email: formData.email || "noemail@example.com",
           phone: formData.phone || "",
           language: formData.language || "en",
@@ -335,7 +337,7 @@ const BookQuotePage = () => {
         },
         leadSource: "website",
         assignedTo: formData.salesperson || "Thiago Andrade",
-        agency: assignFromExternal ? "External Agency" : undefined,
+        agency: assignFromExternal ? t('quotes.externalAgency') : undefined,
         status: "draft",
         validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         additionalNotes: formData.accommodationComments,
@@ -348,15 +350,17 @@ const BookQuotePage = () => {
       const newQuote = await quoteService.createQuote(quoteData)
       
       toast({
-        title: "Booking Created",
-        description: `Quote #${newQuote.quoteNumber} has been created with ${tourBookings.length} tour(s).`
+        title: t('quotes.bookingCreated'),
+        description: t('quotes.bookingCreatedMessage')
+          .replace('{quoteNumber}', newQuote.quoteNumber)
+          .replace('{tourCount}', tourBookings.length.toString())
       })
 
       navigate(`/quotes/${newQuote.id}`)
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to create booking. Please try again.",
+        title: t('quotes.error'),
+        description: t('quotes.failedToCreate'),
         variant: "destructive"
       })
     } finally {
@@ -378,18 +382,18 @@ const BookQuotePage = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Book Quotation</h1>
-        <p className="text-muted-foreground">Create a new booking or quotation</p>
+        <h1 className="text-2xl font-bold">{t('quotes.title')}</h1>
+        <p className="text-muted-foreground">{t('quotes.subtitle')}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg font-medium">Booking or quotation configuration</CardTitle>
+            <CardTitle className="text-lg font-medium">{t('quotes.configTitle')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <Label htmlFor="external-agency">Assign from external agency</Label>
+              <Label htmlFor="external-agency">{t('quotes.assignExternal')}</Label>
               <Switch
                 id="external-agency"
                 checked={assignFromExternal}
@@ -399,10 +403,10 @@ const BookQuotePage = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="salesperson">Salesperson</Label>
+                <Label htmlFor="salesperson">{t('quotes.salesperson')}</Label>
                 <Select value={formData.salesperson} onValueChange={(value) => handleInputChange("salesperson", value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select salesperson" />
+                    <SelectValue placeholder={t('quotes.selectSalesperson')} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="thiago">Thiago Andrade</SelectItem>
@@ -414,7 +418,7 @@ const BookQuotePage = () => {
               </div>
 
               <div>
-                <Label htmlFor="currency">Currency</Label>
+                <Label htmlFor="currency">{t('quotes.currency')}</Label>
                 <Select value={formData.currency} onValueChange={(value) => handleInputChange("currency", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="CLP$ - Chilean pesos" />
@@ -430,17 +434,17 @@ const BookQuotePage = () => {
               </div>
 
               <div>
-                <Label htmlFor="origin">Origin</Label>
+                <Label htmlFor="origin">{t('quotes.origin')}</Label>
                 <Select value={formData.origin} onValueChange={(value) => handleInputChange("origin", value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select origin" />
+                    <SelectValue placeholder={t('quotes.selectOrigin')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="website">Website</SelectItem>
-                    <SelectItem value="phone">Phone</SelectItem>
-                    <SelectItem value="email">Email</SelectItem>
-                    <SelectItem value="walk-in">Walk-in</SelectItem>
-                    <SelectItem value="referral">Referral</SelectItem>
+                    <SelectItem value="website">{t('quotes.website')}</SelectItem>
+                    <SelectItem value="phone">{t('quotes.phone')}</SelectItem>
+                    <SelectItem value="email">{t('quotes.email')}</SelectItem>
+                    <SelectItem value="walk-in">{t('quotes.walkIn')}</SelectItem>
+                    <SelectItem value="referral">{t('quotes.referral')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -450,25 +454,25 @@ const BookQuotePage = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg font-medium">Client Information</CardTitle>
+            <CardTitle className="text-lg font-medium">{t('quotes.clientInfo')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="name">Full name</Label>
+                <Label htmlFor="name">{t('quotes.fullName')}</Label>
                 <Input
                   id="name"
-                  placeholder="Juan Diaz"
+                  placeholder={t('quotes.fullNamePlaceholder')}
                   value={formData.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
                 />
               </div>
 
               <div>
-                <Label htmlFor="idPassport">DNI/CPF/CNPJ</Label>
+                <Label htmlFor="idPassport">{t('quotes.idPassport')}</Label>
                 <Input
                   id="idPassport"
-                  placeholder="11.111.111-X"
+                  placeholder={t('quotes.idPassportPlaceholder')}
                   value={formData.idPassport}
                   onChange={(e) => handleInputChange("idPassport", e.target.value)}
                 />
@@ -477,21 +481,21 @@ const BookQuotePage = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t('quotes.email')}</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="juan@example.com"
+                  placeholder={t('quotes.emailPlaceholder')}
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
                 />
               </div>
 
               <div>
-                <Label htmlFor="phone">Phone</Label>
+                <Label htmlFor="phone">{t('quotes.phone')}</Label>
                 <Input
                   id="phone"
-                  placeholder="+56 9 1234 5678"
+                  placeholder={t('quotes.phonePlaceholder')}
                   value={formData.phone}
                   onChange={(e) => handleInputChange("phone", e.target.value)}
                 />
@@ -500,33 +504,33 @@ const BookQuotePage = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="language">Language</Label>
+                <Label htmlFor="language">{t('quotes.language')}</Label>
                 <Select value={formData.language} onValueChange={(value) => handleInputChange("language", value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select language" />
+                    <SelectValue placeholder={t('quotes.selectLanguage')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="es">Spanish</SelectItem>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="pt">Portuguese</SelectItem>
-                    <SelectItem value="fr">French</SelectItem>
-                    <SelectItem value="de">German</SelectItem>
+                    <SelectItem value="es">{t('quotes.spanish')}</SelectItem>
+                    <SelectItem value="en">{t('quotes.english')}</SelectItem>
+                    <SelectItem value="pt">{t('quotes.portuguese')}</SelectItem>
+                    <SelectItem value="fr">{t('quotes.french')}</SelectItem>
+                    <SelectItem value="de">{t('quotes.german')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <Label htmlFor="countryOfOrigin">Country of origin</Label>
+                <Label htmlFor="countryOfOrigin">{t('quotes.countryOfOrigin')}</Label>
                 <Input
                   id="countryOfOrigin"
-                  placeholder="Chile"
+                  placeholder={t('quotes.countryPlaceholder')}
                   value={formData.countryOfOrigin}
                   onChange={(e) => handleInputChange("countryOfOrigin", e.target.value)}
                 />
               </div>
 
               <div>
-                <Label htmlFor="cpf">CPF</Label>
+                <Label htmlFor="cpf">{t('quotes.cpf')}</Label>
                 <Input
                   id="cpf"
                   placeholder=""
@@ -537,10 +541,10 @@ const BookQuotePage = () => {
             </div>
 
             <div>
-              <Label htmlFor="address">Address</Label>
+              <Label htmlFor="address">{t('quotes.address')}</Label>
               <Input
                 id="address"
-                placeholder="Street address, City, Country"
+                placeholder={t('quotes.addressPlaceholder')}
                 value={formData.address}
                 onChange={(e) => handleInputChange("address", e.target.value)}
               />
@@ -550,10 +554,10 @@ const BookQuotePage = () => {
               <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
                 <div>
                   <Label htmlFor="multiple-addresses" className="text-base font-medium">
-                    Different pickup address for each tour
+                    {t('quotes.multipleAddresses')}
                   </Label>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Enable if passenger stays at different hotels during the trip
+                    {t('quotes.multipleAddresses')}
                   </p>
                 </div>
                 <Switch
@@ -567,20 +571,20 @@ const BookQuotePage = () => {
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="defaultHotel">Default Hotel/Accommodation</Label>
+                      <Label htmlFor="defaultHotel">{t('quotes.defaultHotel')}</Label>
                       <Input
                         id="defaultHotel"
-                        placeholder="e.g., Hotel Icon, Airbnb Las Condes"
+                        placeholder={t('quotes.hotelPlaceholder')}
                         value={formData.defaultHotel}
                         onChange={(e) => handleInputChange("defaultHotel", e.target.value)}
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="defaultRoom">Room/Unit Number</Label>
+                      <Label htmlFor="defaultRoom">{t('quotes.roomNumber')}</Label>
                       <Input
                         id="defaultRoom"
-                        placeholder="e.g., 1503, Apt 2B"
+                        placeholder={t('quotes.roomPlaceholder')}
                         value={formData.defaultRoom}
                         onChange={(e) => handleInputChange("defaultRoom", e.target.value)}
                       />
@@ -588,11 +592,11 @@ const BookQuotePage = () => {
                   </div>
 
                   <div>
-                    <Label htmlFor="accommodationComments">Accommodation Comments</Label>
+                    <Label htmlFor="accommodationComments">{t('quotes.accommodationComments')}</Label>
                     <Textarea
                       id="accommodationComments"
                       rows={3}
-                      placeholder="Additional details (check-in time, special instructions, contact info, etc.)"
+                      placeholder={t('quotes.accommodationPlaceholder')}
                       value={formData.accommodationComments}
                       onChange={(e) => handleInputChange("accommodationComments", e.target.value)}
                     />
@@ -605,15 +609,15 @@ const BookQuotePage = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg font-medium">Add Tour Booking</CardTitle>
+            <CardTitle className="text-lg font-medium">{t('quotes.addTourBooking')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <Label>Destination</Label>
+                <Label>{t('quotes.destination')}</Label>
                 <Select value={selectedDestination} onValueChange={setSelectedDestination}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select destination" />
+                    <SelectValue placeholder={t('quotes.selectDestination')} />
                   </SelectTrigger>
                   <SelectContent>
                     {destinations.map(dest => (
@@ -624,14 +628,14 @@ const BookQuotePage = () => {
               </div>
 
               <div>
-                <Label>Tour</Label>
+                <Label>{t('quotes.tour')}</Label>
                 <Select 
                   value={currentTour.tourId} 
                   onValueChange={handleTourSelection}
                   disabled={!selectedDestination}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select tour" />
+                    <SelectValue placeholder={t('quotes.selectTour')} />
                   </SelectTrigger>
                   <SelectContent>
                     {availableTours.map(tour => (
@@ -644,7 +648,7 @@ const BookQuotePage = () => {
               </div>
 
               <div>
-                <Label>Date</Label>
+                <Label>{t('quotes.date')}</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -655,7 +659,7 @@ const BookQuotePage = () => {
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {currentTour.date ? format(currentTour.date, "dd/MM/yyyy") : "Select date"}
+                      {currentTour.date ? format(currentTour.date, "dd/MM/yyyy") : t('quotes.selectDate')}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
@@ -670,19 +674,19 @@ const BookQuotePage = () => {
               </div>
 
               <div>
-                <Label>Operator</Label>
+                <Label>{t('quotes.operator')}</Label>
                 <Select 
                   value={currentTour.operator} 
                   onValueChange={(value) => handleTourFieldChange("operator", value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select operator" />
+                    <SelectValue placeholder={t('quotes.selectOperator')} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="own-operation">
                       <div className="flex items-center gap-2">
                         <Building className="w-4 h-4" />
-                        Own Operation
+                        {t('quotes.ownOperation')}
                       </div>
                     </SelectItem>
                     <div className="h-px bg-border my-1" />
@@ -701,10 +705,10 @@ const BookQuotePage = () => {
                 <div>
                   <Label>
                     <MapPin className="w-4 h-4 inline mr-1" />
-                    Pickup Address for this tour
+                    {t('quotes.pickupAddress')}
                   </Label>
                   <Input
-                    placeholder="Hotel name or street address"
+                    placeholder={t('quotes.pickupPlaceholder')}
                     value={currentTour.pickupAddress}
                     onChange={(e) => handleTourFieldChange("pickupAddress", e.target.value)}
                     className="border-blue-300"
@@ -712,7 +716,7 @@ const BookQuotePage = () => {
                 </div>
 
                 <div>
-                  <Label>Pickup Time</Label>
+                  <Label>{t('quotes.pickupTime')}</Label>
                   <Input
                     type="time"
                     value={currentTour.pickupTime}
@@ -724,7 +728,7 @@ const BookQuotePage = () => {
 
             <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
               <div>
-                <Label>Adults PAX</Label>
+                <Label>{t('quotes.adultsPax')}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -734,7 +738,7 @@ const BookQuotePage = () => {
               </div>
 
               <div>
-                <Label>Adult Price</Label>
+                <Label>{t('quotes.adultPrice')}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -744,7 +748,7 @@ const BookQuotePage = () => {
               </div>
 
               <div>
-                <Label>Children PAX</Label>
+                <Label>{t('quotes.childrenPax')}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -754,7 +758,7 @@ const BookQuotePage = () => {
               </div>
 
               <div>
-                <Label>Child Price</Label>
+                <Label>{t('quotes.childPrice')}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -764,7 +768,7 @@ const BookQuotePage = () => {
               </div>
 
               <div>
-                <Label>Infants PAX</Label>
+                <Label>{t('quotes.infantsPax')}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -774,7 +778,7 @@ const BookQuotePage = () => {
               </div>
 
               <div>
-                <Label>Infant Price</Label>
+                <Label>{t('quotes.infantPrice')}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -785,10 +789,10 @@ const BookQuotePage = () => {
             </div>
 
             <div>
-              <Label>Comments for this tour</Label>
+              <Label>{t('quotes.tourComments')}</Label>
               <Textarea
                 rows={2}
-                placeholder="Special requests, dietary requirements, etc."
+                placeholder={t('quotes.tourCommentsPlaceholder')}
                 value={currentTour.comments}
                 onChange={(e) => handleTourFieldChange("comments", e.target.value)}
               />
@@ -804,7 +808,7 @@ const BookQuotePage = () => {
                 className="bg-blue-600 hover:bg-blue-700"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                {editingTourId ? "Update Tour" : "Add Tour"}
+                {editingTourId ? t('quotes.updateTour') : t('quotes.addTour')}
               </Button>
             </div>
           </CardContent>
@@ -813,23 +817,23 @@ const BookQuotePage = () => {
         {tourBookings.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg font-medium">Tour Bookings List</CardTitle>
+              <CardTitle className="text-lg font-medium">{t('quotes.tourBookingsList')}</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Operation Date</TableHead>
-                    <TableHead>Tour</TableHead>
-                    <TableHead>Operator</TableHead>
-                    <TableHead className="text-center">Adult PAX</TableHead>
-                    <TableHead className="text-right">Adult Price</TableHead>
-                    <TableHead className="text-center">Child PAX</TableHead>
-                    <TableHead className="text-right">Child Price</TableHead>
-                    <TableHead className="text-center">Infant PAX</TableHead>
-                    <TableHead className="text-right">Infant Price</TableHead>
-                    <TableHead className="text-right">Sub-Total</TableHead>
-                    <TableHead className="text-center">Actions</TableHead>
+                    <TableHead>{t('quotes.operationDate')}</TableHead>
+                    <TableHead>{t('quotes.tour')}</TableHead>
+                    <TableHead>{t('quotes.operator')}</TableHead>
+                    <TableHead className="text-center">{t('quotes.adultPax')}</TableHead>
+                    <TableHead className="text-right">{t('quotes.adultPrice')}</TableHead>
+                    <TableHead className="text-center">{t('quotes.childPax')}</TableHead>
+                    <TableHead className="text-right">{t('quotes.childPrice')}</TableHead>
+                    <TableHead className="text-center">{t('quotes.infantPax')}</TableHead>
+                    <TableHead className="text-right">{t('quotes.infantPrice')}</TableHead>
+                    <TableHead className="text-right">{t('quotes.subTotal')}</TableHead>
+                    <TableHead className="text-center">{t('quotes.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -851,7 +855,7 @@ const BookQuotePage = () => {
                         <div className="flex items-center gap-1">
                           {tour.operator === "own-operation" && <Building className="w-3 h-3" />}
                           <span className="text-sm">
-                            {tour.operator === "own-operation" ? "Own Operation" : tour.operator}
+                            {tour.operator === "own-operation" ? t('quotes.ownOperation') : tour.operator}
                           </span>
                         </div>
                       </TableCell>
@@ -898,7 +902,7 @@ const BookQuotePage = () => {
 
               <div className="mt-4 pt-4 border-t">
                 <div className="flex justify-between items-center">
-                  <span className="text-xl font-bold">GRAND TOTAL</span>
+                  <span className="text-xl font-bold">{t('quotes.grandTotal')}</span>
                   <span className="text-2xl font-bold text-green-600">
                     {getCurrencySymbol(formData.currency)} {calculateGrandTotal().toLocaleString()}
                   </span>
@@ -912,7 +916,7 @@ const BookQuotePage = () => {
           <div className="flex items-start gap-2">
             <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
             <p className="text-sm text-yellow-800">
-              <strong>Important:</strong> Please ensure all tour details are correct before submitting. Each tour must have at least one passenger (adult, child, or infant) and valid pricing information.
+              <strong>{t('quotes.important')}:</strong> {t('quotes.importantMessage')}
             </p>
           </div>
         </div>
@@ -923,14 +927,14 @@ const BookQuotePage = () => {
             variant="outline"
             onClick={() => navigate("/my-quotes")}
           >
-            Cancel
+            {t('quotes.cancel')}
           </Button>
           <Button
             type="submit"
             className="bg-green-500 hover:bg-green-600 text-white px-8"
             disabled={submitting || tourBookings.length === 0}
           >
-            {submitting ? "Creating..." : "Create Booking"}
+            {submitting ? t('quotes.creating') : t('quotes.createBooking')}
           </Button>
         </div>
       </form>
