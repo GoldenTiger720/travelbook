@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Bell, ChevronDown, User, LogOut, UserCircle } from "lucide-react";
@@ -25,12 +25,15 @@ import LogisticsPage from "./pages/LogisticsPage";
 import ReportsPage from "./pages/ReportsPage";
 import SettingsPage from "./pages/SettingsPage";
 import SupportPage from "./pages/SupportPage";
+import SignInPage from "./pages/SignInPage";
+import SignUpPage from "./pages/SignUpPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const AppContent = () => {
+const MainLayout = () => {
   const { language, setLanguage, t } = useLanguage();
+  const navigate = useNavigate();
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -72,7 +75,6 @@ const AppContent = () => {
   }, [isLanguageOpen, isUserMenuOpen]);
 
   return (
-    <BrowserRouter>
       <SidebarProvider>
             <div className="min-h-screen flex w-full">
               <AppSidebar />
@@ -178,6 +180,7 @@ const AppContent = () => {
                               onClick={() => {
                                 console.log('Logging out');
                                 setIsUserMenuOpen(false);
+                                navigate('/signin');
                               }}
                               className="flex items-center gap-3 w-full px-3 py-2 text-sm hover:bg-accent transition-colors rounded-md text-destructive"
                             >
@@ -215,7 +218,18 @@ const AppContent = () => {
             </div>
           </div>
         </SidebarProvider>
-      </BrowserRouter>
+  );
+};
+
+const AppContent = () => {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/signin" element={<SignInPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/*" element={<MainLayout />} />
+      </Routes>
+    </BrowserRouter>
   );
 };
 
