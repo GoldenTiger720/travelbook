@@ -27,29 +27,31 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar"
-
-const mainItems = [
-  { title: "Dashboard", url: "/", icon: Home },
-  { title: "Reservation Calendar", url: "/reservations", icon: Calendar },
-  { title: "All Reservations", url: "/all-reservations", icon: ClipboardList },
-  { title: "Book/Quote", url: "/quotes", icon: FileText },
-  { title: "My Quotes", url: "/my-quotes", icon: BookOpen },
-  { title: "Customers", url: "/customers", icon: Users },
-  { title: "Financial", url: "/financial", icon: DollarSign },
-  { title: "Sales Commissions", url: "/sales-commissions", icon: CircleDollarSign },
-]
-
-const operationsItems = [
-  { title: "Service Log", url: "/services", icon: MapPin },
-  { title: "Tours", url: "/tours", icon: Compass },
-  { title: "Logistics", url: "/logistics", icon: Car },
-  { title: "Reports", url: "/reports", icon: TrendingUp },
-  { title: "Support", url: "/support", icon: HeadphonesIcon },
-]
+import { useLanguage } from "@/contexts/LanguageContext"
 
 export function AppSidebar() {
   const { state } = useSidebar()
+  const { t } = useLanguage()
   const isCollapsed = state === 'collapsed'
+  
+  const mainItems = [
+    { titleKey: "sidebar.dashboard", url: "/", icon: Home },
+    { titleKey: "sidebar.reservations", url: "/reservations", icon: Calendar },
+    { titleKey: "sidebar.allReservations", url: "/all-reservations", icon: ClipboardList },
+    { titleKey: "sidebar.quotes", url: "/quotes", icon: FileText },
+    { titleKey: "sidebar.myQuotes", url: "/my-quotes", icon: BookOpen },
+    { titleKey: "sidebar.customers", url: "/customers", icon: Users },
+    { titleKey: "sidebar.financial", url: "/financial", icon: DollarSign },
+    { titleKey: "sidebar.salesCommissions", url: "/sales-commissions", icon: CircleDollarSign },
+  ]
+
+  const operationsItems = [
+    { titleKey: "sidebar.services", url: "/services", icon: MapPin },
+    { titleKey: "sidebar.tours", url: "/tours", icon: Compass },
+    { titleKey: "sidebar.logistics", url: "/logistics", icon: Car },
+    { titleKey: "sidebar.reports", url: "/reports", icon: TrendingUp },
+    { titleKey: "sidebar.support", url: "/support", icon: HeadphonesIcon },
+  ]
   
   const getNavClassName = ({ isActive }: { isActive: boolean }) =>
     `transition-all duration-200 ${
@@ -72,15 +74,15 @@ export function AppSidebar() {
         </div>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="text-gray-600 font-medium uppercase text-xs tracking-wider px-3">Main</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-gray-600 font-medium uppercase text-xs tracking-wider px-3">{t('sidebar.mainGroup')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.titleKey}>
                   <SidebarMenuButton asChild className="text-black data-[active=true]:text-white">
                     <NavLink to={item.url} end className={getNavClassName}>
                       <item.icon className="w-4 h-4" />
-                      {!isCollapsed && <span className="text-inherit">{item.title}</span>}
+                      {!isCollapsed && <span className="text-inherit">{t(item.titleKey)}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -90,15 +92,15 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="text-gray-600 font-medium uppercase text-xs tracking-wider px-3">Operations</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-gray-600 font-medium uppercase text-xs tracking-wider px-3">{t('sidebar.operationsGroup')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {operationsItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.titleKey}>
                   <SidebarMenuButton asChild className="text-black data-[active=true]:text-white">
                     <NavLink to={item.url} className={getNavClassName}>
                       <item.icon className="w-4 h-4" />
-                      {!isCollapsed && <span className="text-inherit">{item.title}</span>}
+                      {!isCollapsed && <span className="text-inherit">{t(item.titleKey)}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -111,7 +113,7 @@ export function AppSidebar() {
           <SidebarMenuButton asChild className="text-black data-[active=true]:text-white">
             <NavLink to="/settings" className={getNavClassName}>
               <Settings className="w-4 h-4" />
-              {!isCollapsed && <span className="text-inherit">Settings</span>}
+              {!isCollapsed && <span className="text-inherit">{t('sidebar.settings')}</span>}
             </NavLink>
           </SidebarMenuButton>
         </div>

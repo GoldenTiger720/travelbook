@@ -7,19 +7,21 @@
   },
   "sidebar": {
     "dashboard": "Panel de Control",
-    "reservations": "Reservaciones",
+    "reservations": "Calendario de Reservaciones",
     "allReservations": "Todas las Reservaciones",
     "quotes": "Cotizar",
     "myQuotes": "Mis Cotizaciones",
     "customers": "Clientes",
     "financial": "Financiero",
     "salesCommissions": "Comisiones de Ventas",
-    "services": "Servicios",
+    "services": "Registro de Servicios",
     "tours": "Tours",
     "logistics": "Logística",
     "reports": "Reportes",
     "support": "Soporte",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "mainGroup": "Principal",
+    "operationsGroup": "Operaciones"
   },
   "dashboard": {
     "title": "Panel de Control",
@@ -42,13 +44,19 @@
     "pending": "Pendiente",
     "cancelled": "Cancelado",
     "viewAll": "Ver Todo",
-    "monthlySales": "Comparación de Ventas Mensuales",
-    "monthlyReservations": "Reservaciones y PAX Mensuales",
+    "monthlySalesTitle": "Comparación de Ventas Mensuales (2023-2025)",
+    "monthlyReservationsTitle": "Reservaciones y Pasajeros Mensuales (PAX)",
     "reservations": "Reservaciones",
     "daysOverdue": "días vencido",
     "dueIn": "vence en",
     "days": "días",
-    "day": "día"
+    "day": "día",
+    "fromLastYear": "desde el año pasado",
+    "quickActions": "Acciones Rápidas",
+    "viewCalendar": "Ver Calendario",
+    "manageCustomers": "Gestionar Clientes",
+    "financialReports": "Reportes Financieros",
+    "tourServices": "Servicios de Tours"
   },
   "common": {
     "loading": "Cargando...",

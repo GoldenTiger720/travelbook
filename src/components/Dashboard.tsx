@@ -232,7 +232,7 @@ export function Dashboard() {
                 <span className={`text-xs ${
                   metric.trend === "up" ? "text-success" : "text-destructive"
                 }`}>
-                  {metric.change} from last year
+                  {metric.change} {t('dashboard.fromLastYear')}
                 </span>
               </div>
             </CardContent>
@@ -247,7 +247,7 @@ export function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-primary" />
-              Monthly Sales Comparison (2023-2025)
+              {t('dashboard.monthlySalesTitle')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -271,7 +271,7 @@ export function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5 text-accent" />
-              Monthly Reservations & Passengers (PAX)
+              {t('dashboard.monthlyReservationsTitle')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -283,8 +283,8 @@ export function Dashboard() {
                 <YAxis yAxisId="right" orientation="right" />
                 <Tooltip />
                 <Legend />
-                <Bar yAxisId="left" dataKey="reservations" fill="#8884d8" name="Reservations" />
-                <Bar yAxisId="right" dataKey="pax" fill="#82ca9d" name="PAX" />
+                <Bar yAxisId="left" dataKey="reservations" fill="#8884d8" name={t('dashboard.reservations')} />
+                <Bar yAxisId="right" dataKey="pax" fill="#82ca9d" name={t('dashboard.pax')} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -297,7 +297,7 @@ export function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-primary" />
-              Recent Reservations
+              {t('dashboard.recentReservations')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -310,10 +310,10 @@ export function Dashboard() {
                         {reservation.customer}
                       </span>
                       <Badge className={getStatusColor(reservation.status)}>
-                        {reservation.status}
+                        {t(`dashboard.${reservation.status}`)}
                       </Badge>
                       <Badge variant="outline" className="ml-auto">
-                        {reservation.pax} PAX
+                        {reservation.pax} {t('dashboard.pax')}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
@@ -335,26 +335,26 @@ export function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-warning" />
-              Quick Actions
+              {t('dashboard.quickActions')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
               <Button variant="outline" className="h-20 flex-col gap-2">
                 <Calendar className="w-6 h-6" />
-                <span>View Calendar</span>
+                <span>{t('dashboard.viewCalendar')}</span>
               </Button>
               <Button variant="outline" className="h-20 flex-col gap-2">
                 <Users className="w-6 h-6" />
-                <span>Manage Customers</span>
+                <span>{t('dashboard.manageCustomers')}</span>
               </Button>
               <Button variant="outline" className="h-20 flex-col gap-2">
                 <DollarSign className="w-6 h-6" />
-                <span>Financial Reports</span>
+                <span>{t('dashboard.financialReports')}</span>
               </Button>
               <Button variant="outline" className="h-20 flex-col gap-2">
                 <MapPin className="w-6 h-6" />
-                <span>Tour Services</span>
+                <span>{t('dashboard.tourServices')}</span>
               </Button>
             </div>
           </CardContent>

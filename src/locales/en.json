@@ -7,19 +7,21 @@
   },
   "sidebar": {
     "dashboard": "Dashboard",
-    "reservations": "Reservations",
+    "reservations": "Reservation Calendar",
     "allReservations": "All Reservations",
-    "quotes": "Book Quote",
+    "quotes": "Book/Quote",
     "myQuotes": "My Quotes",
     "customers": "Customers",
     "financial": "Financial",
     "salesCommissions": "Sales Commissions",
-    "services": "Services",
+    "services": "Service Log",
     "tours": "Tours",
     "logistics": "Logistics",
     "reports": "Reports",
     "support": "Support",
-    "settings": "Settings"
+    "settings": "Settings",
+    "mainGroup": "Main",
+    "operationsGroup": "Operations"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -42,13 +44,19 @@
     "pending": "Pending",
     "cancelled": "Cancelled",
     "viewAll": "View All",
-    "monthlySales": "Monthly Sales Comparison",
-    "monthlyReservations": "Monthly Reservations & PAX",
+    "monthlySalesTitle": "Monthly Sales Comparison (2023-2025)",
+    "monthlyReservationsTitle": "Monthly Reservations & Passengers (PAX)",
     "reservations": "Reservations",
     "daysOverdue": "days overdue",
     "dueIn": "due in",
     "days": "days",
-    "day": "day"
+    "day": "day",
+    "fromLastYear": "from last year",
+    "quickActions": "Quick Actions",
+    "viewCalendar": "View Calendar",
+    "manageCustomers": "Manage Customers",
+    "financialReports": "Financial Reports",
+    "tourServices": "Tour Services"
   },
   "common": {
     "loading": "Loading...",
