@@ -11,7 +11,6 @@ import {
   MapPin,
   ArrowUp,
   ArrowDown,
-  Plus,
   AlertCircle,
   Clock,
   AlertTriangle
@@ -187,10 +186,6 @@ export function Dashboard() {
             {t('dashboard.subtitle')}
           </p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="w-4 h-4 mr-2" />
-          {t('dashboard.newReservation')}
-        </Button>
       </div>
 
       {/* Status Alerts */}
