@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,7 +9,6 @@ import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Badge } from '@/components/ui/badge'
 import ViewReservationModal from '@/components/ViewReservationModal'
-import EditReservationModal from '@/components/EditReservationModal'
 import {
   Table,
   TableBody,
@@ -53,6 +53,7 @@ import {
 
 const AllReservationsPage = () => {
   const { toast } = useToast()
+  const navigate = useNavigate()
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [filteredReservations, setFilteredReservations] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
@@ -81,7 +82,6 @@ const AllReservationsPage = () => {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   const [filtersOpen, setFiltersOpen] = useState(true)
   const [viewModalOpen, setViewModalOpen] = useState(false)
-  const [editModalOpen, setEditModalOpen] = useState(false)
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
   
   useEffect(() => {
@@ -274,17 +274,9 @@ const AllReservationsPage = () => {
   }
 
   const handleEditReservation = (reservation: Reservation) => {
-    setSelectedReservation(reservation)
-    setEditModalOpen(true)
+    navigate(`/reservations/${reservation.id}/edit`)
   }
 
-  const handleSaveReservation = (updatedReservation: Reservation) => {
-    // Update the reservation in the local state
-    const updatedReservations = reservations.map(r => 
-      r.id === updatedReservation.id ? updatedReservation : r
-    )
-    setReservations(updatedReservations)
-  }
   
   return (
     <div className="space-y-4">
@@ -824,14 +816,6 @@ const AllReservationsPage = () => {
         reservation={selectedReservation}
         open={viewModalOpen}
         onOpenChange={setViewModalOpen}
-      />
-      
-      <EditReservationModal
-        reservation={selectedReservation}
-        open={editModalOpen}
-        onOpenChange={setEditModalOpen}
-        onSave={handleSaveReservation}
-        filterOptions={filterOptions}
       />
     </div>
   )
