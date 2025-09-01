@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useLanguage } from "@/contexts/LanguageContext"
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -93,15 +94,35 @@ const reservations = [
   }
 ]
 
-const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-const monthNames = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
-]
-
 export function ReservationCalendar() {
+  const { t } = useLanguage()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  
+  const dayNames = [
+    t('reservations.sun'),
+    t('reservations.mon'),
+    t('reservations.tue'),
+    t('reservations.wed'),
+    t('reservations.thu'),
+    t('reservations.fri'),
+    t('reservations.sat')
+  ]
+  
+  const monthNames = [
+    t('reservations.january'),
+    t('reservations.february'),
+    t('reservations.march'),
+    t('reservations.april'),
+    t('reservations.may'),
+    t('reservations.june'),
+    t('reservations.july'),
+    t('reservations.august'),
+    t('reservations.september'),
+    t('reservations.october'),
+    t('reservations.november'),
+    t('reservations.december')
+  ]
 
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
@@ -180,14 +201,14 @@ export function ReservationCalendar() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Reservation Calendar</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{t('reservations.title')}</h1>
           <p className="text-muted-foreground">
-            Manage your bookings and schedules across different views
+            {t('reservations.subtitle')}
           </p>
         </div>
         <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-2" />
-          New Reservation
+          {t('reservations.newReservation')}
         </Button>
       </div>
 
@@ -198,7 +219,7 @@ export function ReservationCalendar() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <CardTitle className="flex items-center gap-2">
                 <CalendarIcon className="w-5 h-5 text-primary" />
-                Monthly View
+                {t('reservations.monthlyView')}
               </CardTitle>
               
               {/* Month/Year Navigation */}
@@ -299,7 +320,7 @@ export function ReservationCalendar() {
                       <div className="space-y-1">
                         <div className="text-xs bg-primary text-primary-foreground px-1 py-0.5 rounded">
                           <Users className="w-3 h-3 inline mr-1" />
-                          <span className="hidden sm:inline">PAX: </span>
+                          <span className="hidden sm:inline">{t('reservations.pax')}: </span>
                           {totalPax}/{totalCapacity}
                         </div>
                         
@@ -316,7 +337,7 @@ export function ReservationCalendar() {
                           ))}
                           {Object.keys(tourSummary).length > 2 && (
                             <div className="text-xs text-gray-500">
-                              +{Object.keys(tourSummary).length - 2} more
+                              +{Object.keys(tourSummary).length - 2} {t('reservations.more')}
                             </div>
                           )}
                         </div>
@@ -334,7 +355,7 @@ export function ReservationCalendar() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MapPin className="w-5 h-5 text-accent" />
-              {selectedDate ? format(selectedDate, "EEEE, MMM dd") : "Select a Date"}
+              {selectedDate ? format(selectedDate, "EEEE, MMM dd") : t('reservations.selectDate')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -349,7 +370,7 @@ export function ReservationCalendar() {
                     return (
                       <div className="text-center py-8 text-muted-foreground">
                         <CalendarIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                        <p>No reservations for this date</p>
+                        <p>{t('reservations.noReservationsForDate')}</p>
                       </div>
                     )
                   }
@@ -359,15 +380,15 @@ export function ReservationCalendar() {
                       {/* Daily Summary */}
                       <div className="p-3 bg-primary/10 rounded-lg">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium">Daily Total</span>
+                          <span className="text-sm font-medium">{t('reservations.dailyTotal')}</span>
                           <Badge variant="secondary">
-                            {Object.keys(tourSummary).length} tour{Object.keys(tourSummary).length !== 1 ? 's' : ''}
+                            {Object.keys(tourSummary).length} {Object.keys(tourSummary).length !== 1 ? t('reservations.tours') : t('reservations.tour')}
                           </Badge>
                         </div>
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4 text-primary" />
-                          <span className="font-semibold">{totalPax} PAX</span>
-                          <span className="text-muted-foreground">/ {totalCapacity} capacity</span>
+                          <span className="font-semibold">{totalPax} {t('reservations.pax')}</span>
+                          <span className="text-muted-foreground">/ {totalCapacity} {t('reservations.capacity')}</span>
                         </div>
                         <div className="mt-2 bg-gray-200 rounded-full h-2">
                           <div
@@ -379,7 +400,7 @@ export function ReservationCalendar() {
                       
                       {/* Tour Details */}
                       <div className="space-y-3">
-                        <h4 className="font-medium">Tours</h4>
+                        <h4 className="font-medium">{t('reservations.tours')}</h4>
                         {Object.entries(tourSummary).map(([tour, data]) => {
                           const occupancyPercentage = (data.pax / data.capacity) * 100
                           return (
@@ -394,7 +415,7 @@ export function ReservationCalendar() {
                                 </Badge>
                               </div>
                               <div className="text-xs text-muted-foreground mb-2">
-                                {occupancyPercentage.toFixed(0)}% occupied
+                                {occupancyPercentage.toFixed(0)}% {t('reservations.occupied')}
                               </div>
                               <div className="bg-gray-200 rounded-full h-1.5">
                                 <div
@@ -413,7 +434,7 @@ export function ReservationCalendar() {
                       
                       {/* Individual Reservations */}
                       <div className="space-y-3">
-                        <h4 className="font-medium">Reservations ({dayReservations.length})</h4>
+                        <h4 className="font-medium">{t('reservations.reservationsCount')} ({dayReservations.length})</h4>
                         <div className="space-y-2 max-h-64 overflow-y-auto">
                           {dayReservations.map((reservation) => (
                             <div key={reservation.id} className="p-2 bg-muted/50 rounded text-xs">
@@ -421,7 +442,7 @@ export function ReservationCalendar() {
                               <div className="text-muted-foreground">{reservation.tour}</div>
                               <div className="flex items-center gap-1 mt-1">
                                 <Users className="w-3 h-3" />
-                                <span>{reservation.pax} PAX</span>
+                                <span>{reservation.pax} {t('reservations.pax')}</span>
                               </div>
                             </div>
                           ))}
@@ -434,7 +455,7 @@ export function ReservationCalendar() {
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <CalendarIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>Click on a date to see details</p>
+                <p>{t('reservations.clickDateForDetails')}</p>
               </div>
             )}
           </CardContent>
