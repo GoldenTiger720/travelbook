@@ -6,8 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useLanguage } from "@/contexts/LanguageContext"
 import { 
   ChevronLeft, 
-  ChevronRight, 
-  Plus,
+  ChevronRight,
   Calendar as CalendarIcon,
   Users,
   MapPin
@@ -206,10 +205,6 @@ export function ReservationCalendar() {
             {t('reservations.subtitle')}
           </p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
-          <Plus className="w-4 h-4 mr-2" />
-          {t('reservations.newReservation')}
-        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
