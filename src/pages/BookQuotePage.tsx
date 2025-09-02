@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useLanguage } from "@/contexts/LanguageContext"
+import Swal from 'sweetalert2'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -1179,7 +1180,12 @@ const BookQuotePage = () => {
                     className="w-full bg-green-500 hover:bg-green-600 text-white py-3"
                     onClick={() => {
                       // Handle reserve action
-                      console.log("Reserve clicked")
+                      Swal.fire({
+                        title: 'Tour saved successfully!',
+                        icon: 'success',
+                        confirmButtonText: 'Ok',
+                        confirmButtonColor: '#10b981'
+                      })
                     }}
                   >
                     Reserve
