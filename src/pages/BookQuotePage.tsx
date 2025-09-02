@@ -68,6 +68,15 @@ const BookQuotePage = () => {
   const [quotationComments, setQuotationComments] = useState("")
   const [sendQuotationAccess, setSendQuotationAccess] = useState(true)
   
+  // Payment details state
+  const [paymentDate, setPaymentDate] = useState<Date | undefined>(new Date())
+  const [paymentMethod, setPaymentMethod] = useState("")
+  const [paymentPercentage, setPaymentPercentage] = useState(50)
+  const [amountPaid, setAmountPaid] = useState(0)
+  const [paymentComments, setPaymentComments] = useState("")
+  const [paymentStatus, setPaymentStatus] = useState("")
+  const [receiptFile, setReceiptFile] = useState<File | null>(null)
+  
   // Customer data
   const [formData, setFormData] = useState({
     salesperson: "",
@@ -924,6 +933,183 @@ const BookQuotePage = () => {
               )}
             </CardContent>
           </Card>
+
+        {/* Payment Details Section - Only show when Include Payment is enabled */}
+        {includePayment && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg font-medium">Payment details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Payment Date */}
+                <div>
+                  <Label htmlFor="payment-date" className="text-sm font-medium">
+                    Payment date
+                  </Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal mt-1",
+                          !paymentDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {paymentDate ? format(paymentDate, "dd/MM/yyyy") : "Select date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={paymentDate}
+                        onSelect={setPaymentDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Payment Method */}
+                <div>
+                  <Label htmlFor="payment-method" className="text-sm font-medium">
+                    Payment method
+                  </Label>
+                  <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="credit-card">Credit Card</SelectItem>
+                      <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
+                      <SelectItem value="cash-office">Cash Office</SelectItem>
+                      <SelectItem value="mercado-pago">Mercado Pago</SelectItem>
+                      <SelectItem value="van-is-broken">Van is broken</SelectItem>
+                      <SelectItem value="pix">Pix</SelectItem>
+                      <SelectItem value="test">TEST</SelectItem>
+                      <SelectItem value="transfer">Transfer</SelectItem>
+                      <SelectItem value="nubank-transfer">Nubank transfer</SelectItem>
+                      <SelectItem value="wise">Wise</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Total Price */}
+                <div>
+                  <Label className="text-sm font-medium">Total price CLP$</Label>
+                  <div className="mt-1 p-2 bg-green-100 border rounded-md">
+                    <span className="font-semibold">{calculateGrandTotal().toLocaleString()}</span>
+                  </div>
+                </div>
+
+                {/* Percentage */}
+                <div>
+                  <Label htmlFor="payment-percentage" className="text-sm font-medium">Percentage %</Label>
+                  <Input
+                    id="payment-percentage"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={paymentPercentage}
+                    onChange={(e) => {
+                      const percentage = parseInt(e.target.value) || 0
+                      setPaymentPercentage(percentage)
+                      const totalAmount = calculateGrandTotal()
+                      const calculatedAmount = Math.round((totalAmount * percentage) / 100)
+                      setAmountPaid(calculatedAmount)
+                    }}
+                    className="mt-1"
+                  />
+                </div>
+
+                {/* Amount Paid */}
+                <div>
+                  <Label htmlFor="amount-paid" className="text-sm font-medium">
+                    Amount paid CLP$
+                  </Label>
+                  <Input
+                    id="amount-paid"
+                    type="number"
+                    min="0"
+                    value={amountPaid}
+                    onChange={(e) => {
+                      const amount = parseInt(e.target.value) || 0
+                      setAmountPaid(amount)
+                      const totalAmount = calculateGrandTotal()
+                      if (totalAmount > 0) {
+                        const calculatedPercentage = Math.round((amount / totalAmount) * 100)
+                        setPaymentPercentage(calculatedPercentage)
+                      }
+                    }}
+                    className="mt-1"
+                  />
+                </div>
+
+                {/* Amount Pending */}
+                <div>
+                  <Label className="text-sm font-medium">Amount pending CLP$</Label>
+                  <div className="mt-1 p-2 bg-gray-100 border rounded-md">
+                    <span className="font-semibold text-red-600">
+                      {(calculateGrandTotal() - amountPaid).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                {/* Receipt Upload */}
+                <div>
+                  <Label htmlFor="receipt-upload" className="text-sm font-medium">Receipt</Label>
+                  <div className="mt-1">
+                    <Input
+                      id="receipt-upload"
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                      className="file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-gray-100"
+                    />
+                    {!receiptFile && (
+                      <span className="text-xs text-gray-500">No file chosen</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Payment Comments */}
+                <div>
+                  <Label htmlFor="payment-comments" className="text-sm font-medium">Comments on payment</Label>
+                  <Textarea
+                    id="payment-comments"
+                    rows={3}
+                    className="mt-1"
+                    placeholder="Add payment comments..."
+                    value={paymentComments}
+                    onChange={(e) => setPaymentComments(e.target.value)}
+                  />
+                </div>
+
+                {/* Payment Status */}
+                <div>
+                  <Label htmlFor="payment-status" className="text-sm font-medium">
+                    Payment status
+                  </Label>
+                  <Select value={paymentStatus} onValueChange={setPaymentStatus}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="partial">Partial</SelectItem>
+                      <SelectItem value="paid">Paid</SelectItem>
+                      <SelectItem value="refunded">Refunded</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Booking Options Section */}
         <Card>
