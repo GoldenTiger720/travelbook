@@ -170,7 +170,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                     <p className="text-xs text-muted-foreground">{workflowData.quotations.length} active</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground hidden sm:block" />
+                <ChevronRight className="w-3 h-3 xs:w-4 xs:h-4 text-muted-foreground shrink-0" />
                 <div className="flex items-center gap-2 min-w-fit">
                   <div className="bg-green-100 p-2 rounded">
                     <Package className="w-4 h-4 text-green-600" />
@@ -180,7 +180,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                     <p className="text-xs text-muted-foreground">{workflowData.reservations.length} confirmed</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground hidden sm:block" />
+                <ChevronRight className="w-3 h-3 xs:w-4 xs:h-4 text-muted-foreground shrink-0" />
                 <div className="flex items-center gap-2 min-w-fit">
                   <div className="bg-yellow-100 p-2 rounded">
                     <Receipt className="w-4 h-4 text-yellow-600" />
@@ -190,7 +190,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                     <p className="text-xs text-muted-foreground">{receivablesWithInstallments.length} pending</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground hidden sm:block" />
+                <ChevronRight className="w-3 h-3 xs:w-4 xs:h-4 text-muted-foreground shrink-0" />
                 <div className="flex items-center gap-2 min-w-fit">
                   <div className="bg-purple-100 p-2 rounded">
                     <DollarSign className="w-4 h-4 text-purple-600" />
@@ -216,7 +216,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                     <p className="text-xs text-muted-foreground">8 active</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground hidden sm:block" />
+                <ChevronRight className="w-3 h-3 xs:w-4 xs:h-4 text-muted-foreground shrink-0" />
                 <div className="flex items-center gap-2 min-w-fit">
                   <div className="bg-red-100 p-2 rounded">
                     <CreditCard className="w-4 h-4 text-red-600" />
@@ -226,7 +226,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                     <p className="text-xs text-muted-foreground">{payablesWithWorkflow.length} due</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground hidden sm:block" />
+                <ChevronRight className="w-3 h-3 xs:w-4 xs:h-4 text-muted-foreground shrink-0" />
                 <div className="flex items-center gap-2 min-w-fit">
                   <div className="bg-indigo-100 p-2 rounded">
                     <Send className="w-4 h-4 text-indigo-600" />
@@ -353,13 +353,13 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
       {/* Bank Accounts and Cost Centers */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
         {/* Bank Accounts */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base sm:text-lg">Bank Accounts</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">Account balances and reconciliation status</CardDescription>
+        <Card className="w-full">
+          <CardHeader className="p-3 xs:p-4 sm:p-6">
+            <CardTitle className="text-sm xs:text-base sm:text-lg">Bank Accounts</CardTitle>
+            <CardDescription className="text-[10px] xs:text-xs sm:text-sm">Account balances and reconciliation status</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
+          <CardContent className="p-3 xs:p-4 sm:p-6">
+            <div className="space-y-2 xs:space-y-3">
               {workflowData.bankAccounts.map((account: any) => (
                 <div key={account.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
                   <div className="flex items-center gap-3">
@@ -384,13 +384,13 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
         </Card>
 
         {/* Cost Centers */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base sm:text-lg">Cost Centers</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">Budget utilization by department</CardDescription>
+        <Card className="w-full">
+          <CardHeader className="p-3 xs:p-4 sm:p-6">
+            <CardTitle className="text-sm xs:text-base sm:text-lg">Cost Centers</CardTitle>
+            <CardDescription className="text-[10px] xs:text-xs sm:text-sm">Budget utilization by department</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
+          <CardContent className="p-3 xs:p-4 sm:p-6">
+            <div className="space-y-2 xs:space-y-3">
               {workflowData.costCenters.map((center: any) => (
                 <div key={center.id} className="space-y-2">
                   <div className="flex justify-between items-center">
