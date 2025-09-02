@@ -22,23 +22,70 @@ export interface ResetPasswordData {
   password: string;
 }
 
+export interface BackendUser {
+  id: string;
+  email: string;
+  fullName: string;
+  phone: string | null;
+  company: string | null;
+  isVerified: boolean;
+  dateJoined: string;
+  avatar: string | null;
+  bio: string | null;
+  language: string;
+  timezone: string;
+}
+
 export interface AuthResponse {
-  success: boolean;
+  user: BackendUser;
+  access: string;
+  refresh: string;
+}
+
+export interface MessageResponse {
   message: string;
-  data?: {
-    user: {
-      id: string;
-      fullName: string;
-      email: string;
-      avatar?: string;
-    };
-    token: string;
-    refreshToken?: string;
+  success?: boolean;
+}
+
+export interface AuthError {
+  message?: string;
+  errors?: {
+    email?: string[];
+    password?: string[];
+    fullName?: string[];
+    [key: string]: string[] | undefined;
   };
 }
 
 // Auth Service
 class AuthService {
+  // Parse error response
+  private parseErrorResponse(response: any): AuthError {
+    // Check if response has field-specific errors
+    if (response && typeof response === 'object') {
+      // If it's already in the correct format (field: string[])
+      const hasFieldErrors = Object.keys(response).some(key => 
+        Array.isArray(response[key])
+      );
+      
+      if (hasFieldErrors) {
+        return { errors: response };
+      }
+      
+      // If it has an errors field
+      if (response.errors) {
+        return { errors: response.errors, message: response.message };
+      }
+      
+      // If it only has a message
+      if (response.message) {
+        return { message: response.message };
+      }
+    }
+    
+    return { message: 'An unexpected error occurred' };
+  }
+
   // Sign in user
   async signIn(data: SignInData): Promise<AuthResponse> {
     try {
@@ -49,21 +96,34 @@ class AuthService {
       
       const result = await response.json();
       
-      // Store token if successful
-      if (result.success && result.data?.token) {
-        localStorage.setItem('authToken', result.data.token);
-        if (result.data.refreshToken) {
-          localStorage.setItem('refreshToken', result.data.refreshToken);
+      // Check if response was successful (2xx status)
+      if (response.ok) {
+        // Store tokens and user data separately
+        if (result.access) {
+          localStorage.setItem('accessToken', result.access);
         }
-        if (result.data.user) {
-          localStorage.setItem('user', JSON.stringify(result.data.user));
+        if (result.refresh) {
+          localStorage.setItem('refreshToken', result.refresh);
         }
+        if (result.user) {
+          localStorage.setItem('user', JSON.stringify(result.user));
+        }
+        return result;
       }
       
-      return result;
-    } catch (error) {
-      console.error('Sign in error:', error);
-      throw error;
+      // If not successful, throw error with proper structure
+      throw this.parseErrorResponse(result);
+    } catch (error: any) {
+      // If error is from fetch/network
+      if (error instanceof Error) {
+        throw error;
+      }
+      // If error is already parsed
+      if (error.errors || error.message) {
+        throw error;
+      }
+      // Parse and throw
+      throw this.parseErrorResponse(error);
     }
   }
   
@@ -77,21 +137,34 @@ class AuthService {
       
       const result = await response.json();
       
-      // Store token if successful auto-login
-      if (result.success && result.data?.token) {
-        localStorage.setItem('authToken', result.data.token);
-        if (result.data.refreshToken) {
-          localStorage.setItem('refreshToken', result.data.refreshToken);
+      // Check if response was successful (2xx status)
+      if (response.ok) {
+        // Store tokens and user data if auto-login is enabled
+        if (result.access) {
+          localStorage.setItem('accessToken', result.access);
         }
-        if (result.data.user) {
-          localStorage.setItem('user', JSON.stringify(result.data.user));
+        if (result.refresh) {
+          localStorage.setItem('refreshToken', result.refresh);
         }
+        if (result.user) {
+          localStorage.setItem('user', JSON.stringify(result.user));
+        }
+        return result;
       }
       
-      return result;
-    } catch (error) {
-      console.error('Sign up error:', error);
-      throw error;
+      // If not successful, throw error with proper structure
+      throw this.parseErrorResponse(result);
+    } catch (error: any) {
+      // If error is from fetch/network
+      if (error instanceof Error) {
+        throw error;
+      }
+      // If error is already parsed
+      if (error.errors || error.message) {
+        throw error;
+      }
+      // Parse and throw
+      throw this.parseErrorResponse(error);
     }
   }
   
@@ -105,21 +178,27 @@ class AuthService {
       console.error('Sign out error:', error);
     } finally {
       // Clear local storage regardless of API response
-      localStorage.removeItem('authToken');
+      localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
     }
   }
   
   // Request password reset
-  async forgotPassword(data: ForgotPasswordData): Promise<AuthResponse> {
+  async forgotPassword(data: ForgotPasswordData): Promise<MessageResponse> {
     try {
       const response = await apiCall(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, {
         method: 'POST',
         body: JSON.stringify(data),
       });
       
-      return await response.json();
+      const result = await response.json();
+      
+      if (response.ok) {
+        return result;
+      }
+      
+      throw this.parseErrorResponse(result);
     } catch (error) {
       console.error('Forgot password error:', error);
       throw error;
@@ -127,14 +206,20 @@ class AuthService {
   }
   
   // Reset password with token
-  async resetPassword(data: ResetPasswordData): Promise<AuthResponse> {
+  async resetPassword(data: ResetPasswordData): Promise<MessageResponse> {
     try {
       const response = await apiCall(API_ENDPOINTS.AUTH.RESET_PASSWORD, {
         method: 'POST',
         body: JSON.stringify(data),
       });
       
-      return await response.json();
+      const result = await response.json();
+      
+      if (response.ok) {
+        return result;
+      }
+      
+      throw this.parseErrorResponse(result);
     } catch (error) {
       console.error('Reset password error:', error);
       throw error;
@@ -142,14 +227,20 @@ class AuthService {
   }
   
   // Verify email
-  async verifyEmail(token: string): Promise<AuthResponse> {
+  async verifyEmail(token: string): Promise<MessageResponse> {
     try {
       const response = await apiCall(API_ENDPOINTS.AUTH.VERIFY_EMAIL, {
         method: 'POST',
         body: JSON.stringify({ token }),
       });
       
-      return await response.json();
+      const result = await response.json();
+      
+      if (response.ok) {
+        return result;
+      }
+      
+      throw this.parseErrorResponse(result);
     } catch (error) {
       console.error('Verify email error:', error);
       throw error;
@@ -167,50 +258,94 @@ class AuthService {
     try {
       const response = await apiCall(API_ENDPOINTS.AUTH.REFRESH_TOKEN, {
         method: 'POST',
-        body: JSON.stringify({ refreshToken }),
+        body: JSON.stringify({ refresh: refreshToken }),
       });
       
       const result = await response.json();
       
-      // Update stored tokens
-      if (result.success && result.data?.token) {
-        localStorage.setItem('authToken', result.data.token);
-        if (result.data.refreshToken) {
-          localStorage.setItem('refreshToken', result.data.refreshToken);
+      // Check if response was successful
+      if (response.ok) {
+        // Update stored tokens
+        if (result.access) {
+          localStorage.setItem('accessToken', result.access);
         }
+        if (result.refresh) {
+          localStorage.setItem('refreshToken', result.refresh);
+        }
+        if (result.user) {
+          localStorage.setItem('user', JSON.stringify(result.user));
+        }
+        return result;
       }
       
-      return result;
+      throw this.parseErrorResponse(result);
     } catch (error) {
       console.error('Refresh token error:', error);
       // Clear tokens on refresh failure
-      localStorage.removeItem('authToken');
+      localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       throw error;
     }
   }
   
+  // Google OAuth authentication
+  async signInWithGoogle(googleToken: string): Promise<AuthResponse> {
+    try {
+      const response = await apiCall(API_ENDPOINTS.AUTH.GOOGLE, {
+        method: 'POST',
+        body: JSON.stringify({ token: googleToken }),
+      });
+      
+      const result = await response.json();
+      
+      // Check if response was successful
+      if (response.ok) {
+        // Store tokens and user data
+        if (result.access) {
+          localStorage.setItem('accessToken', result.access);
+        }
+        if (result.refresh) {
+          localStorage.setItem('refreshToken', result.refresh);
+        }
+        if (result.user) {
+          localStorage.setItem('user', JSON.stringify(result.user));
+        }
+        return result;
+      }
+      
+      throw this.parseErrorResponse(result);
+    } catch (error) {
+      console.error('Google sign in error:', error);
+      throw error;
+    }
+  }
+  
   // Check if user is authenticated
   isAuthenticated(): boolean {
-    return !!localStorage.getItem('authToken');
+    return !!localStorage.getItem('accessToken');
   }
   
   // Get current user
-  getCurrentUser(): any {
+  getCurrentUser(): BackendUser | null {
     const userStr = localStorage.getItem('user');
     if (!userStr) return null;
     
     try {
-      return JSON.parse(userStr);
+      return JSON.parse(userStr) as BackendUser;
     } catch {
       return null;
     }
   }
   
-  // Get auth token
-  getToken(): string | null {
-    return localStorage.getItem('authToken');
+  // Get access token
+  getAccessToken(): string | null {
+    return localStorage.getItem('accessToken');
+  }
+  
+  // Get refresh token
+  getRefreshToken(): string | null {
+    return localStorage.getItem('refreshToken');
   }
 }
 

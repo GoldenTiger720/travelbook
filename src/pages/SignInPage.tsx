@@ -1,13 +1,25 @@
 import { useState, useEffect } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { useSignIn } from "@/lib/hooks/useAuth"
+import { toast } from "sonner"
+import { GoogleAuthButton } from "@/components/GoogleAuthButton"
 
 const SignInPage = () => {
-  const navigate = useNavigate()
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+  const [backendErrors, setBackendErrors] = useState<Record<string, string[]>>({})
+  
+  // Handle backend field errors
+  const handleFieldErrors = (errors: Record<string, string[]>) => {
+    setBackendErrors(errors)
+  }
+  
+  const signInMutation = useSignIn(handleFieldErrors)
+  
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -41,11 +53,46 @@ const SignInPage = () => {
     return () => clearInterval(interval)
   }, [])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {}
+    
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!email) {
+      errors.email = "Email is required"
+    } else if (!emailRegex.test(email)) {
+      errors.email = "Please enter a valid email address"
+    }
+    
+    // Validate password
+    if (!password) {
+      errors.password = "Password is required"
+    }
+    
+    setValidationErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle sign in logic here
-    console.log("Sign in:", { email, password, rememberMe })
-    navigate("/")
+    
+    // Validate form
+    if (!validateForm()) {
+      toast.error("Please fix the errors in the form")
+      return
+    }
+    
+    // Submit to backend
+    try {
+      await signInMutation.mutateAsync({
+        email: email.toLowerCase().trim(),
+        password: password,
+        rememberMe: rememberMe
+      })
+    } catch (error) {
+      // Error is handled by the mutation hook
+      console.error("Sign in error:", error)
+    }
   }
 
   return (
@@ -69,10 +116,33 @@ const SignInPage = () => {
                   type="email"
                   placeholder="Enter e-mail or user"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="h-12"
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    // Clear errors when user types
+                    if (validationErrors.email) {
+                      setValidationErrors(prev => {
+                        const newErrors = { ...prev }
+                        delete newErrors.email
+                        return newErrors
+                      })
+                    }
+                    if (backendErrors.email) {
+                      setBackendErrors(prev => {
+                        const newErrors = { ...prev }
+                        delete newErrors.email
+                        return newErrors
+                      })
+                    }
+                  }}
+                  disabled={signInMutation.isPending}
+                  className={`h-12 ${validationErrors.email || backendErrors.email ? 'border-destructive' : ''}`}
                 />
+                {validationErrors.email && (
+                  <p className="text-xs text-destructive mt-1">{validationErrors.email}</p>
+                )}
+                {backendErrors.email && backendErrors.email.map((error, idx) => (
+                  <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
+                ))}
               </div>
 
               <div className="space-y-2">
@@ -91,18 +161,42 @@ const SignInPage = () => {
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="h-12 pr-10"
+                    onChange={(e) => {
+                    setPassword(e.target.value)
+                    // Clear errors when user types
+                    if (validationErrors.password) {
+                      setValidationErrors(prev => {
+                        const newErrors = { ...prev }
+                        delete newErrors.password
+                        return newErrors
+                      })
+                    }
+                    if (backendErrors.password) {
+                      setBackendErrors(prev => {
+                        const newErrors = { ...prev }
+                        delete newErrors.password
+                        return newErrors
+                      })
+                    }
+                  }}
+                    disabled={signInMutation.isPending}
+                    className={`h-12 pr-10 ${validationErrors.password || backendErrors.password ? 'border-destructive' : ''}`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    disabled={signInMutation.isPending}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:opacity-50"
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
+                {validationErrors.password && (
+                  <p className="text-xs text-destructive mt-1">{validationErrors.password}</p>
+                )}
+                {backendErrors.password && backendErrors.password.map((error, idx) => (
+                  <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
+                ))}
               </div>
 
               <div className="flex items-center space-x-2">
@@ -110,6 +204,7 @@ const SignInPage = () => {
                   id="remember"
                   checked={rememberMe}
                   onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                  disabled={signInMutation.isPending}
                 />
                 <Label
                   htmlFor="remember"
@@ -120,8 +215,19 @@ const SignInPage = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full h-12 text-base">
-              Sign in
+            <Button 
+              type="submit" 
+              className="w-full h-12 text-base"
+              disabled={signInMutation.isPending}
+            >
+              {signInMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing In...
+                </>
+              ) : (
+                "Sign in"
+              )}
             </Button>
 
             <div className="text-center text-sm">
@@ -145,17 +251,7 @@ const SignInPage = () => {
               </div>
             </div>
 
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full h-12"
-              onClick={() => console.log("Google login")}
-            >
-              <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center mr-2">
-                <span className="text-white text-xs font-bold">G</span>
-              </div>
-              Google
-            </Button>
+            <GoogleAuthButton mode="signin" disabled={signInMutation.isPending} />
           </div>
         </div>
       </div>

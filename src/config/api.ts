@@ -18,6 +18,7 @@ export const API_ENDPOINTS = {
     RESET_PASSWORD: '/api/auth/reset-password',
     VERIFY_EMAIL: '/api/auth/verify-email',
     REFRESH_TOKEN: '/api/auth/refresh-token',
+    GOOGLE: '/api/auth/google',
   },
   
   // User endpoints
@@ -163,8 +164,8 @@ export const apiCall = async (
     },
   };
   
-  // Add auth token if it exists
-  const token = localStorage.getItem('authToken');
+  // Add access token if it exists
+  const token = localStorage.getItem('accessToken');
   if (token) {
     config.headers = {
       ...config.headers,
@@ -175,10 +176,7 @@ export const apiCall = async (
   try {
     const response = await fetch(url, config);
     
-    if (!response.ok) {
-      throw new Error(`API call failed: ${response.status} ${response.statusText}`);
-    }
-    
+    // Don't throw here, let the service handle the response
     return response;
   } catch (error) {
     console.error('API call error:', error);

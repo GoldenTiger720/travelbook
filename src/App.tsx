@@ -1,9 +1,10 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { queryClient } from "@/lib/react-query";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Bell, ChevronDown, User, LogOut, UserCircle } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
@@ -30,8 +31,6 @@ import SignUpPage from "./pages/SignUpPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import TermsPage from "./pages/TermsPage";
 import NotFound from "./pages/NotFound";
-
-const queryClient = new QueryClient();
 
 const MainLayout = () => {
   const { language, setLanguage, t } = useLanguage();

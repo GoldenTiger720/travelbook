@@ -1,13 +1,25 @@
 import { useState, useEffect } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { useSignUp } from "@/lib/hooks/useAuth"
+import { toast } from "sonner"
+import { GoogleAuthButton } from "@/components/GoogleAuthButton"
 
 const SignUpPage = () => {
-  const navigate = useNavigate()
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+  const [backendErrors, setBackendErrors] = useState<Record<string, string[]>>({})
+  
+  // Handle backend field errors
+  const handleFieldErrors = (errors: Record<string, string[]>) => {
+    setBackendErrors(errors)
+  }
+  
+  const signUpMutation = useSignUp(handleFieldErrors)
+  
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -47,25 +59,92 @@ const SignUpPage = () => {
   }, [])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     })
+    
+    // Clear validation error for this field when user starts typing
+    if (validationErrors[name]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[name]
+        return newErrors
+      })
+    }
+    
+    // Clear backend error for this field when user starts typing
+    if (backendErrors[name]) {
+      setBackendErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[name]
+        return newErrors
+      })
+    }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!")
-      return
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {}
+    
+    // Validate full name
+    if (!formData.fullName.trim()) {
+      errors.fullName = "Full name is required"
+    } else if (formData.fullName.trim().length < 2) {
+      errors.fullName = "Full name must be at least 2 characters"
     }
+    
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!formData.email) {
+      errors.email = "Email is required"
+    } else if (!emailRegex.test(formData.email)) {
+      errors.email = "Please enter a valid email address"
+    }
+    
+    // Validate password
+    if (!formData.password) {
+      errors.password = "Password is required"
+    } else if (formData.password.length < 6) {
+      errors.password = "Password must be at least 6 characters"
+    }
+    
+    // Validate confirm password
+    if (!formData.confirmPassword) {
+      errors.confirmPassword = "Please confirm your password"
+    } else if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = "Passwords do not match"
+    }
+    
+    // Validate terms agreement
     if (!agreeTerms) {
-      alert("Please agree to the terms and conditions")
+      errors.terms = "You must agree to the terms and conditions"
+    }
+    
+    setValidationErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    // Validate form
+    if (!validateForm()) {
+      toast.error("Please fix the errors in the form")
       return
     }
-    // Handle sign up logic here
-    console.log("Sign up:", formData)
-    navigate("/signin")
+    
+    // Submit to backend
+    try {
+      await signUpMutation.mutateAsync({
+        fullName: formData.fullName.trim(),
+        email: formData.email.toLowerCase().trim(),
+        password: formData.password
+      })
+    } catch (error) {
+      // Error is handled by the mutation hook
+      console.error("Sign up error:", error)
+    }
   }
 
   return (
@@ -91,9 +170,15 @@ const SignUpPage = () => {
                   placeholder="Enter your full name"
                   value={formData.fullName}
                   onChange={handleInputChange}
-                  required
-                  className="h-10"
+                  disabled={signUpMutation.isPending}
+                  className={`h-10 ${validationErrors.fullName || backendErrors.fullName ? 'border-destructive' : ''}`}
                 />
+                {validationErrors.fullName && (
+                  <p className="text-xs text-destructive mt-1">{validationErrors.fullName}</p>
+                )}
+                {backendErrors.fullName && backendErrors.fullName.map((error, idx) => (
+                  <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
+                ))}
               </div>
 
               <div className="space-y-1">
@@ -105,9 +190,15 @@ const SignUpPage = () => {
                   placeholder="Enter your email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  required
-                  className="h-10"
+                  disabled={signUpMutation.isPending}
+                  className={`h-10 ${validationErrors.email || backendErrors.email ? 'border-destructive' : ''}`}
                 />
+                {validationErrors.email && (
+                  <p className="text-xs text-destructive mt-1">{validationErrors.email}</p>
+                )}
+                {backendErrors.email && backendErrors.email.map((error, idx) => (
+                  <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
+                ))}
               </div>
 
               <div className="space-y-1">
@@ -120,17 +211,24 @@ const SignUpPage = () => {
                     placeholder="Create a password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    required
-                    className="h-10 pr-10"
+                    disabled={signUpMutation.isPending}
+                    className={`h-10 pr-10 ${validationErrors.password || backendErrors.password ? 'border-destructive' : ''}`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    disabled={signUpMutation.isPending}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:opacity-50"
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
+                {validationErrors.password && (
+                  <p className="text-xs text-destructive mt-1">{validationErrors.password}</p>
+                )}
+                {backendErrors.password && backendErrors.password.map((error, idx) => (
+                  <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
+                ))}
               </div>
 
               <div className="space-y-1">
@@ -143,39 +241,60 @@ const SignUpPage = () => {
                     placeholder="Confirm your password"
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
-                    required
-                    className="h-10 pr-10"
+                    disabled={signUpMutation.isPending}
+                    className={`h-10 pr-10 ${validationErrors.confirmPassword ? 'border-destructive' : ''}`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    disabled={signUpMutation.isPending}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:opacity-50"
                   >
                     {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
+                {validationErrors.confirmPassword && (
+                  <p className="text-xs text-destructive mt-1">{validationErrors.confirmPassword}</p>
+                )}
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="terms"
-                  checked={agreeTerms}
-                  onCheckedChange={(checked) => setAgreeTerms(checked as boolean)}
-                />
-                <Label
-                  htmlFor="terms"
-                  className="text-sm font-normal cursor-pointer"
-                >
-                  I agree to the{" "}
-                  <Link to="/terms" className="text-primary hover:underline">
-                    Terms and Conditions
-                  </Link>
-                </Label>
+              <div className="space-y-1">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="terms"
+                    checked={agreeTerms}
+                    onCheckedChange={(checked) => setAgreeTerms(checked as boolean)}
+                    disabled={signUpMutation.isPending}
+                  />
+                  <Label
+                    htmlFor="terms"
+                    className="text-sm font-normal cursor-pointer"
+                  >
+                    I agree to the{" "}
+                    <Link to="/terms" className="text-primary hover:underline">
+                      Terms and Conditions
+                    </Link>
+                  </Label>
+                </div>
+                {validationErrors.terms && (
+                  <p className="text-xs text-destructive mt-1">{validationErrors.terms}</p>
+                )}
               </div>
             </div>
 
-            <Button type="submit" className="w-full h-10 text-sm">
-              Create Account
+            <Button 
+              type="submit" 
+              className="w-full h-10 text-sm"
+              disabled={signUpMutation.isPending}
+            >
+              {signUpMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating Account...
+                </>
+              ) : (
+                "Create Account"
+              )}
             </Button>
 
             <div className="text-center text-sm">
@@ -199,17 +318,7 @@ const SignUpPage = () => {
               </div>
             </div>
 
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full h-10"
-              onClick={() => console.log("Google signup")}
-            >
-              <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center mr-2">
-                <span className="text-white text-xs font-bold">G</span>
-              </div>
-              <span className="text-sm">Google</span>
-            </Button>
+            <GoogleAuthButton mode="signup" disabled={signUpMutation.isPending} />
           </div>
         </div>
       </div>
