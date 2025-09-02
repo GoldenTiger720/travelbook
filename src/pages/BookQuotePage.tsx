@@ -935,40 +935,55 @@ const BookQuotePage = () => {
                   <Label htmlFor="include-payment" className="text-base font-medium">
                     Include payment
                   </Label>
-                  <Switch
-                    id="include-payment"
-                    checked={includePayment}
-                    onCheckedChange={setIncludePayment}
-                    className={includePayment ? "data-[state=checked]:bg-red-500" : ""}
-                  />
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="include-payment"
+                      checked={includePayment}
+                      onCheckedChange={setIncludePayment}
+                      className={includePayment ? "data-[state=checked]:bg-green-500" : "data-[state=unchecked]:bg-red-500"}
+                    />
+                    <span className="text-sm font-medium min-w-[30px]">
+                      {includePayment ? "Yes" : "No"}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <Label htmlFor="copy-comments" className="text-base font-medium">
                     Copy comments of the Quotation to Purchase Order
                   </Label>
-                  <Switch
-                    id="copy-comments"
-                    checked={copyComments}
-                    onCheckedChange={setCopyComments}
-                    className="data-[state=checked]:bg-green-500"
-                  />
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="copy-comments"
+                      checked={copyComments}
+                      onCheckedChange={setCopyComments}
+                      className={copyComments ? "data-[state=checked]:bg-green-500" : "data-[state=unchecked]:bg-red-500"}
+                    />
+                    <span className="text-sm font-medium min-w-[30px]">
+                      {copyComments ? "Yes" : "No"}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="send-purchase-order" className="text-base font-medium">
-                    Send Purchase Order access to the customer to:
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id="send-purchase-order"
-                      checked={sendPurchaseOrder}
-                      onCheckedChange={setSendPurchaseOrder}
-                      className="data-[state=checked]:bg-green-500"
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      {formData.email || "admin@teampulse.com"}
-                    </span>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="send-purchase-order" className="text-base font-medium">
+                      Send Purchase Order access to the customer to:
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="send-purchase-order"
+                        checked={sendPurchaseOrder}
+                        onCheckedChange={setSendPurchaseOrder}
+                        className={sendPurchaseOrder ? "data-[state=checked]:bg-green-500" : "data-[state=unchecked]:bg-red-500"}
+                      />
+                      <span className="text-sm font-medium min-w-[30px]">
+                        {sendPurchaseOrder ? "Yes" : "No"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-sm text-muted-foreground ml-0">
+                    {formData.email || "admin@teampulse.com"}
                   </div>
                 </div>
 
@@ -1038,19 +1053,24 @@ const BookQuotePage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="send-quotation-access" className="text-base font-medium">
-                    Send Quotation access to the customer to:
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id="send-quotation-access"
-                      checked={sendQuotationAccess}
-                      onCheckedChange={setSendQuotationAccess}
-                      className="data-[state=checked]:bg-green-500"
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      {formData.email || "admin@teampulse.com"}
-                    </span>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="send-quotation-access" className="text-base font-medium">
+                      Send Quotation access to the customer to:
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="send-quotation-access"
+                        checked={sendQuotationAccess}
+                        onCheckedChange={setSendQuotationAccess}
+                        className={sendQuotationAccess ? "data-[state=checked]:bg-green-500" : "data-[state=unchecked]:bg-red-500"}
+                      />
+                      <span className="text-sm font-medium min-w-[30px]">
+                        {sendQuotationAccess ? "Yes" : "No"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-sm text-muted-foreground ml-0">
+                    {formData.email || "admin@teampulse.com"}
                   </div>
                 </div>
 
