@@ -1177,7 +1177,8 @@ const BookQuotePage = () => {
                 <div className="space-y-4">
                   <Button
                     type="button"
-                    className="w-full bg-green-500 hover:bg-green-600 text-white py-3"
+                    className="w-full bg-green-500 hover:bg-green-600 text-white py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={tourBookings.length === 0}
                     onClick={() => {
                       // Handle reserve action
                       Swal.fire({
@@ -1191,11 +1192,13 @@ const BookQuotePage = () => {
                     {t('quotes.reserve')}
                   </Button>
                   
-                  <div className="flex items-center gap-2 p-3 bg-green-100 rounded-lg">
-                    <div className="w-6 h-6 bg-green-500 rounded flex items-center justify-center">
+                  <div className={`flex items-center gap-2 p-3 rounded-lg ${tourBookings.length > 0 ? 'bg-green-100' : 'bg-gray-100'}`}>
+                    <div className={`w-6 h-6 rounded flex items-center justify-center ${tourBookings.length > 0 ? 'bg-green-500' : 'bg-gray-400'}`}>
                       <span className="text-white text-xs">✓</span>
                     </div>
-                    <span className="text-green-700 font-medium">{t('quotes.readyToBook')}</span>
+                    <span className={`font-medium ${tourBookings.length > 0 ? 'text-green-700' : 'text-gray-600'}`}>
+                      {t('quotes.readyToBook')}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1271,7 +1274,8 @@ const BookQuotePage = () => {
                 <div className="space-y-4">
                   <Button
                     type="button"
-                    className="w-full bg-green-500 hover:bg-green-600 text-white py-3"
+                    className="w-full bg-green-500 hover:bg-green-600 text-white py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={tourBookings.length === 0}
                     onClick={() => {
                       // Handle save quotation action
                       console.log("Save quotation clicked")
@@ -1280,11 +1284,13 @@ const BookQuotePage = () => {
                     {t('quotes.saveQuotation')}
                   </Button>
                   
-                  <div className="flex items-center gap-2 p-3 bg-green-100 rounded-lg">
-                    <div className="w-6 h-6 bg-green-500 rounded flex items-center justify-center">
+                  <div className={`flex items-center gap-2 p-3 rounded-lg ${tourBookings.length > 0 ? 'bg-green-100' : 'bg-gray-100'}`}>
+                    <div className={`w-6 h-6 rounded flex items-center justify-center ${tourBookings.length > 0 ? 'bg-green-500' : 'bg-gray-400'}`}>
                       <span className="text-white text-xs">✓</span>
                     </div>
-                    <span className="text-green-700 font-medium">{t('quotes.readyToQuote')}</span>
+                    <span className={`font-medium ${tourBookings.length > 0 ? 'text-green-700' : 'text-gray-600'}`}>
+                      {t('quotes.readyToQuote')}
+                    </span>
                   </div>
                 </div>
               </div>
