@@ -1196,46 +1196,48 @@ const BookQuotePage = () => {
 
               {/* Right Column */}
               <div className="space-y-4">
-                <div>
-                  <Label htmlFor="valid-until" className="text-base font-medium">
-                    Valid until
-                  </Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal mt-2",
-                          !validUntilDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {validUntilDate ? format(validUntilDate, "dd/MM/yyyy") : "Select date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={validUntilDate}
-                        onSelect={setValidUntilDate}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="valid-until" className="text-base font-medium">
+                      Valid until
+                    </Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal mt-2",
+                            !validUntilDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {validUntilDate ? format(validUntilDate, "dd/MM/yyyy") : "Select date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={validUntilDate}
+                          onSelect={setValidUntilDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
 
-                <div>
-                  <Label htmlFor="quotation-comments" className="text-base font-medium">
-                    Comments on quotation
-                  </Label>
-                  <Textarea
-                    id="quotation-comments"
-                    rows={4}
-                    className="mt-2"
-                    placeholder="Add comments about this quotation..."
-                    value={quotationComments}
-                    onChange={(e) => setQuotationComments(e.target.value)}
-                  />
+                  <div>
+                    <Label htmlFor="quotation-comments" className="text-base font-medium">
+                      Comments on quotation
+                    </Label>
+                    <Textarea
+                      id="quotation-comments"
+                      rows={1}
+                      className="mt-2 min-h-[40px] resize-none"
+                      placeholder="Add comments about this quotation..."
+                      value={quotationComments}
+                      onChange={(e) => setQuotationComments(e.target.value)}
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
