@@ -418,7 +418,7 @@ const BookQuotePage = () => {
                     <SelectValue placeholder={t('quotes.selectSalesperson')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Internal Team</div>
+                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">{t('quotes.internalTeam')}</div>
                     <SelectItem value="thiago">Thiago Andrade</SelectItem>
                     <SelectItem value="ana">Ana Martinez</SelectItem>
                     <div className="h-px bg-border my-1" />
@@ -441,14 +441,14 @@ const BookQuotePage = () => {
                 <Label htmlFor="currency">{t('quotes.currency')}</Label>
                 <Select value={formData.currency} onValueChange={(value) => handleInputChange("currency", value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="CLP$ - Chilean pesos" />
+                    <SelectValue placeholder={t('quotes.chileanPesos')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="CLP">CLP$ - Chilean pesos</SelectItem>
-                    <SelectItem value="USD">USD$ - US Dollars</SelectItem>
-                    <SelectItem value="EUR">EUR€ - Euros</SelectItem>
-                    <SelectItem value="BRL">R$ - Brazilian reais</SelectItem>
-                    <SelectItem value="ARS">ARS$ - Argentine pesos</SelectItem>
+                    <SelectItem value="CLP">{t('quotes.chileanPesos')}</SelectItem>
+                    <SelectItem value="USD">{t('quotes.usDollars')}</SelectItem>
+                    <SelectItem value="EUR">{t('quotes.euros')}</SelectItem>
+                    <SelectItem value="BRL">{t('quotes.brazilianReais')}</SelectItem>
+                    <SelectItem value="ARS">{t('quotes.argentinePesos')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -460,8 +460,8 @@ const BookQuotePage = () => {
                     <SelectValue placeholder={t('quotes.selectOrigin')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="instagram">Instagram</SelectItem>
-                    <SelectItem value="youtube">Youtube</SelectItem>
+                    <SelectItem value="instagram">{t('quotes.instagram')}</SelectItem>
+                    <SelectItem value="youtube">{t('quotes.youtube')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -915,7 +915,7 @@ const BookQuotePage = () => {
                   )) : (
                     <TableRow>
                       <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
-                        No bookings added yet. Add a booking above to see it listed here.
+                        {t('quotes.noBookingsAdded')}
                       </TableCell>
                     </TableRow>
                   )}
@@ -939,14 +939,14 @@ const BookQuotePage = () => {
         {includePayment && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg font-medium">Payment details</CardTitle>
+              <CardTitle className="text-lg font-medium">{t('quotes.paymentDetails')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Payment Date */}
                 <div>
                   <Label htmlFor="payment-date" className="text-sm font-medium">
-                    Payment date
+                    {t('quotes.paymentDate')}
                   </Label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -958,7 +958,7 @@ const BookQuotePage = () => {
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {paymentDate ? format(paymentDate, "dd/MM/yyyy") : "Select date"}
+                        {paymentDate ? format(paymentDate, "dd/MM/yyyy") : t('quotes.selectDate')}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
@@ -975,30 +975,30 @@ const BookQuotePage = () => {
                 {/* Payment Method */}
                 <div>
                   <Label htmlFor="payment-method" className="text-sm font-medium">
-                    Payment method
+                    {t('quotes.paymentMethod')}
                   </Label>
                   <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                     <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select" />
+                      <SelectValue placeholder={t('quotes.select')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="credit-card">Credit Card</SelectItem>
-                      <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
-                      <SelectItem value="cash-office">Cash Office</SelectItem>
-                      <SelectItem value="mercado-pago">Mercado Pago</SelectItem>
-                      <SelectItem value="van-is-broken">Van is broken</SelectItem>
-                      <SelectItem value="pix">Pix</SelectItem>
-                      <SelectItem value="test">TEST</SelectItem>
-                      <SelectItem value="transfer">Transfer</SelectItem>
-                      <SelectItem value="nubank-transfer">Nubank transfer</SelectItem>
-                      <SelectItem value="wise">Wise</SelectItem>
+                      <SelectItem value="credit-card">{t('quotes.creditCard')}</SelectItem>
+                      <SelectItem value="bank-transfer">{t('quotes.bankTransfer')}</SelectItem>
+                      <SelectItem value="cash-office">{t('quotes.cashOffice')}</SelectItem>
+                      <SelectItem value="mercado-pago">{t('quotes.mercadoPago')}</SelectItem>
+                      <SelectItem value="van-is-broken">{t('quotes.vanIsBroken')}</SelectItem>
+                      <SelectItem value="pix">{t('quotes.pix')}</SelectItem>
+                      <SelectItem value="test">{t('quotes.test')}</SelectItem>
+                      <SelectItem value="transfer">{t('quotes.transfer')}</SelectItem>
+                      <SelectItem value="nubank-transfer">{t('quotes.nubankTransfer')}</SelectItem>
+                      <SelectItem value="wise">{t('quotes.wise')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Total Price */}
                 <div>
-                  <Label className="text-sm font-medium">Total price CLP$</Label>
+                  <Label className="text-sm font-medium">{t('quotes.totalPrice')} {getCurrencySymbol(formData.currency)}</Label>
                   <div className="mt-1 p-2 bg-green-100 border rounded-md">
                     <span className="font-semibold">{calculateGrandTotal().toLocaleString()}</span>
                   </div>
@@ -1006,7 +1006,7 @@ const BookQuotePage = () => {
 
                 {/* Percentage */}
                 <div>
-                  <Label htmlFor="payment-percentage" className="text-sm font-medium">Percentage %</Label>
+                  <Label htmlFor="payment-percentage" className="text-sm font-medium">{t('quotes.percentage')}</Label>
                   <Input
                     id="payment-percentage"
                     type="number"
@@ -1027,7 +1027,7 @@ const BookQuotePage = () => {
                 {/* Amount Paid */}
                 <div>
                   <Label htmlFor="amount-paid" className="text-sm font-medium">
-                    Amount paid CLP$
+                    {t('quotes.amountPaid')} {getCurrencySymbol(formData.currency)}
                   </Label>
                   <Input
                     id="amount-paid"
@@ -1049,7 +1049,7 @@ const BookQuotePage = () => {
 
                 {/* Amount Pending */}
                 <div>
-                  <Label className="text-sm font-medium">Amount pending CLP$</Label>
+                  <Label className="text-sm font-medium">{t('quotes.amountPending')} {getCurrencySymbol(formData.currency)}</Label>
                   <div className="mt-1 p-2 bg-gray-100 border rounded-md">
                     <span className="font-semibold text-red-600">
                       {(calculateGrandTotal() - amountPaid).toLocaleString()}
@@ -1061,7 +1061,7 @@ const BookQuotePage = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                 {/* Receipt Upload */}
                 <div>
-                  <Label htmlFor="receipt-upload" className="text-sm font-medium">Receipt</Label>
+                  <Label htmlFor="receipt-upload" className="text-sm font-medium">{t('quotes.receipt')}</Label>
                   <div className="mt-1">
                     <Input
                       id="receipt-upload"
@@ -1071,19 +1071,19 @@ const BookQuotePage = () => {
                       className="file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-gray-100"
                     />
                     {!receiptFile && (
-                      <span className="text-xs text-gray-500">No file chosen</span>
+                      <span className="text-xs text-gray-500">{t('quotes.noFileChosen')}</span>
                     )}
                   </div>
                 </div>
 
                 {/* Payment Comments */}
                 <div>
-                  <Label htmlFor="payment-comments" className="text-sm font-medium">Comments on payment</Label>
+                  <Label htmlFor="payment-comments" className="text-sm font-medium">{t('quotes.commentsOnPayment')}</Label>
                   <Textarea
                     id="payment-comments"
                     rows={3}
                     className="mt-1"
-                    placeholder="Add payment comments..."
+                    placeholder={t('quotes.paymentCommentsPlaceholder')}
                     value={paymentComments}
                     onChange={(e) => setPaymentComments(e.target.value)}
                   />
@@ -1092,18 +1092,18 @@ const BookQuotePage = () => {
                 {/* Payment Status */}
                 <div>
                   <Label htmlFor="payment-status" className="text-sm font-medium">
-                    Payment status
+                    {t('quotes.paymentStatus')}
                   </Label>
                   <Select value={paymentStatus} onValueChange={setPaymentStatus}>
                     <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select" />
+                      <SelectValue placeholder={t('quotes.select')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="partial">Partial</SelectItem>
-                      <SelectItem value="paid">Paid</SelectItem>
-                      <SelectItem value="refunded">Refunded</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                      <SelectItem value="pending">{t('quotes.pending')}</SelectItem>
+                      <SelectItem value="partial">{t('quotes.partial')}</SelectItem>
+                      <SelectItem value="paid">{t('quotes.paid')}</SelectItem>
+                      <SelectItem value="refunded">{t('quotes.refunded')}</SelectItem>
+                      <SelectItem value="cancelled">{t('quotes.cancelled')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1120,7 +1120,7 @@ const BookQuotePage = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="include-payment" className="text-base font-medium">
-                    Include payment
+                    {t('quotes.includePayment')}
                   </Label>
                   <div className="flex items-center gap-2">
                     <Switch
@@ -1130,14 +1130,14 @@ const BookQuotePage = () => {
                       className={includePayment ? "data-[state=checked]:bg-green-500" : "data-[state=unchecked]:bg-red-500"}
                     />
                     <span className="text-sm font-medium min-w-[30px]">
-                      {includePayment ? "Yes" : "No"}
+                      {includePayment ? t('quotes.yes') : t('quotes.no')}
                     </span>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <Label htmlFor="copy-comments" className="text-base font-medium">
-                    Copy comments of the Quotation to Purchase Order
+                    {t('quotes.copyCommentsToOrder')}
                   </Label>
                   <div className="flex items-center gap-2">
                     <Switch
@@ -1155,7 +1155,7 @@ const BookQuotePage = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="send-purchase-order" className="text-base font-medium">
-                      Send Purchase Order access to the customer to:
+                      {t('quotes.sendPurchaseOrderAccess')}
                     </Label>
                     <div className="flex items-center gap-2">
                       <Switch
@@ -1181,21 +1181,21 @@ const BookQuotePage = () => {
                     onClick={() => {
                       // Handle reserve action
                       Swal.fire({
-                        title: 'Tour saved successfully!',
+                        title: t('quotes.tourSavedSuccessfully'),
                         icon: 'success',
-                        confirmButtonText: 'Ok',
+                        confirmButtonText: t('quotes.ok'),
                         confirmButtonColor: '#10b981'
                       })
                     }}
                   >
-                    Reserve
+                    {t('quotes.reserve')}
                   </Button>
                   
                   <div className="flex items-center gap-2 p-3 bg-green-100 rounded-lg">
                     <div className="w-6 h-6 bg-green-500 rounded flex items-center justify-center">
                       <span className="text-white text-xs">✓</span>
                     </div>
-                    <span className="text-green-700 font-medium">ready to book</span>
+                    <span className="text-green-700 font-medium">{t('quotes.readyToBook')}</span>
                   </div>
                 </div>
               </div>
@@ -1205,7 +1205,7 @@ const BookQuotePage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="valid-until" className="text-base font-medium">
-                      Valid until
+                      {t('quotes.validUntil')}
                     </Label>
                     <Popover>
                       <PopoverTrigger asChild>
@@ -1217,7 +1217,7 @@ const BookQuotePage = () => {
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {validUntilDate ? format(validUntilDate, "dd/MM/yyyy") : "Select date"}
+                          {validUntilDate ? format(validUntilDate, "dd/MM/yyyy") : t('quotes.selectDate')}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
@@ -1233,13 +1233,13 @@ const BookQuotePage = () => {
 
                   <div>
                     <Label htmlFor="quotation-comments" className="text-base font-medium">
-                      Comments on quotation
+                      {t('quotes.commentsOnQuotation')}
                     </Label>
                     <Textarea
                       id="quotation-comments"
                       rows={1}
                       className="mt-2 min-h-[40px] resize-none"
-                      placeholder="Add comments about this quotation..."
+                      placeholder={t('quotes.quotationCommentsPlaceholder')}
                       value={quotationComments}
                       onChange={(e) => setQuotationComments(e.target.value)}
                     />
@@ -1249,7 +1249,7 @@ const BookQuotePage = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="send-quotation-access" className="text-base font-medium">
-                      Send Quotation access to the customer to:
+                      {t('quotes.sendQuotationAccess')}
                     </Label>
                     <div className="flex items-center gap-2">
                       <Switch
@@ -1277,14 +1277,14 @@ const BookQuotePage = () => {
                       console.log("Save quotation clicked")
                     }}
                   >
-                    Save quotation
+                    {t('quotes.saveQuotation')}
                   </Button>
                   
                   <div className="flex items-center gap-2 p-3 bg-green-100 rounded-lg">
                     <div className="w-6 h-6 bg-green-500 rounded flex items-center justify-center">
                       <span className="text-white text-xs">✓</span>
                     </div>
-                    <span className="text-green-700 font-medium">ready to quote</span>
+                    <span className="text-green-700 font-medium">{t('quotes.readyToQuote')}</span>
                   </div>
                 </div>
               </div>
