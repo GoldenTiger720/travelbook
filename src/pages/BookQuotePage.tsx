@@ -60,6 +60,14 @@ const BookQuotePage = () => {
   const [destinations, setDestinations] = useState<string[]>([])
   const [editingTourId, setEditingTourId] = useState<string | null>(null)
   
+  // Booking options state
+  const [includePayment, setIncludePayment] = useState(false)
+  const [copyComments, setCopyComments] = useState(true)
+  const [sendPurchaseOrder, setSendPurchaseOrder] = useState(true)
+  const [validUntilDate, setValidUntilDate] = useState<Date | undefined>(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))
+  const [quotationComments, setQuotationComments] = useState("")
+  const [sendQuotationAccess, setSendQuotationAccess] = useState(true)
+  
   // Customer data
   const [formData, setFormData] = useState({
     salesperson: "",
@@ -442,11 +450,8 @@ const BookQuotePage = () => {
                     <SelectValue placeholder={t('quotes.selectOrigin')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="website">{t('quotes.website')}</SelectItem>
-                    <SelectItem value="phone">{t('quotes.phone')}</SelectItem>
-                    <SelectItem value="email">{t('quotes.email')}</SelectItem>
-                    <SelectItem value="walk-in">{t('quotes.walkIn')}</SelectItem>
-                    <SelectItem value="referral">{t('quotes.referral')}</SelectItem>
+                    <SelectItem value="instagram">Instagram</SelectItem>
+                    <SelectItem value="youtube">Youtube</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -816,30 +821,29 @@ const BookQuotePage = () => {
           </CardContent>
         </Card>
 
-        {tourBookings.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg font-medium">{t('quotes.tourBookingsList')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('quotes.operationDate')}</TableHead>
-                    <TableHead>{t('quotes.tour')}</TableHead>
-                    <TableHead>{t('quotes.operator')}</TableHead>
-                    <TableHead className="text-center">{t('quotes.adultPax')}</TableHead>
-                    <TableHead className="text-right">{t('quotes.adultPrice')}</TableHead>
-                    <TableHead className="text-center">{t('quotes.childPax')}</TableHead>
-                    <TableHead className="text-right">{t('quotes.childPrice')}</TableHead>
-                    <TableHead className="text-center">{t('quotes.infantPax')}</TableHead>
-                    <TableHead className="text-right">{t('quotes.infantPrice')}</TableHead>
-                    <TableHead className="text-right">{t('quotes.subTotal')}</TableHead>
-                    <TableHead className="text-center">{t('quotes.actions')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {tourBookings.map((tour) => (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-medium">{t('quotes.tourBookingsList')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('quotes.operationDate')}</TableHead>
+                  <TableHead>{t('quotes.tour')}</TableHead>
+                  <TableHead>{t('quotes.operator')}</TableHead>
+                  <TableHead className="text-center">{t('quotes.adultPax')}</TableHead>
+                  <TableHead className="text-right">{t('quotes.adultPrice')}</TableHead>
+                  <TableHead className="text-center">{t('quotes.childPax')}</TableHead>
+                  <TableHead className="text-right">{t('quotes.childPrice')}</TableHead>
+                  <TableHead className="text-center">{t('quotes.infantPax')}</TableHead>
+                  <TableHead className="text-right">{t('quotes.infantPrice')}</TableHead>
+                  <TableHead className="text-right">{t('quotes.subTotal')}</TableHead>
+                  <TableHead className="text-center">{t('quotes.actions')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tourBookings.length > 0 ? tourBookings.map((tour) => (
                     <TableRow key={tour.id}>
                       <TableCell>{format(tour.date, "dd/MM/yyyy")}</TableCell>
                       <TableCell>
@@ -898,21 +902,181 @@ const BookQuotePage = () => {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )) : (
+                    <TableRow>
+                      <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
+                        No bookings added yet. Add a booking above to see it listed here.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
 
-              <div className="mt-4 pt-4 border-t">
-                <div className="flex justify-between items-center">
-                  <span className="text-xl font-bold">{t('quotes.grandTotal')}</span>
-                  <span className="text-2xl font-bold text-green-600">
-                    {getCurrencySymbol(formData.currency)} {calculateGrandTotal().toLocaleString()}
-                  </span>
+              {tourBookings.length > 0 && (
+                <div className="mt-4 pt-4 border-t">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xl font-bold">{t('quotes.grandTotal')}</span>
+                    <span className="text-2xl font-bold text-green-600">
+                      {getCurrencySymbol(formData.currency)} {calculateGrandTotal().toLocaleString()}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
-        )}
+
+        {/* Booking Options Section */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left Column */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="include-payment" className="text-base font-medium">
+                    Include payment
+                  </Label>
+                  <Switch
+                    id="include-payment"
+                    checked={includePayment}
+                    onCheckedChange={setIncludePayment}
+                    className={includePayment ? "data-[state=checked]:bg-red-500" : ""}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="copy-comments" className="text-base font-medium">
+                    Copy comments of the Quotation to Purchase Order
+                  </Label>
+                  <Switch
+                    id="copy-comments"
+                    checked={copyComments}
+                    onCheckedChange={setCopyComments}
+                    className="data-[state=checked]:bg-green-500"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="send-purchase-order" className="text-base font-medium">
+                    Send Purchase Order access to the customer to:
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="send-purchase-order"
+                      checked={sendPurchaseOrder}
+                      onCheckedChange={setSendPurchaseOrder}
+                      className="data-[state=checked]:bg-green-500"
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {formData.email || "admin@teampulse.com"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <Button
+                    type="button"
+                    className="w-full bg-green-500 hover:bg-green-600 text-white py-3"
+                    onClick={() => {
+                      // Handle reserve action
+                      console.log("Reserve clicked")
+                    }}
+                  >
+                    Reserve
+                  </Button>
+                  
+                  <div className="flex items-center gap-2 p-3 bg-green-100 rounded-lg">
+                    <div className="w-6 h-6 bg-green-500 rounded flex items-center justify-center">
+                      <span className="text-white text-xs">✓</span>
+                    </div>
+                    <span className="text-green-700 font-medium">ready to book</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="valid-until" className="text-base font-medium">
+                    Valid until
+                  </Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal mt-2",
+                          !validUntilDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {validUntilDate ? format(validUntilDate, "dd/MM/yyyy") : "Select date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={validUntilDate}
+                        onSelect={setValidUntilDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div>
+                  <Label htmlFor="quotation-comments" className="text-base font-medium">
+                    Comments on quotation
+                  </Label>
+                  <Textarea
+                    id="quotation-comments"
+                    rows={4}
+                    className="mt-2"
+                    placeholder="Add comments about this quotation..."
+                    value={quotationComments}
+                    onChange={(e) => setQuotationComments(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="send-quotation-access" className="text-base font-medium">
+                    Send Quotation access to the customer to:
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="send-quotation-access"
+                      checked={sendQuotationAccess}
+                      onCheckedChange={setSendQuotationAccess}
+                      className="data-[state=checked]:bg-green-500"
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {formData.email || "admin@teampulse.com"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <Button
+                    type="button"
+                    className="w-full bg-green-500 hover:bg-green-600 text-white py-3"
+                    onClick={() => {
+                      // Handle save quotation action
+                      console.log("Save quotation clicked")
+                    }}
+                  >
+                    Save quotation
+                  </Button>
+                  
+                  <div className="flex items-center gap-2 p-3 bg-green-100 rounded-lg">
+                    <div className="w-6 h-6 bg-green-500 rounded flex items-center justify-center">
+                      <span className="text-white text-xs">✓</span>
+                    </div>
+                    <span className="text-green-700 font-medium">ready to quote</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <div className="flex items-start gap-2">
