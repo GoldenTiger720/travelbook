@@ -112,12 +112,21 @@ const leadSources = [
 ]
 
 const teamMembers = [
-  "Carlos Mendez",
-  "Ana Costa",
-  "Diego Ramirez",
-  "Maria Silva",
-  "João Santos",
+  { name: "Thiago Andrade", agency: "Internal" },
+  { name: "Ana Martinez", agency: "Internal" },
+  { name: "Carlos Rodriguez", agency: "Travel Plus" },
+  { name: "Ana Silva", agency: "World Tours" },
+  { name: "Sofia Gonzalez", agency: "Adventure Agency" },
+  { name: "Juan Rodriguez", agency: "Sunset Travel" },
 ]
+
+const groupedTeamMembers = teamMembers.reduce((acc, member) => {
+  if (!acc[member.agency]) {
+    acc[member.agency] = []
+  }
+  acc[member.agency].push(member.name)
+  return acc
+}, {} as Record<string, string[]>)
 
 const suppliers = [
   "ABC Travel Agency",
@@ -744,10 +753,16 @@ export function QuoteForm({ onSubmit, onCancel, initialData, mode = "create" }: 
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {teamMembers.map((member) => (
-                          <SelectItem key={member} value={member}>
-                            {member}
-                          </SelectItem>
+                        {Object.entries(groupedTeamMembers).map(([agency, members], index) => (
+                          <div key={agency}>
+                            {index > 0 && <div className="h-px bg-border my-1" />}
+                            <div className="px-2 py-1 text-sm font-medium text-muted-foreground">{agency}</div>
+                            {members.map((member) => (
+                              <SelectItem key={member} value={member}>
+                                {member}
+                              </SelectItem>
+                            ))}
+                          </div>
                         ))}
                       </SelectContent>
                     </Select>

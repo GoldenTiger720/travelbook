@@ -176,7 +176,6 @@
     "title": "Book Quotation",
     "subtitle": "Create a new booking or quotation",
     "configTitle": "Booking or quotation configuration",
-    "assignExternal": "Assign from external agency",
     "salesperson": "Salesperson",
     "selectSalesperson": "Select salesperson",
     "currency": "Currency",
@@ -256,8 +255,7 @@
     "bookingCreatedMessage": "Quote #{quoteNumber} has been created with {tourCount} tour(s).",
     "error": "Error",
     "failedToCreate": "Failed to create booking. Please try again.",
-    "guest": "Guest",
-    "externalAgency": "External Agency"
+    "guest": "Guest"
   },
   "reports": {
     "title": "Reports",

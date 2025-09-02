@@ -120,7 +120,6 @@
     "operator": "Operador",
     "guide": "Guia",
     "driver": "Motorista",
-    "externalAgency": "Agência Externa",
     "clearFilters": "Limpar Filtros",
     "select": "Selecionar",
     "allStatuses": "Todos os Status",
@@ -176,7 +175,6 @@
     "title": "Cotação de Reserva",
     "subtitle": "Criar uma nova reserva ou cotação",
     "configTitle": "Configuração de reserva ou cotação",
-    "assignExternal": "Atribuir de agência externa",
     "salesperson": "Vendedor",
     "selectSalesperson": "Selecionar vendedor",
     "currency": "Moeda",
@@ -256,8 +254,7 @@
     "bookingCreatedMessage": "A cotação #{quoteNumber} foi criada com {tourCount} tour(s).",
     "error": "Erro",
     "failedToCreate": "Falha ao criar reserva. Por favor, tente novamente.",
-    "guest": "Convidado",
-    "externalAgency": "Agência Externa"
+    "guest": "Convidado"
   },
   "reports": {
     "title": "Relatórios",

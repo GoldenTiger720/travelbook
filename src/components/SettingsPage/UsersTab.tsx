@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Table,
   TableBody,
@@ -30,14 +29,15 @@ import {
   Search,
   Filter,
   Download,
+  FileDown,
+  Printer,
   MoreVertical,
   Edit,
   Trash2,
-  UserCheck,
-  UserX,
   Mail,
   Phone,
   Shield,
+  Check,
 } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
 
@@ -51,6 +51,7 @@ const usersData = [
     phone: "+1 (555) 123-4567",
     role: "administrator",
     supervisor: "Admin",
+    agency: "Internal",
     commission: 15.0,
     status: "active",
     lastLogin: "2024-01-15 14:30",
@@ -62,8 +63,9 @@ const usersData = [
     name: "Carlos Rodriguez",
     email: "carlos.rodriguez@zenithtravel.com",
     phone: "+1 (555) 234-5678",
-    role: "agency",
+    role: "salesperson",
     supervisor: "María García",
+    agency: "Travel Plus",
     commission: 12.5,
     status: "active",
     lastLogin: "2024-01-15 16:45",
@@ -75,8 +77,9 @@ const usersData = [
     name: "Ana Silva",
     email: "ana.silva@zenithtravel.com",
     phone: "+1 (555) 345-6789",
-    role: "guide",
+    role: "salesperson",
     supervisor: "Carlos Rodriguez",
+    agency: "World Tours",
     commission: 10.0,
     status: "active",
     lastLogin: "2024-01-15 09:15",
@@ -90,6 +93,7 @@ const usersData = [
     phone: "+1 (555) 456-7890",
     role: "driver",
     supervisor: "Carlos Rodriguez",
+    agency: "Internal",
     commission: 8.0,
     status: "inactive",
     lastLogin: "2024-01-10 11:20",
@@ -101,11 +105,54 @@ const usersData = [
     name: "Sofia Gonzalez",
     email: "sofia.gonzalez@zenithtravel.com",
     phone: "+1 (555) 567-8901",
-    role: "agency",
+    role: "salesperson",
     supervisor: "María García",
+    agency: "Adventure Agency",
     commission: 11.0,
     status: "active",
     lastLogin: "2024-01-15 13:10",
+    avatar: null
+  },
+  {
+    id: 6,
+    login: "tandrade",
+    name: "Thiago Andrade",
+    email: "thiago.andrade@zenithtravel.com",
+    phone: "+1 (555) 678-9012",
+    role: "salesperson",
+    supervisor: "María García",
+    agency: "Internal",
+    commission: 14.0,
+    status: "active",
+    lastLogin: "2024-01-15 18:20",
+    avatar: null
+  },
+  {
+    id: 7,
+    login: "jrodriguez",
+    name: "Juan Rodriguez",
+    email: "juan.rodriguez@zenithtravel.com",
+    phone: "+1 (555) 789-0123",
+    role: "salesperson",
+    supervisor: "María García",
+    agency: "Sunset Travel",
+    commission: 13.0,
+    status: "active",
+    lastLogin: "2024-01-15 17:45",
+    avatar: null
+  },
+  {
+    id: 8,
+    login: "amartinez",
+    name: "Ana Martinez",
+    email: "ana.martinez@zenithtravel.com",
+    phone: "+1 (555) 890-1234",
+    role: "salesperson",
+    supervisor: "María García",
+    agency: "Internal",
+    commission: 15.5,
+    status: "active",
+    lastLogin: "2024-01-15 16:30",
     avatar: null
   }
 ]
@@ -113,8 +160,9 @@ const usersData = [
 const UsersTab: React.FC = () => {
   const { t } = useLanguage()
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
   const [roleFilter, setRoleFilter] = useState("all")
+  const [agencyFilter, setAgencyFilter] = useState("all")
+  const [statusFilter, setStatusFilter] = useState("all")
   const [showNewUserDialog, setShowNewUserDialog] = useState(false)
   const [selectedUser, setSelectedUser] = useState<any>(null)
   const [showEditDialog, setShowEditDialog] = useState(false)
@@ -124,16 +172,21 @@ const UsersTab: React.FC = () => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.login.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || user.status === statusFilter
     const matchesRole = roleFilter === "all" || user.role === roleFilter
+    const matchesAgency = agencyFilter === "all" || user.agency === agencyFilter
+    const matchesStatus = statusFilter === "all" || user.status === statusFilter
     
-    return matchesSearch && matchesStatus && matchesRole
+    return matchesSearch && matchesRole && matchesAgency && matchesStatus
   })
 
   const getRoleBadge = (role: string) => {
     const roleConfig = {
-      administrator: { color: "bg-red-500", label: "Administrator" },
-      agency: { color: "bg-blue-500", label: "Agency" },
+      administrator: { color: "bg-red-500", label: "Admin" },
+      salesperson: { color: "bg-blue-500", label: "Sales" },
+      supersalesperson: { color: "bg-blue-600", label: "SuperSales" },
+      "external agency": { color: "bg-purple-500", label: "External" },
+      "post-sale": { color: "bg-teal-500", label: "Post-Sale" },
+      supervision: { color: "bg-indigo-500", label: "Supervision" },
       guide: { color: "bg-green-500", label: "Guide" },
       driver: { color: "bg-orange-500", label: "Driver" }
     }
@@ -141,25 +194,26 @@ const UsersTab: React.FC = () => {
     const config = roleConfig[role as keyof typeof roleConfig] || { color: "bg-gray-500", label: role }
     
     return (
-      <Badge className={`${config.color} text-white hover:${config.color}/80`}>
+      <Badge className={`${config.color} text-white hover:${config.color}/80 text-xs px-1.5 py-0`}>
         {config.label}
       </Badge>
     )
   }
 
-  const getStatusBadge = (status: string) => {
-    return status === 'active' ? (
-      <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
-        <UserCheck className="w-3 h-3 mr-1" />
-        Active
+  const getAgencyBadge = (agency: string) => {
+    const displayName = agency === "Internal" ? "Internal" : 
+                       agency.length > 10 ? agency.substring(0, 10) + "..." : agency;
+    return agency === "Internal" ? (
+      <Badge className="bg-green-100 text-green-800 hover:bg-green-200 text-xs px-1.5 py-0">
+        {displayName}
       </Badge>
     ) : (
-      <Badge className="bg-red-100 text-red-800 hover:bg-red-200">
-        <UserX className="w-3 h-3 mr-1" />
-        Inactive
+      <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200 text-xs px-1.5 py-0" title={agency}>
+        {displayName}
       </Badge>
     )
   }
+
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -200,36 +254,78 @@ const UsersTab: React.FC = () => {
                 className="pl-10"
               />
             </div>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <div className="grid grid-cols-2 sm:flex gap-3 sm:gap-4">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="text-sm">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={roleFilter} onValueChange={setRoleFilter}>
-                  <SelectTrigger className="text-sm">
-                    <SelectValue placeholder="Role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Roles</SelectItem>
-                    <SelectItem value="administrator">Administrator</SelectItem>
-                    <SelectItem value="agency">Agency</SelectItem>
-                    <SelectItem value="guide">Guide</SelectItem>
-                    <SelectItem value="driver">Driver</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="space-y-4">
+              {/* Filters Section */}
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium text-muted-foreground">Role</Label>
+                    <Select value={roleFilter} onValueChange={setRoleFilter}>
+                      <SelectTrigger className="text-sm h-9">
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Roles</SelectItem>
+                        <SelectItem value="administrator">Administrator</SelectItem>
+                        <SelectItem value="salesperson">Salesperson</SelectItem>
+                        <SelectItem value="supersalesperson">SuperSalesperson</SelectItem>
+                        <SelectItem value="external agency">External agency</SelectItem>
+                        <SelectItem value="post-sale">Post-Sale</SelectItem>
+                        <SelectItem value="supervision">Supervision</SelectItem>
+                        <SelectItem value="guide">Guide</SelectItem>
+                        <SelectItem value="driver">Driver</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium text-muted-foreground">Agency</Label>
+                    <Select value={agencyFilter} onValueChange={setAgencyFilter}>
+                      <SelectTrigger className="text-sm h-9">
+                        <SelectValue placeholder="Select agency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Agencies</SelectItem>
+                        <SelectItem value="Internal">Internal</SelectItem>
+                        <SelectItem value="Travel Plus">Travel Plus</SelectItem>
+                        <SelectItem value="World Tours">World Tours</SelectItem>
+                        <SelectItem value="Adventure Agency">Adventure Agency</SelectItem>
+                        <SelectItem value="Sunset Travel">Sunset Travel</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium text-muted-foreground">Status</Label>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="text-sm h-9">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
-              <Button variant="outline" size="sm" className="sm:w-auto">
-                <Download className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Export</span>
-                <span className="sm:hidden">Export</span>
-              </Button>
+              
+              {/* Export Buttons Section */}
+              <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+                <div className="grid grid-cols-3 sm:flex gap-2">
+                  <Button variant="outline" size="sm" className="bg-green-50 hover:text-black text-green-700 border-green-200 text-xs px-3 py-2 h-9">
+                    <Download className="w-3 h-3 mr-1" />
+                    <span className="truncate">Excel</span>
+                  </Button>
+                  <Button variant="outline" size="sm" className="bg-red-50 hover:text-black text-red-700 border-red-200 text-xs px-3 py-2 h-9">
+                    <FileDown className="w-3 h-3 mr-1" />
+                    <span className="truncate">PDF</span>
+                  </Button>
+                  <Button variant="outline" size="sm" className="bg-blue-50 hover:text-black text-blue-700 border-blue-200 text-xs px-3 py-2 h-9">
+                    <Printer className="w-3 h-3 mr-1" />
+                    <span className="truncate">Print</span>
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -239,58 +335,57 @@ const UsersTab: React.FC = () => {
       <Card>
         <CardContent className="p-0">
           {/* Desktop Table View */}
-          <div className="hidden lg:block overflow-x-auto">
-            <Table>
+          <div className="hidden lg:block w-full">
+            <Table className="w-full table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Supervisor</TableHead>
-                  <TableHead className="text-right">Commission %</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Login</TableHead>
-                  <TableHead className="text-center">Actions</TableHead>
+                  <TableHead className="w-[20%]">User</TableHead>
+                  <TableHead className="w-[22%]">Contact</TableHead>
+                  <TableHead className="w-[12%]">Role</TableHead>
+                  <TableHead className="w-[15%]">Agency</TableHead>
+                  <TableHead className="w-[15%]">Supervisor</TableHead>
+                  <TableHead className="w-[8%] text-right">Comm</TableHead>
+                  <TableHead className="w-[8%] text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={user.avatar || ""} />
-                          <AvatarFallback>
-                            {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium">{user.name}</div>
-                          <div className="text-sm text-muted-foreground">@{user.login}</div>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center ${
+                          user.status === 'active' ? 'bg-green-100' : 'bg-red-100'
+                        }`}>
+                          <Check className={`h-4 w-4 ${
+                            user.status === 'active' ? 'text-green-600' : 'text-red-600'
+                          }`} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-medium text-sm truncate">{user.name}</div>
+                          <div className="text-xs text-muted-foreground truncate">@{user.login}</div>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1 text-sm">
-                          <Mail className="w-3 h-3" />
-                          {user.email}
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1 text-xs">
+                          <Mail className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{user.email}</span>
                         </div>
-                        <div className="flex items-center gap-1 text-sm">
-                          <Phone className="w-3 h-3" />
-                          {user.phone}
+                        <div className="flex items-center gap-1 text-xs">
+                          <Phone className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{user.phone}</span>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       {getRoleBadge(user.role)}
                     </TableCell>
-                    <TableCell>{user.supervisor}</TableCell>
-                    <TableCell className="text-right font-medium">{user.commission}%</TableCell>
                     <TableCell>
-                      {getStatusBadge(user.status)}
+                      {getAgencyBadge(user.agency)}
                     </TableCell>
-                    <TableCell className="text-sm">{user.lastLogin}</TableCell>
+                    <TableCell className="text-sm truncate">{user.supervisor}</TableCell>
+                    <TableCell className="text-right font-medium text-sm">{user.commission}%</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -330,15 +425,16 @@ const UsersTab: React.FC = () => {
           {/* Mobile Card View */}
           <div className="lg:hidden divide-y divide-border">
             {filteredUsers.map((user) => (
-              <div key={user.id} className="p-4 space-y-3">
+              <div key={user.id} className="p-4 sm:p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <Avatar className="h-10 w-10 shrink-0">
-                      <AvatarImage src={user.avatar || ""} />
-                      <AvatarFallback className="text-xs">
-                        {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className={`h-10 w-10 shrink-0 rounded-full flex items-center justify-center ${
+                      user.status === 'active' ? 'bg-green-100' : 'bg-red-100'
+                    }`}>
+                      <Check className={`h-5 w-5 ${
+                        user.status === 'active' ? 'text-green-600' : 'text-red-600'
+                      }`} />
+                    </div>
                     <div className="min-w-0 flex-1">
                       <div className="font-medium text-sm truncate">{user.name}</div>
                       <div className="text-xs text-muted-foreground truncate">@{user.login}</div>
@@ -374,38 +470,30 @@ const UsersTab: React.FC = () => {
                   </DropdownMenu>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Mail className="w-3 h-3" />
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Mail className="w-4 h-4 shrink-0" />
                       <span className="truncate">{user.email}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Phone className="w-3 h-3" />
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Phone className="w-4 h-4 shrink-0" />
                       <span>{user.phone}</span>
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <div>
-                      {getRoleBadge(user.role)}
-                    </div>
-                    <div>
-                      {getStatusBadge(user.status)}
-                    </div>
+                  <div className="flex flex-wrap gap-2">
+                    {getRoleBadge(user.role)}
+                    {getAgencyBadge(user.agency)}
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center text-xs">
+                <div className="flex flex-col sm:flex-row sm:justify-between gap-2 text-sm">
                   <span className="text-muted-foreground">
-                    Supervisor: <span className="font-medium">{user.supervisor}</span>
+                    Supervisor: <span className="font-medium text-foreground">{user.supervisor}</span>
                   </span>
-                  <span className="font-medium">
+                  <span className="font-medium text-foreground">
                     Commission: {user.commission}%
                   </span>
-                </div>
-
-                <div className="text-xs text-muted-foreground">
-                  Last login: {user.lastLogin}
                 </div>
               </div>
             ))}
@@ -447,9 +535,24 @@ const UsersTab: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="administrator">Administrator</SelectItem>
-                  <SelectItem value="agency">Agency</SelectItem>
+                  <SelectItem value="salesperson">Salesperson</SelectItem>
                   <SelectItem value="guide">Guide</SelectItem>
                   <SelectItem value="driver">Driver</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="newAgency">Agency</Label>
+              <Select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select agency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Internal">Internal</SelectItem>
+                  <SelectItem value="Travel Plus">Travel Plus</SelectItem>
+                  <SelectItem value="World Tours">World Tours</SelectItem>
+                  <SelectItem value="Adventure Agency">Adventure Agency</SelectItem>
+                  <SelectItem value="Sunset Travel">Sunset Travel</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -460,8 +563,8 @@ const UsersTab: React.FC = () => {
                   <SelectValue placeholder="Select supervisor" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="maria">María García</SelectItem>
-                  <SelectItem value="carlos">Carlos Rodriguez</SelectItem>
+                  <SelectItem value="maría garcía">María García</SelectItem>
+                  <SelectItem value="carlos rodriguez">Carlos Rodriguez</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -527,9 +630,24 @@ const UsersTab: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="administrator">Administrator</SelectItem>
-                    <SelectItem value="agency">Agency</SelectItem>
+                    <SelectItem value="salesperson">Salesperson</SelectItem>
                     <SelectItem value="guide">Guide</SelectItem>
                     <SelectItem value="driver">Driver</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editAgency">Agency</Label>
+                <Select defaultValue={selectedUser.agency}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Internal">Internal</SelectItem>
+                    <SelectItem value="Travel Plus">Travel Plus</SelectItem>
+                    <SelectItem value="World Tours">World Tours</SelectItem>
+                    <SelectItem value="Adventure Agency">Adventure Agency</SelectItem>
+                    <SelectItem value="Sunset Travel">Sunset Travel</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

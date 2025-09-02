@@ -54,7 +54,6 @@ const BookQuotePage = () => {
   const { toast } = useToast()
   const { t } = useLanguage()
   const [submitting, setSubmitting] = useState(false)
-  const [assignFromExternal, setAssignFromExternal] = useState(false)
   const [hasMultipleAddresses, setHasMultipleAddresses] = useState(false)
   const [availableTours, setAvailableTours] = useState<Tour[]>([])
   const [selectedDestination, setSelectedDestination] = useState("")
@@ -337,7 +336,7 @@ const BookQuotePage = () => {
         },
         leadSource: "website",
         assignedTo: formData.salesperson || "Thiago Andrade",
-        agency: assignFromExternal ? t('quotes.externalAgency') : undefined,
+        agency: undefined,
         status: "draft",
         validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         additionalNotes: formData.accommodationComments,
@@ -392,14 +391,6 @@ const BookQuotePage = () => {
             <CardTitle className="text-lg font-medium">{t('quotes.configTitle')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="external-agency">{t('quotes.assignExternal')}</Label>
-              <Switch
-                id="external-agency"
-                checked={assignFromExternal}
-                onCheckedChange={setAssignFromExternal}
-              />
-            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
@@ -409,10 +400,21 @@ const BookQuotePage = () => {
                     <SelectValue placeholder={t('quotes.selectSalesperson')} />
                   </SelectTrigger>
                   <SelectContent>
+                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Internal Team</div>
                     <SelectItem value="thiago">Thiago Andrade</SelectItem>
-                    <SelectItem value="maria">Maria Silva</SelectItem>
-                    <SelectItem value="juan">Juan Rodriguez</SelectItem>
                     <SelectItem value="ana">Ana Martinez</SelectItem>
+                    <div className="h-px bg-border my-1" />
+                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Travel Plus</div>
+                    <SelectItem value="carlos">Carlos Rodriguez</SelectItem>
+                    <div className="h-px bg-border my-1" />
+                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">World Tours</div>
+                    <SelectItem value="ana-silva">Ana Silva</SelectItem>
+                    <div className="h-px bg-border my-1" />
+                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Adventure Agency</div>
+                    <SelectItem value="sofia">Sofia Gonzalez</SelectItem>
+                    <div className="h-px bg-border my-1" />
+                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Sunset Travel</div>
+                    <SelectItem value="juan">Juan Rodriguez</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
