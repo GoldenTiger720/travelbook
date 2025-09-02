@@ -41,15 +41,11 @@ export const useSignUp = (onFieldErrors?: (errors: Record<string, string[]>) => 
       // Invalidate auth queries
       queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });
       
-      // Show success message
-      toast.success('Account created successfully!');
+      // Show success message with user's name
+      toast.success(`Welcome ${data.user.fullName}! Account created successfully!`);
       
-      // Navigate to dashboard if tokens are present (auto-login), otherwise to sign-in
-      if (data.access && data.refresh) {
-        navigate('/');
-      } else {
-        navigate('/signin');
-      }
+      // Navigate to dashboard since successful signup includes tokens
+      navigate('/');
     },
     onError: (error: AuthError) => {
       const { fields, general } = formatErrorMessages(error);
@@ -98,8 +94,8 @@ export const useSignIn = (onFieldErrors?: (errors: Record<string, string[]>) => 
       // Invalidate auth queries
       queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });
       
-      // Show success message
-      toast.success('Welcome back!');
+      // Show success message with user's name
+      toast.success(`Welcome back, ${data.user.fullName}!`);
       
       // Navigate to dashboard
       navigate('/');
@@ -137,29 +133,29 @@ export const useSignIn = (onFieldErrors?: (errors: Record<string, string[]>) => 
   });
 };
 
-// Hook for sign out
+// Hook for sign out - immediate action
 export const useSignOut = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: authService.signOut,
-    onSuccess: () => {
-      // Clear all queries
-      queryClient.clear();
-      
-      // Show success message
-      toast.success('Signed out successfully');
-      
-      // Navigate to sign in page
-      navigate('/signin');
-    },
-    onError: () => {
-      // Even on error, perform logout actions
-      queryClient.clear();
-      navigate('/signin');
-    },
-  });
+  const signOut = () => {
+    // Perform immediate logout
+    authService.signOut();
+    
+    // Clear all React Query cache immediately
+    queryClient.clear();
+    
+    // Show success message
+    toast.success('Signed out successfully');
+    
+    // Navigate to sign in page immediately
+    navigate('/signin');
+  };
+
+  return {
+    signOut,
+    isPending: false // Always false since logout is immediate
+  };
 };
 
 // Hook for forgot password

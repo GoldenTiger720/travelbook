@@ -181,8 +181,8 @@ export function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">{t('dashboard.title')}</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{t('dashboard.title')}</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             {t('dashboard.subtitle')}
           </p>
         </div>
@@ -197,10 +197,10 @@ export function Dashboard() {
             ) : (
               <Clock className="h-4 w-4" />
             )}
-            <AlertTitle>{t(`dashboard.${alert.type === 'overdue' ? 'overduePayment' : 'pendingPayment'}`)}</AlertTitle>
-            <AlertDescription className="flex justify-between items-center">
-              <span>{alert.description}</span>
-              <span className="font-semibold">{alert.amount}</span>
+            <AlertTitle className="text-sm sm:text-base">{t(`dashboard.${alert.type === 'overdue' ? 'overduePayment' : 'pendingPayment'}`)}</AlertTitle>
+            <AlertDescription className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+              <span className="text-xs sm:text-sm">{alert.description}</span>
+              <span className="font-semibold text-sm sm:text-base">{alert.amount}</span>
             </AlertDescription>
           </Alert>
         ))}
@@ -236,89 +236,133 @@ export function Dashboard() {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Monthly Sales Comparison Chart */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
               {t('dashboard.monthlySalesTitle')}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={monthlySalesData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
-                <Legend />
-                <Line type="monotone" dataKey="2023" stroke="#8884d8" strokeWidth={2} />
-                <Line type="monotone" dataKey="2024" stroke="#82ca9d" strokeWidth={2} />
-                <Line type="monotone" dataKey="2025" stroke="#ffc658" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="w-full overflow-x-auto">
+              <ResponsiveContainer width="100%" height={250} minWidth={300}>
+                <LineChart data={monthlySalesData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="month" 
+                    tick={{ fontSize: 12 }}
+                    interval={0}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  <Line type="monotone" dataKey="2023" stroke="#8884d8" strokeWidth={2} />
+                  <Line type="monotone" dataKey="2024" stroke="#82ca9d" strokeWidth={2} />
+                  <Line type="monotone" dataKey="2025" stroke="#ffc658" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
 
         {/* Monthly Reservations and PAX Chart */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-accent" />
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
               {t('dashboard.monthlyReservationsTitle')}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={monthlyReservationData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
-                <Tooltip />
-                <Legend />
-                <Bar yAxisId="left" dataKey="reservations" fill="#8884d8" name={t('dashboard.reservations')} />
-                <Bar yAxisId="right" dataKey="pax" fill="#82ca9d" name={t('dashboard.pax')} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="w-full overflow-x-auto">
+              <ResponsiveContainer width="100%" height={250} minWidth={300}>
+                <BarChart data={monthlyReservationData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="month" 
+                    tick={{ fontSize: 12 }}
+                    interval={0}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis yAxisId="left" tick={{ fontSize: 12 }} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} />
+                  <Tooltip />
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  <Bar yAxisId="left" dataKey="reservations" fill="#8884d8" name={t('dashboard.reservations')} />
+                  <Bar yAxisId="right" dataKey="pax" fill="#82ca9d" name={t('dashboard.pax')} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Recent Activity and Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
               {t('dashboard.recentReservations')}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {recentReservations.map((reservation) => (
-                <div key={reservation.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-foreground">
+                <div key={reservation.id} className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                  {/* Mobile Layout */}
+                  <div className="block sm:hidden space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-foreground text-sm">
                         {reservation.customer}
                       </span>
-                      <Badge className={getStatusColor(reservation.status)}>
+                      <span className="font-semibold text-foreground text-sm">
+                        {reservation.amount}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge className={`${getStatusColor(reservation.status)} text-xs`}>
                         {t(`dashboard.${reservation.status}`)}
                       </Badge>
-                      <Badge variant="outline" className="ml-auto">
+                      <Badge variant="outline" className="text-xs">
                         {reservation.pax} {t('dashboard.pax')}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       {reservation.destination} • {reservation.date}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-foreground">
-                      {reservation.amount}
-                    </p>
+                  
+                  {/* Desktop Layout */}
+                  <div className="hidden sm:flex sm:items-center sm:justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="font-medium text-foreground">
+                          {reservation.customer}
+                        </span>
+                        <Badge className={getStatusColor(reservation.status)}>
+                          {t(`dashboard.${reservation.status}`)}
+                        </Badge>
+                        <Badge variant="outline">
+                          {reservation.pax} {t('dashboard.pax')}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {reservation.destination} • {reservation.date}
+                      </p>
+                    </div>
+                    <div className="text-right ml-4">
+                      <p className="font-semibold text-foreground">
+                        {reservation.amount}
+                      </p>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -328,28 +372,28 @@ export function Dashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-warning" />
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
               {t('dashboard.quickActions')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" className="h-20 flex-col gap-2">
-                <Calendar className="w-6 h-6" />
-                <span>{t('dashboard.viewCalendar')}</span>
+              <Button variant="outline" className="h-16 sm:h-20 flex-col gap-1 sm:gap-2 p-2">
+                <Calendar className="w-4 h-4 sm:w-6 sm:h-6" />
+                <span className="text-xs sm:text-sm leading-tight text-center">{t('dashboard.viewCalendar')}</span>
               </Button>
-              <Button variant="outline" className="h-20 flex-col gap-2">
-                <Users className="w-6 h-6" />
-                <span>{t('dashboard.manageCustomers')}</span>
+              <Button variant="outline" className="h-16 sm:h-20 flex-col gap-1 sm:gap-2 p-2">
+                <Users className="w-4 h-4 sm:w-6 sm:h-6" />
+                <span className="text-xs sm:text-sm leading-tight text-center">{t('dashboard.manageCustomers')}</span>
               </Button>
-              <Button variant="outline" className="h-20 flex-col gap-2">
-                <DollarSign className="w-6 h-6" />
-                <span>{t('dashboard.financialReports')}</span>
+              <Button variant="outline" className="h-16 sm:h-20 flex-col gap-1 sm:gap-2 p-2">
+                <DollarSign className="w-4 h-4 sm:w-6 sm:h-6" />
+                <span className="text-xs sm:text-sm leading-tight text-center">{t('dashboard.financialReports')}</span>
               </Button>
-              <Button variant="outline" className="h-20 flex-col gap-2">
-                <MapPin className="w-6 h-6" />
-                <span>{t('dashboard.tourServices')}</span>
+              <Button variant="outline" className="h-16 sm:h-20 flex-col gap-1 sm:gap-2 p-2">
+                <MapPin className="w-4 h-4 sm:w-6 sm:h-6" />
+                <span className="text-xs sm:text-sm leading-tight text-center">{t('dashboard.tourServices')}</span>
               </Button>
             </div>
           </CardContent>

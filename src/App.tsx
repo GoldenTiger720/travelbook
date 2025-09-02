@@ -9,6 +9,8 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Bell, ChevronDown, User, LogOut, UserCircle } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { LanguageProvider, useLanguage } from "@/contexts/LanguageContext";
+import { useCurrentUser, useSignOut } from "@/lib/hooks/useAuth";
+import authService from "@/services/authService";
 import DashboardPage from "./pages/DashboardPage";
 import ReservationsPage from "./pages/ReservationsPage";
 import AllReservationsPage from "./pages/AllReservationsPage";
@@ -39,21 +41,18 @@ const MainLayout = () => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
-
-  // Mock user data - in a real app, this would come from authentication
-  const currentUser = {
-    name: "John Doe",
-    email: "john.doe@example.com",
-    avatar: null // null means no avatar image, will show default icon
-  };
-
-  const languages = [
-    { code: 'es', name: 'Español', country: 'Spain', flag: '/flags/spain.jpg' },
-    { code: 'pt', name: 'Português', country: 'Brazil', flag: '/flags/brazil.jpg' },
-    { code: 'en', name: 'English', country: 'United States', flag: '/flags/us.jpg' }
-  ];
-
-  const selectedLanguage = languages.find(lang => lang.code === language) || languages[2];
+  
+  // Get current user from localStorage and auth hooks
+  const { data: currentUser } = useCurrentUser();
+  const { signOut, isPending: isSigningOut } = useSignOut();
+  
+  // Redirect to signin if not authenticated
+  useEffect(() => {
+    if (!authService.isAuthenticated()) {
+      navigate('/signin');
+      return;
+    }
+  }, [navigate]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -74,6 +73,26 @@ const MainLayout = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isLanguageOpen, isUserMenuOpen]);
+
+  // Show loading or redirect if no user data (after all hooks)
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const languages = [
+    { code: 'es', name: 'Español', country: 'Spain', flag: '/flags/spain.jpg' },
+    { code: 'pt', name: 'Português', country: 'Brazil', flag: '/flags/brazil.jpg' },
+    { code: 'en', name: 'English', country: 'United States', flag: '/flags/us.jpg' }
+  ];
+
+  const selectedLanguage = languages.find(lang => lang.code === language) || languages[2];
 
   return (
       <SidebarProvider>
@@ -146,7 +165,7 @@ const MainLayout = () => {
                         {currentUser.avatar ? (
                           <img 
                             src={currentUser.avatar} 
-                            alt={currentUser.name}
+                            alt={currentUser.fullName}
                             className="w-8 h-8 rounded-full object-cover"
                           />
                         ) : (
@@ -155,7 +174,7 @@ const MainLayout = () => {
                           </div>
                         )}
                         <div className="text-left hidden md:block">
-                          <p className="text-sm font-medium">{currentUser.name}</p>
+                          <p className="text-sm font-medium">{currentUser.fullName}</p>
                         </div>
                         <ChevronDown className={`h-4 w-4 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                       </button>
@@ -163,8 +182,11 @@ const MainLayout = () => {
                       {isUserMenuOpen && (
                         <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-background border z-[99999]" style={{ zIndex: 99999 }}>
                           <div className="p-3 border-b">
-                            <p className="text-sm font-medium">{currentUser.name}</p>
+                            <p className="text-sm font-medium">{currentUser.fullName}</p>
                             <p className="text-xs text-muted-foreground">{currentUser.email}</p>
+                            {!currentUser.isVerified && (
+                              <p className="text-xs text-yellow-600 mt-1">Email not verified</p>
+                            )}
                           </div>
                           <div className="p-1">
                             <button
@@ -179,14 +201,14 @@ const MainLayout = () => {
                             </button>
                             <button
                               onClick={() => {
-                                console.log('Logging out');
                                 setIsUserMenuOpen(false);
-                                navigate('/signin');
+                                signOut();
                               }}
-                              className="flex items-center gap-3 w-full px-3 py-2 text-sm hover:bg-accent transition-colors rounded-md text-destructive"
+                              disabled={isSigningOut}
+                              className="flex items-center gap-3 w-full px-3 py-2 text-sm hover:bg-accent transition-colors rounded-md text-destructive disabled:opacity-50"
                             >
                               <LogOut className="h-4 w-4" />
-                              <span>{t('navbar.logout')}</span>
+                              <span>{isSigningOut ? 'Logging out...' : t('navbar.logout')}</span>
                             </button>
                           </div>
                         </div>
@@ -224,7 +246,12 @@ const MainLayout = () => {
 
 const AppContent = () => {
   return (
-    <BrowserRouter>
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <Routes>
         <Route path="/signin" element={<SignInPage />} />
         <Route path="/signup" element={<SignUpPage />} />

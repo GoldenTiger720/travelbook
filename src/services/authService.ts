@@ -168,20 +168,17 @@ class AuthService {
     }
   }
   
-  // Sign out user
-  async signOut(): Promise<void> {
-    try {
-      await apiCall(API_ENDPOINTS.AUTH.SIGN_OUT, {
-        method: 'POST',
-      });
-    } catch (error) {
-      console.error('Sign out error:', error);
-    } finally {
-      // Clear local storage regardless of API response
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-    }
+  // Sign out user - immediate logout
+  signOut(): void {
+    // Clear ALL localStorage values immediately
+    localStorage.clear();
+    
+    // Make API call in background without waiting for response
+    apiCall(API_ENDPOINTS.AUTH.SIGN_OUT, {
+      method: 'POST',
+    }).catch(error => {
+      console.warn('Background signout API call failed (user already logged out locally):', error);
+    });
   }
   
   // Request password reset
@@ -281,7 +278,7 @@ class AuthService {
       throw this.parseErrorResponse(result);
     } catch (error) {
       console.error('Refresh token error:', error);
-      // Clear tokens on refresh failure
+      // Clear auth tokens on refresh failure (but preserve other localStorage data)
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
