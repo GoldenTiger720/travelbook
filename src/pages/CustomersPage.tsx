@@ -41,9 +41,7 @@ import {
   MapPin,
   Calendar,
   DollarSign,
-  Filter,
-  Download,
-  Upload
+  Filter
 } from "lucide-react"
 
 // Helper function to generate avatar URL
@@ -216,14 +214,6 @@ const CustomersPage = () => {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline">
-            <Upload className="w-4 h-4 mr-2" />
-            Import
-          </Button>
-          <Button variant="outline">
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </Button>
           <Dialog open={isAddCustomerOpen} onOpenChange={setIsAddCustomerOpen}>
             <DialogTrigger asChild>
               <Button className="bg-blue-600 hover:bg-blue-700">
