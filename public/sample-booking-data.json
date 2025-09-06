@@ -1,0 +1,112 @@
+{
+  "customer": {
+    "name": "Juan Díaz",
+    "email": "juan.diaz@ejemplo.com",
+    "phone": "56912345678",
+    "language": "es",
+    "country": "Chile",
+    "idNumber": "111111111X",
+    "cpf": "",
+    "address": "Av. Libertador 1234, Santiago, Chile"
+  },
+  "tours": [
+    {
+      "id": "1704067200000",
+      "tourId": "tour_001",
+      "tourName": "Valparaíso City Tour",
+      "tourCode": "VAL001",
+      "date": "2024-01-15T00:00:00.000Z",
+      "pickupAddress": "Hotel Icon, Las Condes",
+      "pickupTime": "08:00",
+      "adultPax": 2,
+      "adultPrice": 45000,
+      "childPax": 1,
+      "childPrice": 22500,
+      "infantPax": 0,
+      "infantPrice": 0,
+      "subtotal": 112500,
+      "operator": "own-operation",
+      "comments": "Vegetarian lunch for one adult"
+    },
+    {
+      "id": "1704153600000",
+      "tourId": "tour_002",
+      "tourName": "Wine Valley Tour",
+      "tourCode": "WIN001",
+      "date": "2024-01-16T00:00:00.000Z",
+      "pickupAddress": "Hotel Icon, Las Condes",
+      "pickupTime": "09:00",
+      "adultPax": 2,
+      "adultPrice": 65000,
+      "childPax": 0,
+      "childPrice": 0,
+      "infantPax": 0,
+      "infantPrice": 0,
+      "subtotal": 130000,
+      "operator": "Adventure Expeditions",
+      "comments": "No alcohol for designated driver"
+    }
+  ],
+  "tourDetails": {
+    "destination": "Valparaíso City Tour",
+    "tourType": "VAL001",
+    "startDate": "2024-01-15T00:00:00.000Z",
+    "endDate": "2024-01-16T00:00:00.000Z",
+    "passengers": 3,
+    "passengerBreakdown": {
+      "adults": 4,
+      "children": 1,
+      "infants": 0
+    },
+    "hotel": "Hotel Icon, Las Condes",
+    "room": "1503"
+  },
+  "pricing": {
+    "amount": 242500,
+    "currency": "CLP",
+    "breakdown": [
+      {
+        "item": "Valparaíso City Tour - Adults",
+        "quantity": 2,
+        "unitPrice": 45000,
+        "total": 90000
+      },
+      {
+        "item": "Valparaíso City Tour - Children",
+        "quantity": 1,
+        "unitPrice": 22500,
+        "total": 22500
+      },
+      {
+        "item": "Wine Valley Tour - Adults",
+        "quantity": 2,
+        "unitPrice": 65000,
+        "total": 130000
+      }
+    ]
+  },
+  "leadSource": "instagram",
+  "assignedTo": "Thiago Andrade",
+  "agency": null,
+  "status": "confirmed",
+  "validUntil": "2024-02-14T00:00:00.000Z",
+  "additionalNotes": "Cliente prefiere habitaciones con vista al mar. Check-in después de las 15:00hrs.",
+  "hasMultipleAddresses": false,
+  "termsAccepted": {
+    "accepted": false
+  },
+  "quotationComments": "Precio especial por reserva múltiple",
+  "includePayment": true,
+  "copyComments": true,
+  "sendPurchaseOrder": true,
+  "sendQuotationAccess": true,
+  "paymentDetails": {
+    "date": "2024-01-10T00:00:00.000Z",
+    "method": "credit-card",
+    "percentage": 50,
+    "amountPaid": 121250,
+    "comments": "Pago inicial 50%, saldo al finalizar tours",
+    "status": "partial",
+    "receiptFile": null
+  }
+}

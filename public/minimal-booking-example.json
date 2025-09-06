@@ -1,0 +1,74 @@
+{
+  "customer": {
+    "name": "Test User",
+    "email": "test@example.com",
+    "phone": "56912345678",
+    "language": "en",
+    "country": "Chile",
+    "idNumber": "123456789K",
+    "cpf": "",
+    "address": "Test Address 123, Santiago, Chile"
+  },
+  "tours": [
+    {
+      "id": "1704067200000",
+      "tourId": "tour_001",
+      "tourName": "Santiago City Tour",
+      "tourCode": "SCT001",
+      "date": "2024-02-15T00:00:00.000Z",
+      "pickupAddress": "Test Hotel",
+      "pickupTime": "09:00",
+      "adultPax": 2,
+      "adultPrice": 50000,
+      "childPax": 0,
+      "childPrice": 0,
+      "infantPax": 0,
+      "infantPrice": 0,
+      "subtotal": 100000,
+      "operator": "own-operation",
+      "comments": ""
+    }
+  ],
+  "tourDetails": {
+    "destination": "Santiago City Tour",
+    "tourType": "SCT001",
+    "startDate": "2024-02-15T00:00:00.000Z",
+    "endDate": "2024-02-15T00:00:00.000Z",
+    "passengers": 2,
+    "passengerBreakdown": {
+      "adults": 2,
+      "children": 0,
+      "infants": 0
+    },
+    "hotel": "Test Hotel",
+    "room": "101"
+  },
+  "pricing": {
+    "amount": 100000,
+    "currency": "CLP",
+    "breakdown": [
+      {
+        "item": "Santiago City Tour - Adults",
+        "quantity": 2,
+        "unitPrice": 50000,
+        "total": 100000
+      }
+    ]
+  },
+  "leadSource": "website",
+  "assignedTo": "Thiago Andrade",
+  "agency": null,
+  "status": "confirmed",
+  "validUntil": "2024-03-15T00:00:00.000Z",
+  "additionalNotes": "",
+  "hasMultipleAddresses": false,
+  "termsAccepted": {
+    "accepted": false
+  },
+  "quotationComments": "",
+  "includePayment": false,
+  "copyComments": true,
+  "sendPurchaseOrder": true,
+  "sendQuotationAccess": true,
+  "paymentDetails": null
+}

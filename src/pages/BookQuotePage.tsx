@@ -200,100 +200,8 @@ const BookQuotePage = () => {
     return tourBookings.reduce((total, tour) => total + tour.subtotal, 0)
   }
 
-  const addTour = async () => {
-    if (!currentTour.tourId || !currentTour.date) {
-      toast({
-        title: t('quotes.validationError'),
-        description: t('quotes.selectTourAndDate'),
-        variant: "destructive"
-      })
-      return
-    }
-
-    const tour = await tourCatalogService.getTourById(currentTour.tourId)
-    if (!tour) return
-
-    const newTourBooking: TourBooking = {
-      id: editingTourId || Date.now().toString(),
-      tourId: currentTour.tourId,
-      tourName: tour.name,
-      tourCode: tour.code,
-      date: currentTour.date,
-      pickupAddress: hasMultipleAddresses ? currentTour.pickupAddress : formData.defaultHotel,
-      pickupTime: currentTour.pickupTime,
-      adultPax: currentTour.adultPax || 0,
-      adultPrice: currentTour.adultPrice || 0,
-      childPax: currentTour.childPax || 0,
-      childPrice: currentTour.childPrice || 0,
-      infantPax: currentTour.infantPax || 0,
-      infantPrice: currentTour.infantPrice || 0,
-      subtotal: calculateSubtotal(currentTour),
-      operator: currentTour.operator,
-      comments: currentTour.comments
-    }
-
-    if (editingTourId) {
-      setTourBookings(prev => 
-        prev.map(t => t.id === editingTourId ? newTourBooking : t)
-      )
-      setEditingTourId(null)
-    } else {
-      setTourBookings(prev => [...prev, newTourBooking])
-    }
-
-    // Reset form
-    setCurrentTour({
-      tourId: "",
-      date: undefined,
-      pickupAddress: "",
-      pickupTime: "",
-      adultPax: 1,
-      adultPrice: 0,
-      childPax: 0,
-      childPrice: 0,
-      infantPax: 0,
-      infantPrice: 0,
-      operator: "own-operation",
-      comments: ""
-    })
-  }
-
-  const editTour = (tour: TourBooking) => {
-    setCurrentTour({
-      tourId: tour.tourId,
-      date: tour.date,
-      pickupAddress: tour.pickupAddress || "",
-      pickupTime: tour.pickupTime || "",
-      adultPax: tour.adultPax,
-      adultPrice: tour.adultPrice,
-      childPax: tour.childPax,
-      childPrice: tour.childPrice,
-      infantPax: tour.infantPax,
-      infantPrice: tour.infantPrice,
-      operator: tour.operator || "own-operation",
-      comments: tour.comments || ""
-    })
-    setEditingTourId(tour.id)
-  }
-
-  const deleteTour = (tourId: string) => {
-    setTourBookings(prev => prev.filter(t => t.id !== tourId))
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (tourBookings.length === 0) {
-      toast({
-        title: t('quotes.validationError'),
-        description: t('quotes.addAtLeastOneTour'),
-        variant: "destructive"
-      })
-      return
-    }
-
-    // Create booking data with all form information
-    const bookingData = {
+  const createBookingData = (bookings: TourBooking[]) => {
+    return {
       customer: {
         name: formData.name || t('quotes.guest'),
         email: formData.email || "noemail@example.com",
@@ -304,25 +212,25 @@ const BookQuotePage = () => {
         cpf: formData.cpf || "",
         address: formData.address || ""
       },
-      tours: tourBookings,
+      tours: bookings,
       tourDetails: {
-        destination: tourBookings[0].tourName,
-        tourType: tourBookings[0].tourCode,
-        startDate: tourBookings[0].date,
-        endDate: tourBookings[tourBookings.length - 1].date,
-        passengers: tourBookings[0].adultPax + tourBookings[0].childPax + tourBookings[0].infantPax,
+        destination: bookings[0]?.tourName || "",
+        tourType: bookings[0]?.tourCode || "",
+        startDate: bookings[0]?.date || new Date(),
+        endDate: bookings[bookings.length - 1]?.date || new Date(),
+        passengers: bookings.reduce((total, tour) => total + tour.adultPax + tour.childPax + tour.infantPax, 0),
         passengerBreakdown: {
-          adults: tourBookings[0].adultPax,
-          children: tourBookings[0].childPax,
-          infants: tourBookings[0].infantPax
+          adults: bookings.reduce((total, tour) => total + tour.adultPax, 0),
+          children: bookings.reduce((total, tour) => total + tour.childPax, 0),
+          infants: bookings.reduce((total, tour) => total + tour.infantPax, 0)
         },
         hotel: formData.defaultHotel || "",
         room: formData.defaultRoom || ""
       },
       pricing: {
-        amount: calculateGrandTotal(),
+        amount: bookings.reduce((total, tour) => total + tour.subtotal, 0),
         currency: formData.currency || "CLP",
-        breakdown: tourBookings.map(tour => {
+        breakdown: bookings.map(tour => {
           const items = []
           if (tour.adultPax > 0) {
             items.push({
@@ -378,6 +286,107 @@ const BookQuotePage = () => {
         receiptFile
       } : undefined
     }
+  }
+
+  const addTour = async () => {
+    if (!currentTour.tourId || !currentTour.date) {
+      toast({
+        title: t('quotes.validationError'),
+        description: t('quotes.selectTourAndDate'),
+        variant: "destructive"
+      })
+      return
+    }
+
+    const tour = await tourCatalogService.getTourById(currentTour.tourId)
+    if (!tour) return
+
+    const newTourBooking: TourBooking = {
+      id: editingTourId || Date.now().toString(),
+      tourId: currentTour.tourId,
+      tourName: tour.name,
+      tourCode: tour.code,
+      date: currentTour.date,
+      pickupAddress: hasMultipleAddresses ? currentTour.pickupAddress : formData.defaultHotel,
+      pickupTime: currentTour.pickupTime,
+      adultPax: currentTour.adultPax || 0,
+      adultPrice: currentTour.adultPrice || 0,
+      childPax: currentTour.childPax || 0,
+      childPrice: currentTour.childPrice || 0,
+      infantPax: currentTour.infantPax || 0,
+      infantPrice: currentTour.infantPrice || 0,
+      subtotal: calculateSubtotal(currentTour),
+      operator: currentTour.operator,
+      comments: currentTour.comments
+    }
+
+    let updatedBookings: TourBooking[]
+    if (editingTourId) {
+      updatedBookings = tourBookings.map(t => t.id === editingTourId ? newTourBooking : t)
+      setTourBookings(updatedBookings)
+      setEditingTourId(null)
+    } else {
+      updatedBookings = [...tourBookings, newTourBooking]
+      setTourBookings(updatedBookings)
+    }
+
+    // Send booking data to API immediately after adding/updating tour
+    const bookingData = createBookingData(updatedBookings)
+    createBookingMutation.mutate(bookingData)
+
+    // Reset form
+    setCurrentTour({
+      tourId: "",
+      date: undefined,
+      pickupAddress: "",
+      pickupTime: "",
+      adultPax: 1,
+      adultPrice: 0,
+      childPax: 0,
+      childPrice: 0,
+      infantPax: 0,
+      infantPrice: 0,
+      operator: "own-operation",
+      comments: ""
+    })
+  }
+
+  const editTour = (tour: TourBooking) => {
+    setCurrentTour({
+      tourId: tour.tourId,
+      date: tour.date,
+      pickupAddress: tour.pickupAddress || "",
+      pickupTime: tour.pickupTime || "",
+      adultPax: tour.adultPax,
+      adultPrice: tour.adultPrice,
+      childPax: tour.childPax,
+      childPrice: tour.childPrice,
+      infantPax: tour.infantPax,
+      infantPrice: tour.infantPrice,
+      operator: tour.operator || "own-operation",
+      comments: tour.comments || ""
+    })
+    setEditingTourId(tour.id)
+  }
+
+  const deleteTour = (tourId: string) => {
+    setTourBookings(prev => prev.filter(t => t.id !== tourId))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (tourBookings.length === 0) {
+      toast({
+        title: t('quotes.validationError'),
+        description: t('quotes.addAtLeastOneTour'),
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Create booking data with all form information using helper function
+    const bookingData = createBookingData(tourBookings)
 
     // Send data to booking API endpoint using React Query
     createBookingMutation.mutate(bookingData)

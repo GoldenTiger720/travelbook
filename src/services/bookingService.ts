@@ -1,3 +1,5 @@
+import { apiCall } from '@/config/api';
+
 interface BookingData {
   customer: {
     name: string
@@ -69,15 +71,12 @@ interface BookingResponse {
 }
 
 class BookingService {
-  private apiUrl = '/api/booking/'
+  private endpoint = '/api/booking'
 
   async createBooking(bookingData: BookingData): Promise<BookingResponse> {
     try {
-      const response = await fetch(this.apiUrl, {
+      const response = await apiCall(this.endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           ...bookingData,
           tourDetails: {
@@ -111,11 +110,8 @@ class BookingService {
 
   async getBooking(id: string): Promise<BookingResponse | null> {
     try {
-      const response = await fetch(`${this.apiUrl}${id}/`, {
+      const response = await apiCall(`${this.endpoint}/${id}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       })
 
       if (!response.ok) {
@@ -139,11 +135,8 @@ class BookingService {
 
   async updateBooking(id: string, bookingData: Partial<BookingData>): Promise<BookingResponse> {
     try {
-      const response = await fetch(`${this.apiUrl}${id}/`, {
+      const response = await apiCall(`${this.endpoint}/${id}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(bookingData),
       })
 
@@ -165,11 +158,8 @@ class BookingService {
 
   async deleteBooking(id: string): Promise<boolean> {
     try {
-      const response = await fetch(`${this.apiUrl}${id}/`, {
+      const response = await apiCall(`${this.endpoint}/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       })
 
       if (!response.ok) {
@@ -186,13 +176,10 @@ class BookingService {
   async listBookings(filters?: any): Promise<BookingResponse[]> {
     try {
       const queryParams = new URLSearchParams(filters).toString()
-      const url = queryParams ? `${this.apiUrl}?${queryParams}` : this.apiUrl
+      const endpoint = queryParams ? `${this.endpoint}?${queryParams}` : this.endpoint
       
-      const response = await fetch(url, {
+      const response = await apiCall(endpoint, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       })
 
       if (!response.ok) {
