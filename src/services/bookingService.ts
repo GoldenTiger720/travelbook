@@ -64,46 +64,108 @@ interface BookingData {
 
 interface BookingResponse {
   id: string
-  bookingNumber?: string
-  status?: string
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  customer?: {
-    name?: string
-    email?: string
+  customer: {
+    id?: string
+    name: string
+    email: string
     phone?: string
+    language?: string
+    country?: string
+    idNumber?: string
+    cpf?: string
+    address?: string
     company?: string
+    location?: string
+    status?: string
+    totalBookings?: number
+    totalSpent?: number
+    lastBooking?: string
+    notes?: string
+    avatar?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
-  tourDetails?: {
-    destination?: string
-    tourType?: string
-    startDate?: Date | string
-    endDate?: Date | string
-    passengers?: number
-    passengerBreakdown?: {
+  tours: Array<{
+    id: string
+    tourId: string
+    tourName: string
+    tourCode: string
+    date: Date | string
+    pickupAddress?: string
+    pickupTime?: string
+    adultPax: number
+    adultPrice: number
+    childPax: number
+    childPrice: number
+    infantPax: number
+    infantPrice: number
+    subtotal: number
+    operator?: string
+    comments?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }>
+  tourDetails: {
+    destination: string
+    tourType: string
+    startDate: Date | string
+    endDate: Date | string
+    passengers: number
+    passengerBreakdown: {
       adults: number
       children: number
       infants: number
     }
+    hotel?: string
+    room?: string
   }
-  pricing?: {
-    amount?: number
-    currency?: string
-    breakdown?: Array<{
+  pricing: {
+    amount: number
+    currency: string
+    breakdown: Array<{
       item: string
       quantity: number
       unitPrice: number
       total: number
     }>
   }
-  leadSource?: string
-  assignedTo?: string
+  leadSource: string
+  assignedTo: string
   agency?: string
-  validUntil?: Date | string
+  status: string
+  validUntil: Date | string
   additionalNotes?: string
-  termsAccepted?: {
+  hasMultipleAddresses?: boolean
+  termsAccepted: {
     accepted: boolean
+    acceptedBy?: string
+    acceptedAt?: Date | string
   }
+  quotationComments?: string
+  includePayment?: boolean
+  copyComments?: boolean
+  sendPurchaseOrder?: boolean
+  sendQuotationAccess?: boolean
+  paymentDetails?: {
+    date?: Date | string
+    method?: string
+    percentage?: number
+    amountPaid?: number
+    comments?: string
+    status?: string
+    receiptFile?: File | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+  createdBy?: {
+    id: string
+    email: string
+    fullName: string
+    phone?: string
+    company?: string
+  }
+  createdAt: Date | string
+  updatedAt: Date | string
 }
 
 class BookingService {
@@ -239,11 +301,18 @@ class BookingService {
         throw new Error(`Failed to list bookings: ${response.statusText}`)
       }
 
-      const data = await response.json()
-      console.log('Received data:', data)
+      const response_data = await response.json()
+      console.log('Received response:', response_data)
       
-      // Handle both array and single object responses
-      const bookings = Array.isArray(data) ? data : [data]
+      // Handle the actual API response structure: { success, message, data, statistics, count, timestamp }
+      let bookings = []
+      
+      if (response_data.success && response_data.data) {
+        bookings = Array.isArray(response_data.data) ? response_data.data : [response_data.data]
+      } else if (Array.isArray(response_data)) {
+        // Fallback for direct array response
+        bookings = response_data
+      }
       
       return bookings.map((booking: any) => ({
         ...booking,

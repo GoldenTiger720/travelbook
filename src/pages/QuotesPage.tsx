@@ -2,10 +2,13 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, FileText, X } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Plus, FileText, X, Eye, Edit, Trash2 } from "lucide-react"
 import { Quote, QuoteFilters } from "@/types/quote"
 import { BookingResponse } from "@/services/bookingService"
 import { exportToExcel, exportToPDF } from "@/utils/exportUtils"
+import { format } from "date-fns"
+import { cn } from "@/lib/utils"
 
 // React Query hooks
 import { 
@@ -17,16 +20,19 @@ import {
 // Components
 import { QuotesHeader } from "@/components/quotes/QuotesHeader"
 import { QuotesFilter } from "@/components/quotes/QuotesFilter"
-import { QuoteCard } from "@/components/quotes/QuoteCard"
 
 // Helper function to convert BookingResponse to Quote format
 const convertBookingToQuote = (booking: any): Quote => {
   // Ensure we always have a unique ID - fallback to timestamp + random if needed
   const uniqueId = booking.id || `booking-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   
+  // Generate quote number based on tours data
+  const primaryTour = booking.tours && booking.tours[0]
+  const quoteNumber = primaryTour?.tourCode ? `${primaryTour.tourCode}-${uniqueId.slice(0, 8)}` : `B-${uniqueId.slice(0, 8)}`
+  
   return {
     id: uniqueId,
-    quoteNumber: booking.bookingNumber || `B-${uniqueId}`,
+    quoteNumber: quoteNumber,
     customer: {
       name: booking.customer?.name || 'Unknown Customer',
       email: booking.customer?.email || '',
@@ -44,7 +50,7 @@ const convertBookingToQuote = (booking: any): Quote => {
         children: 0,
         infants: 0
       },
-      description: booking.additionalNotes || ''
+      description: booking.additionalNotes || booking.quotationComments || ''
     },
     pricing: {
       amount: booking.pricing?.amount || 0,
@@ -57,12 +63,16 @@ const convertBookingToQuote = (booking: any): Quote => {
     agency: booking.agency || null,
     validUntil: new Date(booking.validUntil || Date.now()),
     shareableLink: '',
-    notes: booking.additionalNotes || '',
-    termsAccepted: booking.termsAccepted || { accepted: false },
+    notes: booking.additionalNotes || booking.quotationComments || '',
+    termsAccepted: {
+      accepted: booking.termsAccepted?.accepted || false,
+      acceptedBy: booking.termsAccepted?.acceptedBy,
+      acceptedAt: booking.termsAccepted?.acceptedAt ? new Date(booking.termsAccepted.acceptedAt) : undefined
+    },
     metadata: {
       createdAt: new Date(booking.createdAt || Date.now()),
       updatedAt: new Date(booking.updatedAt || Date.now()),
-      createdBy: booking.assignedTo || 'Unknown'
+      createdBy: booking.createdBy?.fullName || booking.assignedTo || 'Unknown'
     }
   }
 }
@@ -230,25 +240,132 @@ const QuotesPage = () => {
         </p>
       </div>
 
-      {/* Quotes List */}
+      {/* Quotes Table */}
       {isLoading ? (
         <div className="text-center py-8">Loading quotes...</div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:gap-4">
-          {sortedQuotes.map((quote) => (
-            <QuoteCard
-              key={quote.id}
-              quote={quote}
-              onView={handleViewQuote}
-              onEdit={handleEditQuote}
-              onDuplicate={handleDuplicateQuote}
-              onConvertToBooking={handleConvertToBooking}
-              onGenerateLink={handleGenerateLink}
-              onSendEmail={handleSendEmail}
-              onDelete={handleDeleteQuote}
-            />
-          ))}
-        </div>
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[1000px]">
+                <thead className="bg-muted/50 border-b">
+                  <tr>
+                    <th className="text-left p-4 font-medium">Quote #</th>
+                    <th className="text-left p-4 font-medium">Customer</th>
+                    <th className="text-left p-4 font-medium">Destination</th>
+                    <th className="text-left p-4 font-medium">Tour Date</th>
+                    <th className="text-left p-4 font-medium">PAX</th>
+                    <th className="text-left p-4 font-medium">Amount</th>
+                    <th className="text-left p-4 font-medium">Status</th>
+                    <th className="text-left p-4 font-medium">Assigned To</th>
+                    <th className="text-left p-4 font-medium">Created</th>
+                    <th className="text-left p-4 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedQuotes.map((quote) => (
+                    <tr key={quote.id} className="border-b hover:bg-muted/30 transition-colors">
+                      <td className="p-4">
+                        <div className="font-medium">{quote.quoteNumber}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {quote.leadSource}
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="font-medium">{quote.customer.name}</div>
+                        <div className="text-sm text-muted-foreground truncate max-w-[200px]">
+                          {quote.customer.email}
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="font-medium">{quote.tourDetails.destination}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {quote.tourDetails.tourType}
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="font-medium">
+                          {format(quote.tourDetails.startDate, "MMM dd, yyyy")}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {quote.tourDetails.startDate !== quote.tourDetails.endDate && 
+                            `- ${format(quote.tourDetails.endDate, "MMM dd, yyyy")}`
+                          }
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="font-medium">{quote.tourDetails.passengers}</div>
+                        <div className="text-sm text-muted-foreground">
+                          A:{quote.tourDetails.passengerBreakdown.adults} 
+                          C:{quote.tourDetails.passengerBreakdown.children} 
+                          I:{quote.tourDetails.passengerBreakdown.infants}
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="font-medium">
+                          {quote.pricing.currency} {quote.pricing.amount.toLocaleString()}
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <Badge className={cn(
+                          "text-xs",
+                          quote.status === 'confirmed' && "bg-green-100 text-green-800",
+                          quote.status === 'pending' && "bg-yellow-100 text-yellow-800",
+                          quote.status === 'cancelled' && "bg-red-100 text-red-800"
+                        )}>
+                          {quote.status}
+                        </Badge>
+                      </td>
+                      <td className="p-4">
+                        <div className="font-medium">{quote.assignedTo}</div>
+                        {quote.agency && (
+                          <div className="text-sm text-muted-foreground">{quote.agency}</div>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        <div className="text-sm">
+                          {format(quote.metadata.createdAt, "MMM dd, yyyy")}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {quote.metadata.createdBy}
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            title="View details"
+                            onClick={() => handleViewQuote(quote)}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            title="Edit quote"
+                            onClick={() => handleEditQuote(quote)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-destructive"
+                            title="Delete quote"
+                            onClick={() => handleDeleteQuote(quote)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Empty State */}

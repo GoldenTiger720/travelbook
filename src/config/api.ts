@@ -176,7 +176,50 @@ export const apiCall = async (
   try {
     const response = await fetch(url, config);
     
-    // Don't throw here, let the service handle the response
+    // Check for token expiration errors
+    if (!response.ok) {
+      try {
+        const errorData = await response.clone().json();
+        
+        // Check for the specific token expiration error structure
+        if (errorData.code === 'token_not_valid' && 
+            errorData.detail === 'Given token not valid for any token type') {
+          
+          console.log('🔐 Token expired detected:', errorData);
+          console.log('📱 Clearing localStorage and redirecting to login...');
+          
+          // Clear all localStorage data
+          localStorage.clear();
+          
+          // Redirect to login page
+          window.location.href = '/signin';
+          
+          // Throw error to prevent further processing
+          throw new Error('Token expired');
+        }
+        
+        // Also check for any other token-related errors
+        if (errorData.messages && Array.isArray(errorData.messages)) {
+          const hasExpiredToken = errorData.messages.some((msg: any) => 
+            msg.message === 'Token is expired' || 
+            msg.token_type === 'access'
+          );
+          
+          if (hasExpiredToken) {
+            console.log('🔐 Token expiration found in messages:', errorData);
+            console.log('📱 Clearing localStorage and redirecting to login...');
+            
+            localStorage.clear();
+            window.location.href = '/signin';
+            throw new Error('Token expired');
+          }
+        }
+      } catch (parseError) {
+        // If we can't parse the error JSON, just continue with normal flow
+        console.log('Could not parse error response JSON:', parseError);
+      }
+    }
+    
     return response;
   } catch (error) {
     console.error('API call error:', error);

@@ -1,15 +1,45 @@
 import { QueryClient } from '@tanstack/react-query';
 
+// Helper function to handle token expiration errors
+const handleTokenExpiration = (error: any) => {
+  // Check if error is a token expiration error
+  if (error?.message === 'Token expired') {
+    console.log('Token expiration detected in React Query, user already redirected');
+    return;
+  }
+  
+  // Additional check for any missed token expiration errors
+  if (error?.response && error.response.status === 401) {
+    console.log('401 Unauthorized detected, clearing localStorage and redirecting');
+    localStorage.clear();
+    window.location.href = '/signin';
+  }
+};
+
 // Create a client with default options
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry: (failureCount, error) => {
+        // Don't retry on token expiration
+        if (error?.message === 'Token expired') {
+          return false;
+        }
+        return failureCount < 1;
+      },
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000, // 5 minutes
+      onError: handleTokenExpiration,
     },
     mutations: {
-      retry: 0,
+      retry: (failureCount, error) => {
+        // Don't retry on token expiration
+        if (error?.message === 'Token expired') {
+          return false;
+        }
+        return false;
+      },
+      onError: handleTokenExpiration,
     },
   },
 });
