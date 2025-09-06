@@ -394,7 +394,7 @@ const BookQuotePage = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-x-hidden">
       <div>
         <h1 className="text-2xl font-bold">{t('quotes.title')}</h1>
         <p className="text-muted-foreground">{t('quotes.subtitle')}</p>
@@ -407,7 +407,7 @@ const BookQuotePage = () => {
           </CardHeader>
           <CardContent className="space-y-4">
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="salesperson">{t('quotes.salesperson')}</Label>
                 <Select value={formData.salesperson} onValueChange={(value) => handleInputChange("salesperson", value)}>
@@ -471,7 +471,7 @@ const BookQuotePage = () => {
             <CardTitle className="text-lg font-medium">{t('quotes.clientInfo')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="name">{t('quotes.fullName')}</Label>
                 <Input
@@ -493,7 +493,7 @@ const BookQuotePage = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="email">{t('quotes.email')}</Label>
                 <Input
@@ -516,7 +516,7 @@ const BookQuotePage = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="language">{t('quotes.language')}</Label>
                 <Select value={formData.language} onValueChange={(value) => handleInputChange("language", value)}>
@@ -583,7 +583,7 @@ const BookQuotePage = () => {
 
               {!hasMultipleAddresses && (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="defaultHotel">{t('quotes.defaultHotel')}</Label>
                       <Input
@@ -626,7 +626,7 @@ const BookQuotePage = () => {
             <CardTitle className="text-lg font-medium">{t('quotes.addTourBooking')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <Label>{t('quotes.destination')}</Label>
                 <Select value={selectedDestination} onValueChange={setSelectedDestination}>
@@ -715,7 +715,7 @@ const BookQuotePage = () => {
             </div>
 
             {hasMultipleAddresses && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label>
                     <MapPin className="w-4 h-4 inline mr-1" />
@@ -740,7 +740,7 @@ const BookQuotePage = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
               <div>
                 <Label>{t('quotes.adultsPax')}</Label>
                 <Input
@@ -833,8 +833,10 @@ const BookQuotePage = () => {
             <CardTitle className="text-lg font-medium">{t('quotes.tourBookingsList')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
+            {/* Desktop Table - Hidden on mobile */}
+            <div className="hidden lg:block overflow-x-auto">
+              <Table>
+                <TableHeader>
                 <TableRow>
                   <TableHead>{t('quotes.operationDate')}</TableHead>
                   <TableHead>{t('quotes.tour')}</TableHead>
@@ -918,6 +920,95 @@ const BookQuotePage = () => {
                   )}
                 </TableBody>
               </Table>
+            </div>
+
+            {/* Mobile Card Layout - Visible only on mobile and tablets */}
+            <div className="lg:hidden space-y-4">
+              {tourBookings.length > 0 ? tourBookings.map((tour) => (
+                <Card key={tour.id} className="border-l-4 border-l-blue-500">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1">
+                        <div className="font-semibold text-base">{tour.tourName}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {format(tour.date, "dd/MM/yyyy")}
+                        </div>
+                        {tour.pickupAddress && (
+                          <div className="text-sm text-muted-foreground flex items-center mt-1">
+                            <MapPin className="w-3 h-3 mr-1" />
+                            {tour.pickupAddress}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-1 ml-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => editTour(tour)}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteTour(tour.id)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        {tour.operator === "own-operation" && <Building className="w-3 h-3" />}
+                        <span className="text-muted-foreground">{t('quotes.operator')}:</span>
+                        <span>{tour.operator === "own-operation" ? t('quotes.ownOperation') : tour.operator}</span>
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <div className="text-muted-foreground">{t('quotes.adultPax')}</div>
+                          <div className="font-medium">{tour.adultPax}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {getCurrencySymbol(formData.currency)} {tour.adultPrice.toLocaleString()}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">{t('quotes.childPax')}</div>
+                          <div className="font-medium">{tour.childPax}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {getCurrencySymbol(formData.currency)} {tour.childPrice.toLocaleString()}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">{t('quotes.infantPax')}</div>
+                          <div className="font-medium">{tour.infantPax}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {getCurrencySymbol(formData.currency)} {tour.infantPrice.toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="border-t pt-2 mt-3">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">{t('quotes.subTotal')}:</span>
+                          <span className="font-bold text-lg text-green-600">
+                            {getCurrencySymbol(formData.currency)} {tour.subtotal.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )) : (
+                <div className="text-center text-muted-foreground py-8">
+                  {t('quotes.noBookingsAdded')}
+                </div>
+              )}
+            </div>
 
               {tourBookings.length > 0 && (
                 <div className="mt-4 pt-4 border-t">
@@ -939,7 +1030,7 @@ const BookQuotePage = () => {
               <CardTitle className="text-lg font-medium">{t('quotes.paymentDetails')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 {/* Payment Date */}
                 <div>
                   <Label htmlFor="payment-date" className="text-sm font-medium">
@@ -1055,7 +1146,7 @@ const BookQuotePage = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                 {/* Receipt Upload */}
                 <div>
                   <Label htmlFor="receipt-upload" className="text-sm font-medium">{t('quotes.receipt')}</Label>
@@ -1112,7 +1203,7 @@ const BookQuotePage = () => {
         {/* Booking Options Section */}
         <Card>
           <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Left Column */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -1202,7 +1293,7 @@ const BookQuotePage = () => {
 
               {/* Right Column */}
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
                     <Label htmlFor="valid-until" className="text-base font-medium">
                       {t('quotes.validUntil')}
