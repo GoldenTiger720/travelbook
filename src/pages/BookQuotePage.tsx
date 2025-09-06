@@ -26,6 +26,7 @@ import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { quoteService } from "@/services/quoteService"
 import { tourCatalogService } from "@/services/tourCatalogService"
+import { useCreateBooking } from "@/hooks/useBookings"
 import { Tour, TourBooking } from "@/types/tour"
 import {
   Table,
@@ -54,7 +55,7 @@ const BookQuotePage = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
   const { t } = useLanguage()
-  const [submitting, setSubmitting] = useState(false)
+  const createBookingMutation = useCreateBooking()
   const [hasMultipleAddresses, setHasMultipleAddresses] = useState(false)
   const [availableTours, setAvailableTours] = useState<Tour[]>([])
   const [selectedDestination, setSelectedDestination] = useState("")
@@ -280,109 +281,105 @@ const BookQuotePage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitting(true)
 
-    try {
-      if (tourBookings.length === 0) {
-        toast({
-          title: t('quotes.validationError'),
-          description: t('quotes.addAtLeastOneTour'),
-          variant: "destructive"
-        })
-        setSubmitting(false)
-        return
-      }
-
-      // Create quote with new structure
-      const quoteData = {
-        customer: {
-          name: formData.name || t('quotes.guest'),
-          email: formData.email || "noemail@example.com",
-          phone: formData.phone || "",
-          language: formData.language || "en",
-          country: formData.countryOfOrigin || "",
-          idNumber: formData.idPassport || "",
-          cpf: formData.cpf || "",
-          address: formData.address || ""
-        },
-        tours: tourBookings,
-        tourDetails: {
-          destination: tourBookings[0].tourName,
-          tourType: tourBookings[0].tourCode,
-          startDate: tourBookings[0].date,
-          endDate: tourBookings[tourBookings.length - 1].date,
-          passengers: tourBookings[0].adultPax + tourBookings[0].childPax + tourBookings[0].infantPax,
-          passengerBreakdown: {
-            adults: tourBookings[0].adultPax,
-            children: tourBookings[0].childPax,
-            infants: tourBookings[0].infantPax
-          },
-          hotel: formData.defaultHotel || "",
-          room: formData.defaultRoom || ""
-        },
-        pricing: {
-          amount: calculateGrandTotal(),
-          currency: formData.currency || "CLP",
-          breakdown: tourBookings.map(tour => {
-            const items = []
-            if (tour.adultPax > 0) {
-              items.push({
-                item: `${tour.tourName} - Adults`,
-                quantity: tour.adultPax,
-                unitPrice: tour.adultPrice,
-                total: tour.adultPax * tour.adultPrice
-              })
-            }
-            if (tour.childPax > 0) {
-              items.push({
-                item: `${tour.tourName} - Children`,
-                quantity: tour.childPax,
-                unitPrice: tour.childPrice,
-                total: tour.childPax * tour.childPrice
-              })
-            }
-            if (tour.infantPax > 0) {
-              items.push({
-                item: `${tour.tourName} - Infants`,
-                quantity: tour.infantPax,
-                unitPrice: tour.infantPrice,
-                total: tour.infantPax * tour.infantPrice
-              })
-            }
-            return items
-          }).flat()
-        },
-        leadSource: "website",
-        assignedTo: formData.salesperson || "Thiago Andrade",
-        agency: undefined,
-        status: "draft",
-        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        additionalNotes: formData.accommodationComments,
-        hasMultipleAddresses,
-        termsAccepted: {
-          accepted: false
-        }
-      }
-
-      const newQuote = await quoteService.createQuote(quoteData)
-      
+    if (tourBookings.length === 0) {
       toast({
-        title: t('quotes.bookingCreated'),
-        description: t('quotes.bookingCreatedMessage')
-          .replace('{quoteNumber}', newQuote.quoteNumber)
-          .replace('{tourCount}', tourBookings.length.toString())
-      })
-
-      navigate(`/quotes/${newQuote.id}`)
-    } catch (error) {
-      toast({
-        title: t('quotes.error'),
-        description: t('quotes.failedToCreate'),
+        title: t('quotes.validationError'),
+        description: t('quotes.addAtLeastOneTour'),
         variant: "destructive"
       })
-    } finally {
-      setSubmitting(false)
+      return
     }
+
+    // Create booking data with all form information
+    const bookingData = {
+      customer: {
+        name: formData.name || t('quotes.guest'),
+        email: formData.email || "noemail@example.com",
+        phone: formData.phone || "",
+        language: formData.language || "en",
+        country: formData.countryOfOrigin || "",
+        idNumber: formData.idPassport || "",
+        cpf: formData.cpf || "",
+        address: formData.address || ""
+      },
+      tours: tourBookings,
+      tourDetails: {
+        destination: tourBookings[0].tourName,
+        tourType: tourBookings[0].tourCode,
+        startDate: tourBookings[0].date,
+        endDate: tourBookings[tourBookings.length - 1].date,
+        passengers: tourBookings[0].adultPax + tourBookings[0].childPax + tourBookings[0].infantPax,
+        passengerBreakdown: {
+          adults: tourBookings[0].adultPax,
+          children: tourBookings[0].childPax,
+          infants: tourBookings[0].infantPax
+        },
+        hotel: formData.defaultHotel || "",
+        room: formData.defaultRoom || ""
+      },
+      pricing: {
+        amount: calculateGrandTotal(),
+        currency: formData.currency || "CLP",
+        breakdown: tourBookings.map(tour => {
+          const items = []
+          if (tour.adultPax > 0) {
+            items.push({
+              item: `${tour.tourName} - Adults`,
+              quantity: tour.adultPax,
+              unitPrice: tour.adultPrice,
+              total: tour.adultPax * tour.adultPrice
+            })
+          }
+          if (tour.childPax > 0) {
+            items.push({
+              item: `${tour.tourName} - Children`,
+              quantity: tour.childPax,
+              unitPrice: tour.childPrice,
+              total: tour.childPax * tour.childPrice
+            })
+          }
+          if (tour.infantPax > 0) {
+            items.push({
+              item: `${tour.tourName} - Infants`,
+              quantity: tour.infantPax,
+              unitPrice: tour.infantPrice,
+              total: tour.infantPax * tour.infantPrice
+            })
+          }
+          return items
+        }).flat()
+      },
+      leadSource: formData.origin || "website",
+      assignedTo: formData.salesperson || "Thiago Andrade",
+      agency: undefined,
+      status: "confirmed",
+      validUntil: validUntilDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      additionalNotes: formData.accommodationComments,
+      hasMultipleAddresses,
+      termsAccepted: {
+        accepted: false
+      },
+      // Include booking configuration options
+      quotationComments,
+      includePayment,
+      copyComments,
+      sendPurchaseOrder,
+      sendQuotationAccess,
+      // Include payment details if payment is included
+      paymentDetails: includePayment ? {
+        date: paymentDate,
+        method: paymentMethod,
+        percentage: paymentPercentage,
+        amountPaid,
+        comments: paymentComments,
+        status: paymentStatus,
+        receiptFile
+      } : undefined
+    }
+
+    // Send data to booking API endpoint using React Query
+    createBookingMutation.mutate(bookingData)
   }
 
   const getCurrencySymbol = (currency: string) => {
@@ -1318,9 +1315,9 @@ const BookQuotePage = () => {
           <Button
             type="submit"
             className="bg-green-500 hover:bg-green-600 text-white px-8"
-            disabled={submitting || tourBookings.length === 0}
+            disabled={createBookingMutation.isPending || tourBookings.length === 0}
           >
-            {submitting ? t('quotes.creating') : t('quotes.createBooking')}
+            {createBookingMutation.isPending ? t('quotes.creating') : t('quotes.createBooking')}
           </Button>
         </div>
       </form>

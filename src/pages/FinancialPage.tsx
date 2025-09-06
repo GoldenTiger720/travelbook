@@ -27,7 +27,6 @@ import {
   GitBranch,
   Undo2,
   Shield,
-  Settings,
 } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, differenceInDays, parseISO, isAfter, isBefore, startOfYear, endOfYear } from 'date-fns'
 import { cn } from '@/lib/utils'
@@ -520,10 +519,6 @@ const FinancialPage = () => {
           <Button variant="outline" size="sm" onClick={() => setAuditDialogOpen(true)}>
             <Shield className="w-4 h-4 sm:mr-2" />
             <span className="hidden sm:inline">Audit</span>
-          </Button>
-          <Button variant="outline" size="sm">
-            <Settings className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">Settings</span>
           </Button>
         </div>
       </div>
