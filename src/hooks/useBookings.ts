@@ -17,6 +17,12 @@ export function useBookings(filters?: any) {
   return useQuery({
     queryKey: bookingKeys.list(filters),
     queryFn: () => bookingService.listBookings(filters),
+    staleTime: 0, // Force fresh data
+    refetchOnMount: true,
+    retry: (failureCount, error) => {
+      console.log('useBookings retry attempt:', failureCount, error)
+      return failureCount < 3
+    },
   })
 }
 

@@ -4,23 +4,68 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plus, FileText, X } from "lucide-react"
 import { Quote, QuoteFilters } from "@/types/quote"
+import { BookingResponse } from "@/services/bookingService"
 import { exportToExcel, exportToPDF } from "@/utils/exportUtils"
 
 // React Query hooks
 import { 
-  useQuotes, 
-  useUpdateQuote, 
-  useDeleteQuote, 
-  useDuplicateQuote, 
-  useGenerateShareableLink, 
-  useSendQuoteByEmail 
-} from "@/hooks/useQuotes"
-import { useConvertQuoteToBooking } from "@/hooks/useBookings"
+  useBookings,
+  useUpdateBooking, 
+  useDeleteBooking
+} from "@/hooks/useBookings"
 
 // Components
 import { QuotesHeader } from "@/components/quotes/QuotesHeader"
 import { QuotesFilter } from "@/components/quotes/QuotesFilter"
 import { QuoteCard } from "@/components/quotes/QuoteCard"
+
+// Helper function to convert BookingResponse to Quote format
+const convertBookingToQuote = (booking: any): Quote => {
+  // Ensure we always have a unique ID - fallback to timestamp + random if needed
+  const uniqueId = booking.id || `booking-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  
+  return {
+    id: uniqueId,
+    quoteNumber: booking.bookingNumber || `B-${uniqueId}`,
+    customer: {
+      name: booking.customer?.name || 'Unknown Customer',
+      email: booking.customer?.email || '',
+      phone: booking.customer?.phone || '',
+      company: booking.customer?.company || ''
+    },
+    tourDetails: {
+      destination: booking.tourDetails?.destination || 'Unknown Destination',
+      tourType: booking.tourDetails?.tourType || 'unknown',
+      startDate: new Date(booking.tourDetails?.startDate || Date.now()),
+      endDate: new Date(booking.tourDetails?.endDate || Date.now()),
+      passengers: booking.tourDetails?.passengers || 0,
+      passengerBreakdown: booking.tourDetails?.passengerBreakdown || {
+        adults: 0,
+        children: 0,
+        infants: 0
+      },
+      description: booking.additionalNotes || ''
+    },
+    pricing: {
+      amount: booking.pricing?.amount || 0,
+      currency: booking.pricing?.currency || 'USD',
+      breakdown: booking.pricing?.breakdown || []
+    },
+    status: booking.status || 'pending',
+    leadSource: booking.leadSource || 'unknown',
+    assignedTo: booking.assignedTo || 'Unassigned',
+    agency: booking.agency || null,
+    validUntil: new Date(booking.validUntil || Date.now()),
+    shareableLink: '',
+    notes: booking.additionalNotes || '',
+    termsAccepted: booking.termsAccepted || { accepted: false },
+    metadata: {
+      createdAt: new Date(booking.createdAt || Date.now()),
+      updatedAt: new Date(booking.updatedAt || Date.now()),
+      createdBy: booking.assignedTo || 'Unknown'
+    }
+  }
+}
 
 const QuotesPage = () => {
   const navigate = useNavigate()
@@ -41,14 +86,13 @@ const QuotesPage = () => {
   const [sortBy, setSortBy] = useState<"date" | "amount" | "customer">("date")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
 
-  // React Query hooks
-  const { data: quotes = [], isLoading } = useQuotes(filters)
-  const updateQuoteMutation = useUpdateQuote()
-  const deleteQuoteMutation = useDeleteQuote()
-  const duplicateQuoteMutation = useDuplicateQuote()
-  const generateLinkMutation = useGenerateShareableLink()
-  const sendEmailMutation = useSendQuoteByEmail()
-  const convertToBookingMutation = useConvertQuoteToBooking()
+  // React Query hooks - fetch bookings and convert to quotes for UI
+  const { data: bookings = [], isLoading } = useBookings()
+  const updateBookingMutation = useUpdateBooking()
+  const deleteBookingMutation = useDeleteBooking()
+
+  // Convert bookings to quotes format for the UI
+  const quotes = bookings.map(convertBookingToQuote)
 
   // Derived values
   const uniqueValues = {
@@ -94,81 +138,30 @@ const QuotesPage = () => {
   }
 
   const handleDuplicateQuote = (quote: Quote) => {
-    duplicateQuoteMutation.mutate(quote.id)
+    // Duplicate booking functionality
+    console.log('Duplicate booking clicked:', quote.id)
   }
 
   const handleDeleteQuote = (quote: Quote) => {
-    if (confirm(`Are you sure you want to delete quote ${quote.quoteNumber}?`)) {
-      deleteQuoteMutation.mutate(quote.id)
+    if (confirm(`Are you sure you want to delete booking ${quote.quoteNumber}?`)) {
+      deleteBookingMutation.mutate(quote.id)
     }
   }
 
   const handleConvertToBooking = async (quote: Quote) => {
-    const bookingData = {
-      customer: {
-        name: quote.customer.name,
-        email: quote.customer.email,
-        phone: quote.customer.phone || "",
-        company: quote.customer.company || "",
-        language: "en",
-        country: "",
-        idNumber: "",
-        cpf: "",
-        address: ""
-      },
-      tours: [],
-      tourDetails: {
-        destination: quote.tourDetails.destination,
-        tourType: quote.tourDetails.tourType,
-        startDate: quote.tourDetails.startDate,
-        endDate: quote.tourDetails.endDate || quote.tourDetails.startDate,
-        passengers: quote.tourDetails.passengers,
-        passengerBreakdown: quote.tourDetails.passengerBreakdown || {
-          adults: quote.tourDetails.passengers,
-          children: 0,
-          infants: 0
-        },
-        hotel: "",
-        room: ""
-      },
-      pricing: {
-        amount: quote.pricing.amount,
-        currency: quote.pricing.currency,
-        breakdown: quote.pricing.breakdown || []
-      },
-      leadSource: quote.leadSource,
-      assignedTo: quote.assignedTo,
-      agency: quote.agency,
-      status: "confirmed",
-      validUntil: quote.validUntil,
-      additionalNotes: quote.notes || "",
-      hasMultipleAddresses: false,
-      termsAccepted: quote.termsAccepted || { accepted: false },
-      quotationComments: "",
-      includePayment: false,
-      copyComments: true,
-      sendPurchaseOrder: true,
-      sendQuotationAccess: true
-    }
-
-    // Convert to booking
-    convertToBookingMutation.mutate(bookingData, {
-      onSuccess: () => {
-        // Update quote status to converted
-        updateQuoteMutation.mutate({ 
-          id: quote.id, 
-          data: { ...quote, status: 'converted' } 
-        })
-      }
-    })
+    // This function is not needed since we're already showing bookings
+    // But we'll keep it for compatibility - maybe convert to a different status
+    console.log('Convert to booking clicked - already a booking:', quote.id)
   }
 
   const handleGenerateLink = (quote: Quote) => {
-    generateLinkMutation.mutate(quote.id)
+    // Generate shareable link functionality
+    console.log('Generate link clicked for booking:', quote.id)
   }
 
   const handleSendEmail = (quote: Quote) => {
-    sendEmailMutation.mutate({ id: quote.id, email: quote.customer.email })
+    // Send email functionality  
+    console.log('Send email clicked for booking:', quote.id)
   }
 
 

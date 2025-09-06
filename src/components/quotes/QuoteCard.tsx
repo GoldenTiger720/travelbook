@@ -221,10 +221,10 @@ export function QuoteCard({
         {/* Footer */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-4 pt-4 border-t gap-3">
           <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">
+            <div className="text-xs text-muted-foreground flex items-center flex-wrap gap-x-1">
               <span className="sm:hidden">Created: {format(quote.metadata.createdAt, "MMM dd")}</span>
               <span className="hidden sm:inline">Created: {format(quote.metadata.createdAt, "MMM dd, yyyy")}</span>
-              {" • "}
+              <span>•</span>
               <span className="sm:hidden">Exp: {format(quote.validUntil, "MMM dd")}</span>
               <span className="hidden sm:inline">Expires: {format(quote.validUntil, "MMM dd, yyyy")}</span>
               {quote.validUntil < new Date() && (
@@ -232,15 +232,15 @@ export function QuoteCard({
                   Expired
                 </Badge>
               )}
-            </p>
+            </div>
             {quote.termsAccepted?.accepted && (
-              <p className="text-xs text-green-600">
+              <div className="text-xs text-green-600">
                 ✓ Terms accepted
                 <span className="hidden sm:inline">
                   {" by "}{quote.termsAccepted.acceptedBy} on{" "}
                   {format(quote.termsAccepted.acceptedAt!, "MMM dd, yyyy")}
                 </span>
-              </p>
+              </div>
             )}
           </div>
           {/* Desktop Action Buttons */}
