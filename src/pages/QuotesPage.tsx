@@ -213,7 +213,7 @@ const QuotesPage = () => {
   }).length
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8">
+    <div className="space-y-4 sm:space-y-6 p-3 sm:p-4 md:p-6 lg:p-8">
       {/* Header */}
       <QuotesHeader
         onExport={exportQuotes}
@@ -231,7 +231,7 @@ const QuotesPage = () => {
       />
 
       {/* Results Summary */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm text-muted-foreground px-2 sm:px-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm text-muted-foreground">
         <p>
           Showing {sortedQuotes.length} quotes
         </p>
@@ -240,132 +240,342 @@ const QuotesPage = () => {
         </p>
       </div>
 
-      {/* Quotes Table */}
+      {/* Quotes List - Responsive Design */}
       {isLoading ? (
         <div className="text-center py-8">Loading quotes...</div>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[1000px]">
-                <thead className="bg-muted/50 border-b">
-                  <tr>
-                    <th className="text-left p-4 font-medium">Quote #</th>
-                    <th className="text-left p-4 font-medium">Customer</th>
-                    <th className="text-left p-4 font-medium">Destination</th>
-                    <th className="text-left p-4 font-medium">Tour Date</th>
-                    <th className="text-left p-4 font-medium">PAX</th>
-                    <th className="text-left p-4 font-medium">Amount</th>
-                    <th className="text-left p-4 font-medium">Status</th>
-                    <th className="text-left p-4 font-medium">Assigned To</th>
-                    <th className="text-left p-4 font-medium">Created</th>
-                    <th className="text-left p-4 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedQuotes.map((quote) => (
-                    <tr key={quote.id} className="border-b hover:bg-muted/30 transition-colors">
-                      <td className="p-4">
-                        <div className="font-medium">{quote.quoteNumber}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {quote.leadSource}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-medium">{quote.customer.name}</div>
-                        <div className="text-sm text-muted-foreground truncate max-w-[200px]">
-                          {quote.customer.email}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-medium">{quote.tourDetails.destination}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {quote.tourDetails.tourType}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-medium">
-                          {format(quote.tourDetails.startDate, "MMM dd, yyyy")}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {quote.tourDetails.startDate !== quote.tourDetails.endDate && 
-                            `- ${format(quote.tourDetails.endDate, "MMM dd, yyyy")}`
-                          }
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-medium">{quote.tourDetails.passengers}</div>
-                        <div className="text-sm text-muted-foreground">
-                          A:{quote.tourDetails.passengerBreakdown.adults} 
-                          C:{quote.tourDetails.passengerBreakdown.children} 
-                          I:{quote.tourDetails.passengerBreakdown.infants}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-medium">
-                          {quote.pricing.currency} {quote.pricing.amount.toLocaleString()}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <Badge className={cn(
-                          "text-xs",
-                          quote.status === 'confirmed' && "bg-green-100 text-green-800",
-                          quote.status === 'pending' && "bg-yellow-100 text-yellow-800",
-                          quote.status === 'cancelled' && "bg-red-100 text-red-800"
-                        )}>
-                          {quote.status}
-                        </Badge>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-medium">{quote.assignedTo}</div>
-                        {quote.agency && (
-                          <div className="text-sm text-muted-foreground">{quote.agency}</div>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        <div className="text-sm">
-                          {format(quote.metadata.createdAt, "MMM dd, yyyy")}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {quote.metadata.createdBy}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-1">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            title="View details"
-                            onClick={() => handleViewQuote(quote)}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            title="Edit quote"
-                            onClick={() => handleEditQuote(quote)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-destructive"
-                            title="Delete quote"
-                            onClick={() => handleDeleteQuote(quote)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
+        <>
+          {/* Desktop Table View (hidden on mobile) */}
+          <Card className="hidden lg:block">
+            <CardContent className="p-0">
+              <div className="w-full">
+                <table className="w-full table-fixed">
+                  <thead className="bg-muted/50 border-b">
+                    <tr>
+                      <th className="text-left p-2 font-medium text-xs w-[10%]">Quote #</th>
+                      <th className="text-left p-2 font-medium text-xs w-[15%]">Customer</th>
+                      <th className="text-left p-2 font-medium text-xs w-[12%]">Destination</th>
+                      <th className="text-left p-2 font-medium text-xs w-[10%]">Tour Date</th>
+                      <th className="text-left p-2 font-medium text-xs w-[8%]">PAX</th>
+                      <th className="text-left p-2 font-medium text-xs w-[10%]">Amount</th>
+                      <th className="text-left p-2 font-medium text-xs w-[8%]">Status</th>
+                      <th className="text-left p-2 font-medium text-xs w-[12%]">Assigned To</th>
+                      <th className="text-left p-2 font-medium text-xs w-[10%]">Created</th>
+                      <th className="text-left p-2 font-medium text-xs w-[5%]">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+                  </thead>
+                  <tbody>
+                    {sortedQuotes.map((quote) => (
+                      <tr key={quote.id} className="border-b hover:bg-muted/30 transition-colors">
+                        <td className="p-2">
+                          <div className="font-medium text-xs truncate">{quote.quoteNumber}</div>
+                          <div className="text-[10px] text-muted-foreground truncate">
+                            {quote.leadSource}
+                          </div>
+                        </td>
+                        <td className="p-2">
+                          <div className="font-medium text-xs truncate">{quote.customer.name}</div>
+                          <div className="text-[10px] text-muted-foreground truncate">
+                            {quote.customer.email}
+                          </div>
+                        </td>
+                        <td className="p-2">
+                          <div className="font-medium text-xs truncate">{quote.tourDetails.destination}</div>
+                          <div className="text-[10px] text-muted-foreground truncate">
+                            {quote.tourDetails.tourType}
+                          </div>
+                        </td>
+                        <td className="p-2">
+                          <div className="font-medium text-xs">
+                            {format(quote.tourDetails.startDate, "MMM dd")}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {format(quote.tourDetails.startDate, "yyyy")}
+                          </div>
+                        </td>
+                        <td className="p-2">
+                          <div className="font-medium text-xs">{quote.tourDetails.passengers}</div>
+                          <div className="text-[10px] text-muted-foreground">
+                            A:{quote.tourDetails.passengerBreakdown.adults} C:{quote.tourDetails.passengerBreakdown.children}
+                          </div>
+                        </td>
+                        <td className="p-2">
+                          <div className="font-medium text-xs">
+                            {quote.pricing.currency} {quote.pricing.amount.toLocaleString()}
+                          </div>
+                        </td>
+                        <td className="p-2">
+                          <Badge className={cn(
+                            "text-[10px] px-1 py-0.5",
+                            quote.status === 'confirmed' && "bg-green-100 text-green-800",
+                            quote.status === 'pending' && "bg-yellow-100 text-yellow-800",
+                            quote.status === 'cancelled' && "bg-red-100 text-red-800"
+                          )}>
+                            {quote.status}
+                          </Badge>
+                        </td>
+                        <td className="p-2">
+                          <div className="font-medium text-xs truncate">{quote.assignedTo}</div>
+                          {quote.agency && (
+                            <div className="text-[10px] text-muted-foreground truncate">{quote.agency}</div>
+                          )}
+                        </td>
+                        <td className="p-2">
+                          <div className="text-xs">
+                            {format(quote.metadata.createdAt, "MMM dd")}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate">
+                            {quote.metadata.createdBy}
+                          </div>
+                        </td>
+                        <td className="p-1">
+                          <div className="flex items-center justify-center gap-0.5">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-6 w-6 p-0 hover:bg-muted"
+                              title="View details"
+                              onClick={() => handleViewQuote(quote)}
+                            >
+                              <Eye className="w-3 h-3" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-6 w-6 p-0 hover:bg-muted"
+                              title="Edit quote"
+                              onClick={() => handleEditQuote(quote)}
+                            >
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                              title="Delete quote"
+                              onClick={() => handleDeleteQuote(quote)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tablet View (Medium screens) */}
+          <Card className="hidden md:block lg:hidden">
+            <CardContent className="p-0">
+              <div className="w-full">
+                <table className="w-full table-fixed">
+                  <thead className="bg-muted/50 border-b">
+                    <tr>
+                      <th className="text-left p-2 font-medium text-xs w-[15%]">Quote</th>
+                      <th className="text-left p-2 font-medium text-xs w-[20%]">Customer</th>
+                      <th className="text-left p-2 font-medium text-xs w-[20%]">Tour</th>
+                      <th className="text-left p-2 font-medium text-xs w-[12%]">Date</th>
+                      <th className="text-left p-2 font-medium text-xs w-[15%]">Amount</th>
+                      <th className="text-left p-2 font-medium text-xs w-[10%]">Status</th>
+                      <th className="text-left p-2 font-medium text-xs w-[8%]">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedQuotes.map((quote) => (
+                      <tr key={quote.id} className="border-b hover:bg-muted/30 transition-colors">
+                        <td className="p-1.5">
+                          <div className="font-medium text-xs truncate">{quote.quoteNumber}</div>
+                          <div className="text-[10px] text-muted-foreground truncate">{quote.leadSource}</div>
+                        </td>
+                        <td className="p-1.5">
+                          <div className="font-medium text-xs truncate">{quote.customer.name}</div>
+                          <div className="text-[10px] text-muted-foreground truncate">
+                            {quote.customer.email}
+                          </div>
+                        </td>
+                        <td className="p-1.5">
+                          <div className="font-medium text-xs truncate">
+                            {quote.tourDetails.destination}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {quote.tourDetails.passengers} PAX
+                          </div>
+                        </td>
+                        <td className="p-1.5">
+                          <div className="font-medium text-xs">
+                            {format(quote.tourDetails.startDate, "MMM dd")}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {format(quote.tourDetails.startDate, "yyyy")}
+                          </div>
+                        </td>
+                        <td className="p-1.5">
+                          <div className="font-semibold text-xs">
+                            {quote.pricing.currency} {quote.pricing.amount.toLocaleString()}
+                          </div>
+                        </td>
+                        <td className="p-1.5">
+                          <Badge className={cn(
+                            "text-[10px] px-1 py-0.5",
+                            quote.status === 'confirmed' && "bg-green-100 text-green-800",
+                            quote.status === 'pending' && "bg-yellow-100 text-yellow-800",
+                            quote.status === 'cancelled' && "bg-red-100 text-red-800"
+                          )}>
+                            {quote.status}
+                          </Badge>
+                        </td>
+                        <td className="p-1">
+                          <div className="flex items-center justify-center gap-0.5">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-6 w-6 p-0 hover:bg-muted"
+                              title="View details"
+                              onClick={() => handleViewQuote(quote)}
+                            >
+                              <Eye className="w-2.5 h-2.5" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-6 w-6 p-0 hover:bg-muted"
+                              title="Edit quote"
+                              onClick={() => handleEditQuote(quote)}
+                            >
+                              <Edit className="w-2.5 h-2.5" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                              title="Delete quote"
+                              onClick={() => handleDeleteQuote(quote)}
+                            >
+                              <Trash2 className="w-2.5 h-2.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Mobile Card View (visible on small screens) */}
+          <div className="md:hidden space-y-3">
+            {sortedQuotes.map((quote) => (
+              <Card key={quote.id} className="overflow-hidden">
+                <CardContent className="p-4">
+                  {/* Header with Quote Number and Status */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <div className="font-semibold text-base">{quote.quoteNumber}</div>
+                      <div className="text-xs text-muted-foreground">{quote.leadSource}</div>
+                    </div>
+                    <Badge className={cn(
+                      "text-xs",
+                      quote.status === 'confirmed' && "bg-green-100 text-green-800",
+                      quote.status === 'pending' && "bg-yellow-100 text-yellow-800",
+                      quote.status === 'cancelled' && "bg-red-100 text-red-800"
+                    )}>
+                      {quote.status}
+                    </Badge>
+                  </div>
+
+                  {/* Customer Info */}
+                  <div className="mb-3">
+                    <div className="text-sm font-medium">{quote.customer.name}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {quote.customer.email}
+                    </div>
+                  </div>
+
+                  {/* Tour Details Grid */}
+                  <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
+                    <div>
+                      <div className="text-xs text-muted-foreground mb-1">Destination</div>
+                      <div className="font-medium truncate">{quote.tourDetails.destination}</div>
+                      <div className="text-xs text-muted-foreground">{quote.tourDetails.tourType}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground mb-1">Tour Date</div>
+                      <div className="font-medium">{format(quote.tourDetails.startDate, "MMM dd")}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {format(quote.tourDetails.startDate, "yyyy")}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground mb-1">Passengers</div>
+                      <div className="font-medium">{quote.tourDetails.passengers} PAX</div>
+                      <div className="text-xs text-muted-foreground">
+                        A:{quote.tourDetails.passengerBreakdown.adults} 
+                        C:{quote.tourDetails.passengerBreakdown.children} 
+                        I:{quote.tourDetails.passengerBreakdown.infants}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground mb-1">Amount</div>
+                      <div className="font-semibold text-primary">
+                        {quote.pricing.currency} {quote.pricing.amount.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Assignment Info */}
+                  <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
+                    <div>
+                      <div className="text-xs text-muted-foreground mb-1">Assigned To</div>
+                      <div className="font-medium">{quote.assignedTo}</div>
+                      {quote.agency && (
+                        <div className="text-xs text-muted-foreground">{quote.agency}</div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground mb-1">Created</div>
+                      <div className="font-medium">{format(quote.metadata.createdAt, "MMM dd, yyyy")}</div>
+                      <div className="text-xs text-muted-foreground">{quote.metadata.createdBy}</div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2 pt-3 border-t">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => handleViewQuote(quote)}
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      View
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => handleEditQuote(quote)}
+                    >
+                      <Edit className="w-4 h-4 mr-1" />
+                      Edit
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      onClick={() => handleDeleteQuote(quote)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Empty State */}
