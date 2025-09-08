@@ -18,6 +18,7 @@ import ReservationEditPage from "./pages/ReservationEditPage";
 import BookQuotePage from "./pages/BookQuotePage";
 import QuotesPage from "./pages/QuotesPage";
 import { QuoteDetailPage } from "./pages/QuoteDetailPage";
+import QuoteEditFormPage from "./pages/QuoteEditFormPage";
 import { SharedQuotePage } from "./pages/SharedQuotePage";
 import CustomersPage from "./pages/CustomersPage";
 import FinancialPage from "./pages/FinancialPage";
@@ -224,6 +225,7 @@ const MainLayout = () => {
                   <Route path="/reservations/:reservationId/edit" element={<ReservationEditPage />} />
                   <Route path="/quotes" element={<BookQuotePage />} />
                   <Route path="/my-quotes" element={<QuotesPage />} />
+                  <Route path="/quotes/:quoteId/edit" element={<QuoteEditFormPage />} />
                   <Route path="/quotes/:quoteId" element={<QuoteDetailPage />} />
                   <Route path="/quotes/share/:shareId" element={<SharedQuotePage />} />
                   <Route path="/customers" element={<CustomersPage />} />
