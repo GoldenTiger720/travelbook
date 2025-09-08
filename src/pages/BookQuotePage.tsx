@@ -388,7 +388,22 @@ const BookQuotePage = () => {
     const bookingData = createBookingData(tourBookings)
 
     // Send data to booking API endpoint using React Query
-    createBookingMutation.mutate(bookingData)
+    createBookingMutation.mutate(bookingData, {
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Quote created successfully",
+        })
+        navigate("/my-quotes")
+      },
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to create quote",
+          variant: "destructive"
+        })
+      }
+    })
   }
 
   const getCurrencySymbol = (currency: string) => {
