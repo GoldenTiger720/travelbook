@@ -5,7 +5,6 @@ import Swal from 'sweetalert2'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { MaskedInput } from "@/components/ui/masked-input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -494,9 +493,8 @@ const BookQuotePage = () => {
 
               <div>
                 <Label htmlFor="idPassport">{t('quotes.idPassport')}</Label>
-                <MaskedInput
+                <Input
                   id="idPassport"
-                  mask="99.999.999-*"
                   placeholder={t('quotes.idPassportPlaceholder')}
                   value={formData.idPassport}
                   onChange={(e) => handleInputChange("idPassport", e.target.value)}
@@ -518,9 +516,8 @@ const BookQuotePage = () => {
 
               <div>
                 <Label htmlFor="phone">{t('quotes.phone')}</Label>
-                <MaskedInput
+                <Input
                   id="phone"
-                  mask="+56 9 9999 9999"
                   placeholder={t('quotes.phonePlaceholder')}
                   value={formData.phone}
                   onChange={(e) => handleInputChange("phone", e.target.value)}
