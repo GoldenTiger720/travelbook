@@ -394,7 +394,7 @@ const BookQuotePage = () => {
           title: "Success",
           description: "Quote created successfully",
         })
-        navigate("/my-quotes")
+        // Stay on the same page - don't redirect
       },
       onError: () => {
         toast({
