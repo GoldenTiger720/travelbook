@@ -21,6 +21,31 @@ import {
 import { QuotesHeader } from "@/components/quotes/QuotesHeader"
 import { QuotesFilter } from "@/components/quotes/QuotesFilter"
 
+// Helper function to map backend status to display status
+const getDisplayStatus = (status: string, validUntil?: Date): string => {
+  // Check if expired first
+  if (validUntil && new Date(validUntil) < new Date()) {
+    return 'Expired'
+  }
+  
+  // Map status values
+  switch (status?.toLowerCase()) {
+    case 'pending':
+    case 'draft':
+      return 'Draft'
+    case 'confirmed':
+    case 'approved':
+      return 'Approved'
+    case 'cancelled':
+    case 'canceled':
+      return 'Cancelled'
+    case 'expired':
+      return 'Expired'
+    default:
+      return 'Draft'
+  }
+}
+
 // Helper function to convert BookingResponse to Quote format
 const convertBookingToQuote = (booking: any): Quote => {
   // Ensure we always have a unique ID - fallback to timestamp + random if needed
@@ -57,7 +82,7 @@ const convertBookingToQuote = (booking: any): Quote => {
       currency: booking.pricing?.currency || 'USD',
       breakdown: booking.pricing?.breakdown || []
     },
-    status: booking.status || 'pending',
+    status: getDisplayStatus(booking.status, booking.validUntil),
     leadSource: booking.leadSource || 'unknown',
     assignedTo: booking.assignedTo || 'Unassigned',
     agency: booking.agency || null,
@@ -252,37 +277,23 @@ const QuotesPage = () => {
                 <table className="w-full table-fixed">
                   <thead className="bg-muted/50 border-b">
                     <tr>
-                      <th className="text-left p-2 font-medium text-xs w-[10%]">Quote #</th>
-                      <th className="text-left p-2 font-medium text-xs w-[15%]">Customer</th>
-                      <th className="text-left p-2 font-medium text-xs w-[12%]">Destination</th>
-                      <th className="text-left p-2 font-medium text-xs w-[10%]">Tour Date</th>
+                      <th className="text-left p-2 font-medium text-xs w-[20%]">Customer</th>
+                      <th className="text-left p-2 font-medium text-xs w-[12%]">Tour Date</th>
+                      <th className="text-left p-2 font-medium text-xs w-[12%]">Created</th>
+                      <th className="text-left p-2 font-medium text-xs w-[12%]">Expires</th>
                       <th className="text-left p-2 font-medium text-xs w-[8%]">PAX</th>
-                      <th className="text-left p-2 font-medium text-xs w-[10%]">Amount</th>
-                      <th className="text-left p-2 font-medium text-xs w-[8%]">Status</th>
-                      <th className="text-left p-2 font-medium text-xs w-[12%]">Assigned To</th>
-                      <th className="text-left p-2 font-medium text-xs w-[10%]">Created</th>
-                      <th className="text-left p-2 font-medium text-xs w-[5%]">Actions</th>
+                      <th className="text-left p-2 font-medium text-xs w-[12%]">Total Value</th>
+                      <th className="text-left p-2 font-medium text-xs w-[12%]">Status</th>
+                      <th className="text-left p-2 font-medium text-xs w-[12%]">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {sortedQuotes.map((quote) => (
                       <tr key={quote.id} className="border-b hover:bg-muted/30 transition-colors">
                         <td className="p-2">
-                          <div className="font-medium text-xs truncate">{quote.quoteNumber}</div>
-                          <div className="text-[10px] text-muted-foreground truncate">
-                            {quote.leadSource}
-                          </div>
-                        </td>
-                        <td className="p-2">
                           <div className="font-medium text-xs truncate">{quote.customer.name}</div>
                           <div className="text-[10px] text-muted-foreground truncate">
                             {quote.customer.email}
-                          </div>
-                        </td>
-                        <td className="p-2">
-                          <div className="font-medium text-xs truncate">{quote.tourDetails.destination}</div>
-                          <div className="text-[10px] text-muted-foreground truncate">
-                            {quote.tourDetails.tourType}
                           </div>
                         </td>
                         <td className="p-2">
@@ -294,9 +305,25 @@ const QuotesPage = () => {
                           </div>
                         </td>
                         <td className="p-2">
+                          <div className="font-medium text-xs">
+                            {format(quote.metadata.createdAt, "MMM dd")}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {format(quote.metadata.createdAt, "yyyy")}
+                          </div>
+                        </td>
+                        <td className="p-2">
+                          <div className="font-medium text-xs">
+                            {format(quote.validUntil, "MMM dd")}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {format(quote.validUntil, "yyyy")}
+                          </div>
+                        </td>
+                        <td className="p-2">
                           <div className="font-medium text-xs">{quote.tourDetails.passengers}</div>
                           <div className="text-[10px] text-muted-foreground">
-                            A:{quote.tourDetails.passengerBreakdown.adults} C:{quote.tourDetails.passengerBreakdown.children}
+                            A:{quote.tourDetails.passengerBreakdown.adults}
                           </div>
                         </td>
                         <td className="p-2">
@@ -307,38 +334,16 @@ const QuotesPage = () => {
                         <td className="p-2">
                           <Badge className={cn(
                             "text-[10px] px-1 py-0.5",
-                            quote.status === 'confirmed' && "bg-green-100 text-green-800",
-                            quote.status === 'pending' && "bg-yellow-100 text-yellow-800",
-                            quote.status === 'cancelled' && "bg-red-100 text-red-800"
+                            quote.status === 'Approved' && "bg-green-100 text-green-800",
+                            quote.status === 'Draft' && "bg-yellow-100 text-yellow-800",
+                            quote.status === 'Cancelled' && "bg-red-100 text-red-800",
+                            quote.status === 'Expired' && "bg-gray-100 text-gray-800"
                           )}>
                             {quote.status}
                           </Badge>
                         </td>
-                        <td className="p-2">
-                          <div className="font-medium text-xs truncate">{quote.assignedTo}</div>
-                          {quote.agency && (
-                            <div className="text-[10px] text-muted-foreground truncate">{quote.agency}</div>
-                          )}
-                        </td>
-                        <td className="p-2">
-                          <div className="text-xs">
-                            {format(quote.metadata.createdAt, "MMM dd")}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground truncate">
-                            {quote.metadata.createdBy}
-                          </div>
-                        </td>
                         <td className="p-1">
                           <div className="flex items-center justify-center gap-0.5">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-6 w-6 p-0 hover:bg-muted"
-                              title="View details"
-                              onClick={() => handleViewQuote(quote)}
-                            >
-                              <Eye className="w-3 h-3" />
-                            </Button>
                             <Button 
                               variant="ghost" 
                               size="sm" 
@@ -374,34 +379,21 @@ const QuotesPage = () => {
                 <table className="w-full table-fixed">
                   <thead className="bg-muted/50 border-b">
                     <tr>
-                      <th className="text-left p-2 font-medium text-xs w-[15%]">Quote</th>
-                      <th className="text-left p-2 font-medium text-xs w-[20%]">Customer</th>
-                      <th className="text-left p-2 font-medium text-xs w-[20%]">Tour</th>
-                      <th className="text-left p-2 font-medium text-xs w-[12%]">Date</th>
-                      <th className="text-left p-2 font-medium text-xs w-[15%]">Amount</th>
-                      <th className="text-left p-2 font-medium text-xs w-[10%]">Status</th>
-                      <th className="text-left p-2 font-medium text-xs w-[8%]">Actions</th>
+                      <th className="text-left p-2 font-medium text-xs w-[25%]">Customer</th>
+                      <th className="text-left p-2 font-medium text-xs w-[15%]">Tour Date</th>
+                      <th className="text-left p-2 font-medium text-xs w-[15%]">Expires</th>
+                      <th className="text-left p-2 font-medium text-xs w-[15%]">Total</th>
+                      <th className="text-left p-2 font-medium text-xs w-[12%]">Status</th>
+                      <th className="text-left p-2 font-medium text-xs w-[18%]">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {sortedQuotes.map((quote) => (
                       <tr key={quote.id} className="border-b hover:bg-muted/30 transition-colors">
                         <td className="p-1.5">
-                          <div className="font-medium text-xs truncate">{quote.quoteNumber}</div>
-                          <div className="text-[10px] text-muted-foreground truncate">{quote.leadSource}</div>
-                        </td>
-                        <td className="p-1.5">
                           <div className="font-medium text-xs truncate">{quote.customer.name}</div>
                           <div className="text-[10px] text-muted-foreground truncate">
                             {quote.customer.email}
-                          </div>
-                        </td>
-                        <td className="p-1.5">
-                          <div className="font-medium text-xs truncate">
-                            {quote.tourDetails.destination}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground">
-                            {quote.tourDetails.passengers} PAX
                           </div>
                         </td>
                         <td className="p-1.5">
@@ -413,31 +405,34 @@ const QuotesPage = () => {
                           </div>
                         </td>
                         <td className="p-1.5">
-                          <div className="font-semibold text-xs">
-                            {quote.pricing.currency} {quote.pricing.amount.toLocaleString()}
+                          <div className="font-medium text-xs">
+                            {format(quote.validUntil, "MMM dd")}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {format(quote.validUntil, "yyyy")}
+                          </div>
+                        </td>
+                        <td className="p-1.5">
+                          <div className="font-medium text-xs">
+                            {quote.pricing.currency}
+                          </div>
+                          <div className="text-[10px] font-semibold">
+                            {quote.pricing.amount.toLocaleString()}
                           </div>
                         </td>
                         <td className="p-1.5">
                           <Badge className={cn(
                             "text-[10px] px-1 py-0.5",
-                            quote.status === 'confirmed' && "bg-green-100 text-green-800",
-                            quote.status === 'pending' && "bg-yellow-100 text-yellow-800",
-                            quote.status === 'cancelled' && "bg-red-100 text-red-800"
+                            quote.status === 'Approved' && "bg-green-100 text-green-800",
+                            quote.status === 'Draft' && "bg-yellow-100 text-yellow-800",
+                            quote.status === 'Cancelled' && "bg-red-100 text-red-800",
+                            quote.status === 'Expired' && "bg-gray-100 text-gray-800"
                           )}>
                             {quote.status}
                           </Badge>
                         </td>
                         <td className="p-1">
                           <div className="flex items-center justify-center gap-0.5">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-6 w-6 p-0 hover:bg-muted"
-                              title="View details"
-                              onClick={() => handleViewQuote(quote)}
-                            >
-                              <Eye className="w-2.5 h-2.5" />
-                            </Button>
                             <Button 
                               variant="ghost" 
                               size="sm" 
@@ -479,9 +474,10 @@ const QuotesPage = () => {
                     </div>
                     <Badge className={cn(
                       "text-xs",
-                      quote.status === 'confirmed' && "bg-green-100 text-green-800",
-                      quote.status === 'pending' && "bg-yellow-100 text-yellow-800",
-                      quote.status === 'cancelled' && "bg-red-100 text-red-800"
+                      quote.status === 'Approved' && "bg-green-100 text-green-800",
+                      quote.status === 'Draft' && "bg-yellow-100 text-yellow-800",
+                      quote.status === 'Cancelled' && "bg-red-100 text-red-800",
+                      quote.status === 'Expired' && "bg-gray-100 text-gray-800"
                     )}>
                       {quote.status}
                     </Badge>
@@ -544,15 +540,6 @@ const QuotesPage = () => {
 
                   {/* Action Buttons */}
                   <div className="flex items-center gap-2 pt-3 border-t">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex-1"
-                      onClick={() => handleViewQuote(quote)}
-                    >
-                      <Eye className="w-4 h-4 mr-1" />
-                      View
-                    </Button>
                     <Button 
                       variant="outline" 
                       size="sm" 
