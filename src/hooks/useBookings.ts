@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { bookingService, BookingData, BookingResponse } from '@/services/bookingService'
 import { useToast } from '@/components/ui/use-toast'
-import { useNavigate } from 'react-router-dom'
 
 // Query keys
 export const bookingKeys = {
@@ -39,7 +38,6 @@ export function useBooking(id: string) {
 export function useCreateBooking() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
-  const navigate = useNavigate()
 
   return useMutation({
     mutationFn: (data: BookingData) => bookingService.createBooking(data),
@@ -49,8 +47,6 @@ export function useCreateBooking() {
         title: 'Booking Created',
         description: `Booking ${newBooking.bookingNumber} created successfully`,
       })
-      // Navigate back to quotes list after successful creation
-      navigate('/my-quotes')
     },
     onError: (error) => {
       console.error('Error creating booking:', error)
