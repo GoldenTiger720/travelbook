@@ -7,7 +7,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { useSignIn } from "@/lib/hooks/useAuth"
 import { toast } from "sonner"
-import { GoogleAuthButton } from "@/components/GoogleAuthButton"
 
 const SignInPage = () => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
@@ -238,21 +237,6 @@ const SignInPage = () => {
             </div>
           </form>
 
-          {/* Social Login */}
-          <div className="space-y-4">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or continue with
-                </span>
-              </div>
-            </div>
-
-            <GoogleAuthButton mode="signin" disabled={signInMutation.isPending} />
-          </div>
         </div>
       </div>
 
