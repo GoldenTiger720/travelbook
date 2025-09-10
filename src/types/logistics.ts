@@ -26,6 +26,7 @@ export interface TourOperation {
   tourId: string
   tourName: string
   tourCode: string
+  operator?: string // 'own-operation' or external operator name
   mainDriver?: string
   mainGuide?: string
   assistantGuide?: string

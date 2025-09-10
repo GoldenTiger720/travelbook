@@ -51,7 +51,9 @@ const LogisticsPage = () => {
   const { toast } = useToast()
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [selectedTour, setSelectedTour] = useState<string>('')
+  const [selectedOperator, setSelectedOperator] = useState<string>('all')
   const [tourOperations, setTourOperations] = useState<TourOperation[]>([])
+  const [filteredTourOperations, setFilteredTourOperations] = useState<TourOperation[]>([])
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [drivers, setDrivers] = useState<Driver[]>([])
   const [guides, setGuides] = useState<Guide[]>([])
@@ -68,6 +70,10 @@ const LogisticsPage = () => {
       loadTourOperations()
     }
   }, [selectedDate])
+  
+  useEffect(() => {
+    filterTourOperations()
+  }, [tourOperations, selectedOperator])
   
   const loadInitialData = async () => {
     setLoading(true)
@@ -96,15 +102,6 @@ const LogisticsPage = () => {
     try {
       const operations = await logisticsService.getTourOperations(selectedDate)
       setTourOperations(operations)
-      
-      // Auto-select first tour if none selected
-      if (!selectedTour && operations.length > 0) {
-        setSelectedTour(operations[0].id)
-        setSelectedOperation(operations[0])
-      } else if (selectedTour) {
-        const operation = operations.find(op => op.id === selectedTour)
-        setSelectedOperation(operation || null)
-      }
     } catch (error) {
       toast({
         title: 'Error',
@@ -114,9 +111,45 @@ const LogisticsPage = () => {
     }
   }
   
+  const filterTourOperations = () => {
+    let filtered = [...tourOperations]
+    
+    if (selectedOperator !== 'all') {
+      filtered = filtered.filter(operation => {
+        const operator = operation.operator || 'own-operation'
+        if (selectedOperator === 'own-operation') {
+          return operator === 'own-operation'
+        } else {
+          return operator !== 'own-operation'
+        }
+      })
+    }
+    
+    setFilteredTourOperations(filtered)
+    
+    // Auto-select first tour if none selected or if current selection is filtered out
+    if (!selectedTour && filtered.length > 0) {
+      setSelectedTour(filtered[0].id)
+      setSelectedOperation(filtered[0])
+    } else if (selectedTour) {
+      const operation = filtered.find(op => op.id === selectedTour)
+      if (operation) {
+        setSelectedOperation(operation)
+      } else if (filtered.length > 0) {
+        // Current selection filtered out, select first available
+        setSelectedTour(filtered[0].id)
+        setSelectedOperation(filtered[0])
+      } else {
+        // No tours available after filtering
+        setSelectedOperation(null)
+        setSelectedTour('')
+      }
+    }
+  }
+  
   const handleTourSelect = (tourId: string) => {
     setSelectedTour(tourId)
-    const operation = tourOperations.find(op => op.id === tourId)
+    const operation = filteredTourOperations.find(op => op.id === tourId)
     setSelectedOperation(operation || null)
   }
   
@@ -244,7 +277,7 @@ const LogisticsPage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <Label className="text-sm">Operation Date</Label>
               <Popover>
@@ -272,13 +305,27 @@ const LogisticsPage = () => {
             </div>
             
             <div>
+              <Label className="text-sm">Operator</Label>
+              <Select value={selectedOperator} onValueChange={setSelectedOperator}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select operator" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Operators</SelectItem>
+                  <SelectItem value="own-operation">Own Operation</SelectItem>
+                  <SelectItem value="external">External Operators</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
               <Label className="text-sm">Select Tour Operation</Label>
               <Select value={selectedTour} onValueChange={handleTourSelect}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a tour" />
                 </SelectTrigger>
                 <SelectContent>
-                  {tourOperations.map((operation) => (
+                  {filteredTourOperations.map((operation) => (
                     <SelectItem key={operation.id} value={operation.id}>
                       <div className="flex items-center gap-2">
                         <span>{operation.tourName}</span>
