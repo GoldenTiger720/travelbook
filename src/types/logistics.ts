@@ -1,9 +1,13 @@
 export interface LogisticsReservation {
   id: string
   reservationNumber: string
+  operationDate: Date
+  pickupTime?: string
   clientName: string
   clientEmail: string
   clientPhone: string
+  product: string
+  operator?: string
   hotelName: string
   hotelAddress: string
   pickupLocation: string
@@ -18,6 +22,9 @@ export interface LogisticsReservation {
   pendingPayment: number
   status: 'confirmed' | 'pending' | 'cancelled'
   specialRequests?: string
+  salesperson?: string
+  assignedDriver?: string
+  assignedGuide?: string
 }
 
 export interface TourOperation {

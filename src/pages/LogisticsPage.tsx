@@ -259,14 +259,15 @@ const LogisticsPage = () => {
   }
   
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Logistics / Operations</h1>
-          <p className="text-sm text-muted-foreground">Manage daily tour operations and logistics</p>
+    <div className="min-h-screen w-full overflow-x-hidden">
+      <div className="max-w-full px-4 py-4 space-y-4">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Logistics / Operations</h1>
+            <p className="text-sm text-muted-foreground">Manage daily tour operations and logistics</p>
+          </div>
         </div>
-      </div>
       
       {/* Date and Tour Selection */}
       <Card>
@@ -277,7 +278,7 @@ const LogisticsPage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <Label className="text-sm">Operation Date</Label>
               <Popover>
@@ -307,7 +308,7 @@ const LogisticsPage = () => {
             <div>
               <Label className="text-sm">Operator</Label>
               <Select value={selectedOperator} onValueChange={setSelectedOperator}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select operator" />
                 </SelectTrigger>
                 <SelectContent>
@@ -319,17 +320,17 @@ const LogisticsPage = () => {
             </div>
             
             <div>
-              <Label className="text-sm">Select Tour Operation</Label>
+              <Label className="text-sm">Tour Operation</Label>
               <Select value={selectedTour} onValueChange={handleTourSelect}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select a tour" />
                 </SelectTrigger>
                 <SelectContent>
                   {filteredTourOperations.map((operation) => (
                     <SelectItem key={operation.id} value={operation.id}>
                       <div className="flex items-center gap-2">
-                        <span>{operation.tourName}</span>
-                        <Badge variant="outline" className="text-xs">
+                        <span className="truncate">{operation.tourName}</span>
+                        <Badge variant="outline" className="text-xs shrink-0">
                           {operation.totalPassengers} PAX
                         </Badge>
                       </div>
@@ -695,7 +696,7 @@ const LogisticsPage = () => {
               <CardContent>
                 <div className="space-y-4">
                   {/* Vehicle Summary */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                     {vehicles.filter(v => v.id === selectedOperation.vehicleId).map(vehicle => (
                       <Card key={vehicle.id}>
                         <CardContent className="p-3">
@@ -705,14 +706,13 @@ const LogisticsPage = () => {
                               <p className="font-semibold text-sm">{vehicle.name}</p>
                             </div>
                             <div className="text-xs space-y-1">
-                              <p>Capacity: {vehicle.capacity} passengers</p>
-                              <p>Assigned: {selectedOperation.totalPassengers} passengers</p>
+                              <p>Cap: {vehicle.capacity} | Assigned: {selectedOperation.totalPassengers}</p>
                               <p className={`font-medium ${
                                 selectedOperation.totalPassengers <= vehicle.capacity ? 'text-green-600' : 'text-red-600'
                               }`}>
                                 {vehicle.capacity - selectedOperation.totalPassengers >= 0 
-                                  ? `${vehicle.capacity - selectedOperation.totalPassengers} seats available`
-                                  : `${selectedOperation.totalPassengers - vehicle.capacity} passengers over capacity`
+                                  ? `${vehicle.capacity - selectedOperation.totalPassengers} seats left`
+                                  : `${selectedOperation.totalPassengers - vehicle.capacity} over capacity`
                                 }
                               </p>
                             </div>
@@ -730,8 +730,8 @@ const LogisticsPage = () => {
                           </div>
                           <div className="text-xs space-y-1">
                             <p>Departure: {selectedOperation.departureTime || 'Not set'}</p>
-                            <p>Waiting time: {selectedOperation.expectedWaitingTime} min</p>
-                            <p>Pickup locations: {new Set(selectedOperation.reservations.map(r => r.hotelName)).size}</p>
+                            <p>Wait: {selectedOperation.expectedWaitingTime}min</p>
+                            <p>Locations: {new Set(selectedOperation.reservations.map(r => r.hotelName)).size}</p>
                           </div>
                         </div>
                       </CardContent>
@@ -748,7 +748,7 @@ const LogisticsPage = () => {
                             <p>Driver: {selectedOperation.mainDriver || 'Not assigned'}</p>
                             <p>Guide: {selectedOperation.mainGuide || 'Not assigned'}</p>
                             {selectedOperation.assistantGuide && (
-                              <p>Assistant: {selectedOperation.assistantGuide}</p>
+                              <p>Assist: {selectedOperation.assistantGuide}</p>
                             )}
                           </div>
                         </div>
@@ -893,19 +893,20 @@ const LogisticsPage = () => {
         </>
       )}
       
-      {!selectedOperation && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <div className="space-y-2">
-              <CalendarIcon className="w-12 h-12 mx-auto text-muted-foreground" />
-              <h3 className="text-lg font-medium">Select Date and Tour</h3>
-              <p className="text-sm text-muted-foreground">
-                Choose an operation date and tour to manage logistics
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+        {!selectedOperation && (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <div className="space-y-2">
+                <CalendarIcon className="w-12 h-12 mx-auto text-muted-foreground" />
+                <h3 className="text-lg font-medium">Select Date and Tour</h3>
+                <p className="text-sm text-muted-foreground">
+                  Choose an operation date and tour to manage logistics
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   )
 }
