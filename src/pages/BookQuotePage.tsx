@@ -57,7 +57,6 @@ const BookQuotePage = () => {
   const { t } = useLanguage()
   const createBookingMutation = useCreateBooking()
   const createBookingPaymentMutation = useCreateBookingPayment()
-  const [hasMultipleAddresses, setHasMultipleAddresses] = useState(false)
   const [availableTours, setAvailableTours] = useState<Tour[]>([])
   const [selectedDestination, setSelectedDestination] = useState("")
   const [destinations, setDestinations] = useState<string[]>([])
@@ -265,7 +264,6 @@ const BookQuotePage = () => {
       status: "confirmed",
       validUntil: validUntilDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       additionalNotes: formData.accommodationComments,
-      hasMultipleAddresses,
       termsAccepted: {
         accepted: false
       },
@@ -307,7 +305,7 @@ const BookQuotePage = () => {
       tourName: tour.name,
       tourCode: tour.code,
       date: currentTour.date,
-      pickupAddress: hasMultipleAddresses ? currentTour.pickupAddress : formData.defaultHotel,
+      pickupAddress: currentTour.pickupAddress || formData.defaultHotel,
       pickupTime: currentTour.pickupTime,
       adultPax: currentTour.adultPax || 0,
       adultPrice: currentTour.adultPrice || 0,
@@ -647,58 +645,38 @@ const BookQuotePage = () => {
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="multiple-addresses" className="text-base font-medium">
-                    {t('quotes.multipleAddresses')}
-                  </Label>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {t('quotes.multipleAddresses')}
-                  </p>
+                  <Label htmlFor="defaultHotel">{t('quotes.defaultHotel')}</Label>
+                  <Input
+                    id="defaultHotel"
+                    placeholder={t('quotes.hotelPlaceholder')}
+                    value={formData.defaultHotel}
+                    onChange={(e) => handleInputChange("defaultHotel", e.target.value)}
+                  />
                 </div>
-                <Switch
-                  id="multiple-addresses"
-                  checked={hasMultipleAddresses}
-                  onCheckedChange={setHasMultipleAddresses}
-                />
+
+                <div>
+                  <Label htmlFor="defaultRoom">{t('quotes.roomNumber')}</Label>
+                  <Input
+                    id="defaultRoom"
+                    placeholder={t('quotes.roomPlaceholder')}
+                    value={formData.defaultRoom}
+                    onChange={(e) => handleInputChange("defaultRoom", e.target.value)}
+                  />
+                </div>
               </div>
 
-              {!hasMultipleAddresses && (
-                <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="defaultHotel">{t('quotes.defaultHotel')}</Label>
-                      <Input
-                        id="defaultHotel"
-                        placeholder={t('quotes.hotelPlaceholder')}
-                        value={formData.defaultHotel}
-                        onChange={(e) => handleInputChange("defaultHotel", e.target.value)}
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="defaultRoom">{t('quotes.roomNumber')}</Label>
-                      <Input
-                        id="defaultRoom"
-                        placeholder={t('quotes.roomPlaceholder')}
-                        value={formData.defaultRoom}
-                        onChange={(e) => handleInputChange("defaultRoom", e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="accommodationComments">{t('quotes.accommodationComments')}</Label>
-                    <Textarea
-                      id="accommodationComments"
-                      rows={3}
-                      placeholder={t('quotes.accommodationPlaceholder')}
-                      value={formData.accommodationComments}
-                      onChange={(e) => handleInputChange("accommodationComments", e.target.value)}
-                    />
-                  </div>
-                </>
-              )}
+              <div>
+                <Label htmlFor="accommodationComments">{t('quotes.accommodationComments')}</Label>
+                <Textarea
+                  id="accommodationComments"
+                  rows={3}
+                  placeholder={t('quotes.accommodationPlaceholder')}
+                  value={formData.accommodationComments}
+                  onChange={(e) => handleInputChange("accommodationComments", e.target.value)}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -796,31 +774,29 @@ const BookQuotePage = () => {
               </div>
             </div>
 
-            {hasMultipleAddresses && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label>
-                    <MapPin className="w-4 h-4 inline mr-1" />
-                    {t('quotes.pickupAddress')}
-                  </Label>
-                  <Input
-                    placeholder={t('quotes.pickupPlaceholder')}
-                    value={currentTour.pickupAddress}
-                    onChange={(e) => handleTourFieldChange("pickupAddress", e.target.value)}
-                    className="border-blue-300"
-                  />
-                </div>
-
-                <div>
-                  <Label>{t('quotes.pickupTime')}</Label>
-                  <Input
-                    type="time"
-                    value={currentTour.pickupTime}
-                    onChange={(e) => handleTourFieldChange("pickupTime", e.target.value)}
-                  />
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label>
+                  <MapPin className="w-4 h-4 inline mr-1" />
+                  {t('quotes.pickupAddress')}
+                </Label>
+                <Input
+                  placeholder={t('quotes.pickupPlaceholder')}
+                  value={currentTour.pickupAddress}
+                  onChange={(e) => handleTourFieldChange("pickupAddress", e.target.value)}
+                  className="border-blue-300"
+                />
               </div>
-            )}
+
+              <div>
+                <Label>{t('quotes.pickupTime')}</Label>
+                <Input
+                  type="time"
+                  value={currentTour.pickupTime}
+                  onChange={(e) => handleTourFieldChange("pickupTime", e.target.value)}
+                />
+              </div>
+            </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
               <div>
