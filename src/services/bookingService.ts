@@ -271,6 +271,54 @@ class BookingService {
     }
   }
 
+  async createBookingPayment(paymentData: {
+    bookingId?: string
+    customer: {
+      name: string
+      email: string
+      phone?: string
+    }
+    paymentDetails: {
+      date?: Date
+      method?: string
+      percentage?: number
+      amountPaid?: number
+      comments?: string
+      status?: string
+      receiptFile?: File | null
+    }
+    bookingOptions: {
+      includePayment: boolean
+      copyComments: boolean
+      sendPurchaseOrder: boolean
+      quotationComments?: string
+      sendQuotationAccess?: boolean
+    }
+  }): Promise<any> {
+    try {
+      const response = await apiCall('/api/booking/payment/', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...paymentData,
+          paymentDetails: {
+            ...paymentData.paymentDetails,
+            date: paymentData.paymentDetails.date?.toISOString(),
+          }
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to create booking payment: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error('Error creating booking payment:', error)
+      throw error
+    }
+  }
+
   async listBookings(filters?: any): Promise<BookingResponse[]> {
     try {
       let endpoint = this.endpoint

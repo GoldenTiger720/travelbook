@@ -109,6 +109,54 @@ export function useDeleteBooking() {
   })
 }
 
+// Create booking payment mutation
+export function useCreateBookingPayment() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+
+  return useMutation({
+    mutationFn: (paymentData: {
+      bookingId?: string
+      customer: {
+        name: string
+        email: string
+        phone?: string
+      }
+      paymentDetails: {
+        date?: Date
+        method?: string
+        percentage?: number
+        amountPaid?: number
+        comments?: string
+        status?: string
+        receiptFile?: File | null
+      }
+      bookingOptions: {
+        includePayment: boolean
+        copyComments: boolean
+        sendPurchaseOrder: boolean
+        quotationComments?: string
+        sendQuotationAccess?: boolean
+      }
+    }) => bookingService.createBookingPayment(paymentData),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: bookingKeys.lists() })
+      toast({
+        title: 'Payment Processed',
+        description: 'Booking payment details have been successfully processed',
+      })
+    },
+    onError: (error) => {
+      console.error('Error creating booking payment:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to process booking payment',
+        variant: 'destructive',
+      })
+    },
+  })
+}
+
 // Convert quote to booking mutation
 export function useConvertQuoteToBooking() {
   const queryClient = useQueryClient()

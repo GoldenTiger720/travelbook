@@ -26,7 +26,7 @@ import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { quoteService } from "@/services/quoteService"
 import { tourCatalogService } from "@/services/tourCatalogService"
-import { useCreateBooking } from "@/hooks/useBookings"
+import { useCreateBooking, useCreateBookingPayment } from "@/hooks/useBookings"
 import { Tour, TourBooking } from "@/types/tour"
 import {
   Table,
@@ -56,6 +56,7 @@ const BookQuotePage = () => {
   const { toast } = useToast()
   const { t } = useLanguage()
   const createBookingMutation = useCreateBooking()
+  const createBookingPaymentMutation = useCreateBookingPayment()
   const [hasMultipleAddresses, setHasMultipleAddresses] = useState(false)
   const [availableTours, setAvailableTours] = useState<Tour[]>([])
   const [selectedDestination, setSelectedDestination] = useState("")
@@ -415,6 +416,63 @@ const BookQuotePage = () => {
       ARS: 'ARS$'
     }
     return symbols[currency] || currency + '$'
+  }
+
+  const handleBookReservation = async () => {
+    if (tourBookings.length === 0) {
+      toast({
+        title: t('quotes.validationError'),
+        description: t('quotes.addAtLeastOneTour'),
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Prepare payment data to send to the backend
+    const paymentData = {
+      customer: {
+        name: formData.name || t('quotes.guest'),
+        email: formData.email || "noemail@example.com",
+        phone: formData.phone || "",
+      },
+      paymentDetails: {
+        date: paymentDate,
+        method: paymentMethod,
+        percentage: paymentPercentage,
+        amountPaid: amountPaid,
+        comments: paymentComments,
+        status: paymentStatus,
+        receiptFile: receiptFile
+      },
+      bookingOptions: {
+        includePayment,
+        copyComments,
+        sendPurchaseOrder,
+        quotationComments,
+        sendQuotationAccess
+      }
+    }
+
+    // Send payment data to the backend
+    createBookingPaymentMutation.mutate(paymentData, {
+      onSuccess: () => {
+        // Show success message
+        Swal.fire({
+          title: t('quotes.tourSavedSuccessfully'),
+          icon: 'success',
+          confirmButtonText: t('quotes.ok'),
+          confirmButtonColor: '#10b981'
+        })
+      },
+      onError: (error) => {
+        console.error("Payment processing error:", error)
+        toast({
+          title: "Payment Error",
+          description: "Failed to process payment details",
+          variant: "destructive"
+        })
+      }
+    })
   }
 
   return (
@@ -1290,18 +1348,10 @@ const BookQuotePage = () => {
                   <Button
                     type="button"
                     className="w-full bg-green-500 hover:bg-green-600 text-white py-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={tourBookings.length === 0}
-                    onClick={() => {
-                      // Handle reserve action
-                      Swal.fire({
-                        title: t('quotes.tourSavedSuccessfully'),
-                        icon: 'success',
-                        confirmButtonText: t('quotes.ok'),
-                        confirmButtonColor: '#10b981'
-                      })
-                    }}
+                    disabled={tourBookings.length === 0 || createBookingPaymentMutation.isPending}
+                    onClick={handleBookReservation}
                   >
-                    {t('quotes.reserve')}
+                    {createBookingPaymentMutation.isPending ? "Processing..." : t('quotes.reserve')}
                   </Button>
                   
                   <div className={`flex items-center gap-2 p-3 rounded-lg ${tourBookings.length > 0 ? 'bg-green-100' : 'bg-gray-100'}`}>
