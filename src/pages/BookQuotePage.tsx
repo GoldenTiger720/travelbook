@@ -37,19 +37,6 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-// List of registered suppliers
-const suppliers = [
-  "ABC Travel Agency",
-  "Global Tours",
-  "Adventure Expeditions",
-  "Luxury Destinations",
-  "Local Experience Tours",
-  "Mountain Guides Co.",
-  "Beach Resort Partners",
-  "City Tours Express",
-  "Heritage Tours Ltd.",
-  "Safari Adventures Inc."
-]
 
 const BookQuotePage = () => {
   const navigate = useNavigate()
@@ -757,18 +744,14 @@ const BookQuotePage = () => {
                     <SelectValue placeholder={t('quotes.selectOperator')} />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
                     <SelectItem value="own-operation">
                       <div className="flex items-center gap-2">
                         <Building className="w-4 h-4" />
                         {t('quotes.ownOperation')}
                       </div>
                     </SelectItem>
-                    <div className="h-px bg-border my-1" />
-                    {suppliers.map((supplier) => (
-                      <SelectItem key={supplier} value={supplier}>
-                        {supplier}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="others">Others</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

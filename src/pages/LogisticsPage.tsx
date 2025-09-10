@@ -311,9 +311,9 @@ const LogisticsPage = () => {
                   <SelectValue placeholder="Select operator" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Operators</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="own-operation">Own Operation</SelectItem>
-                  <SelectItem value="external">External Operators</SelectItem>
+                  <SelectItem value="external">Others</SelectItem>
                 </SelectContent>
               </Select>
             </div>
