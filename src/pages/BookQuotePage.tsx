@@ -897,6 +897,7 @@ const BookQuotePage = () => {
                 <TableHeader>
                 <TableRow>
                   <TableHead>{t('quotes.operationDate')}</TableHead>
+                  <TableHead>{t('quotes.pickupTime')}</TableHead>
                   <TableHead>{t('quotes.tour')}</TableHead>
                   <TableHead>{t('quotes.operator')}</TableHead>
                   <TableHead className="text-center">{t('quotes.adultPax')}</TableHead>
@@ -913,6 +914,7 @@ const BookQuotePage = () => {
                 {tourBookings.length > 0 ? tourBookings.map((tour) => (
                     <TableRow key={tour.id}>
                       <TableCell>{format(tour.date, "dd/MM/yyyy")}</TableCell>
+                      <TableCell>{tour.pickupTime || '-'}</TableCell>
                       <TableCell>
                         <div>
                           <div className="font-medium">{tour.tourName}</div>
@@ -971,7 +973,7 @@ const BookQuotePage = () => {
                     </TableRow>
                   )) : (
                     <TableRow>
-                      <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={12} className="text-center text-muted-foreground py-8">
                         {t('quotes.noBookingsAdded')}
                       </TableCell>
                     </TableRow>
@@ -990,6 +992,7 @@ const BookQuotePage = () => {
                         <div className="font-semibold text-base">{tour.tourName}</div>
                         <div className="text-sm text-muted-foreground">
                           {format(tour.date, "dd/MM/yyyy")}
+                          {tour.pickupTime && ` • ${tour.pickupTime}`}
                         </div>
                         {tour.pickupAddress && (
                           <div className="text-sm text-muted-foreground flex items-center mt-1">
