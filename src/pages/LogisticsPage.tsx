@@ -63,6 +63,7 @@ import {
   VehicleDistribution,
 } from "@/types/logistics";
 import { useToast } from "@/components/ui/use-toast";
+import ReservationDetailsTable from "@/components/ReservationDetailsTable";
 
 const LogisticsPage = () => {
   const { toast } = useToast();
@@ -367,28 +368,28 @@ const LogisticsPage = () => {
   };
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden">
-      <div className="max-w-full px-4 py-4 space-y-4">
+    <div className="min-h-screen w-screen overflow-x-hidden">
+      <div className="w-full max-w-full overflow-x-hidden px-2 sm:px-4 lg:px-6 py-2 sm:py-4 space-y-2 sm:space-y-4">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">Logistics / Operations</h1>
-            <p className="text-sm text-muted-foreground">
+        <div className="flex flex-col gap-2 sm:gap-4">
+          <div className="text-center sm:text-left">
+            <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold">Logistics / Operations</h1>
+            <p className="text-xs sm:text-sm lg:text-base text-muted-foreground">
               Manage daily tour operations and logistics
             </p>
           </div>
         </div>
 
         {/* Date and Tour Selection */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-medium flex items-center gap-2">
-              <CalendarIcon className="w-4 h-4" />
-              Operation Date & Tour
+        <Card className="overflow-hidden w-full max-w-full">
+          <CardHeader className="pb-2 sm:pb-3 px-2 sm:px-6">
+            <CardTitle className="text-sm sm:text-base font-medium flex items-center gap-2">
+              <CalendarIcon className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate">Operation Date & Tour</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <CardContent className="space-y-2 sm:space-y-4 overflow-x-hidden px-2 sm:px-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
               <div>
                 <Label className="text-sm">Operation Date</Label>
                 <Popover>
@@ -443,9 +444,9 @@ const LogisticsPage = () => {
                   <SelectContent>
                     {filteredTourOperations.map((operation) => (
                       <SelectItem key={operation.id} value={operation.id}>
-                        <div className="flex items-center gap-2">
-                          <span className="truncate">{operation.tourName}</span>
-                          <Badge variant="outline" className="text-xs shrink-0">
+                        <div className="flex items-center justify-between gap-2 w-full">
+                          <span className="truncate flex-1 min-w-0">{operation.tourName}</span>
+                          <Badge variant="outline" className="text-xs flex-shrink-0">
                             {operation.totalPassengers} PAX
                           </Badge>
                         </div>
@@ -461,20 +462,24 @@ const LogisticsPage = () => {
         {selectedOperation && (
           <>
             {/* Tour Assignment Panel */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-medium flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Settings className="w-4 h-4" />
-                    Tour Assignment - {selectedOperation.tourName}
+            <Card className="overflow-hidden w-full max-w-full">
+              <CardHeader className="pb-2 sm:pb-3 px-2 sm:px-6">
+                <CardTitle className="text-sm sm:text-base font-medium">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Settings className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate text-xs sm:text-sm lg:text-base">Tour Assignment - {selectedOperation.tourName}</span>
+                    </div>
+                    <div className="flex-shrink-0">
+                      {getStatusBadge(selectedOperation.status)}
+                    </div>
                   </div>
-                  {getStatusBadge(selectedOperation.status)}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-2 sm:space-y-4 px-2 sm:px-6">
                 <div className="space-y-4">
                   {/* Operator Selection */}
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
                     <div>
                       <Label className="text-sm">Operator</Label>
                       <Select
@@ -524,7 +529,7 @@ const LogisticsPage = () => {
                     </div>
 
                     {assignedOperator === "own-operation" && (
-                      <div>
+                      <div className="sm:col-span-2 lg:col-span-1">
                         <Label className="text-sm">Assign Vehicle</Label>
                         <Select
                           value={selectedOperation.vehicleId || undefined}
@@ -549,7 +554,7 @@ const LogisticsPage = () => {
 
                   {/* Driver and Guide Selection - Only for Own Operation */}
                   {assignedOperator === "own-operation" && (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
                       <div>
                         <Label className="text-sm">Main Driver</Label>
                         <Select
@@ -627,28 +632,65 @@ const LogisticsPage = () => {
                 </div>
 
                 {/* Confirmation Button */}
-                <div className="flex justify-end pt-4">
+                <div className="flex justify-center sm:justify-end pt-2 sm:pt-4">
                   <Button
                     onClick={confirmAssignments}
                     disabled={selectedReservations.size === 0}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto text-sm sm:text-base"
                   >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Confirm Assignments ({selectedReservations.size})
+                    <CheckCircle className="w-4 h-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Confirm Assignments </span>
+                    <span className="sm:hidden">Confirm </span>
+                    ({selectedReservations.size})
                   </Button>
                 </div>
               </CardContent>
             </Card>
 
+            {/* Reservation Details Table */}
+            <Card className="overflow-hidden w-full max-w-full">
+              <CardHeader className="pb-2 sm:pb-3 px-2 sm:px-6">
+                <CardTitle className="text-sm sm:text-base font-medium">
+                  <span className="block truncate">Reservation Details</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="overflow-x-hidden p-1 sm:p-6">
+                <ReservationDetailsTable
+                  reservations={selectedOperation.reservations.map((reservation) => ({
+                    id: reservation.id,
+                    reservationNumber: reservation.reservationNumber,
+                    operationDate: selectedOperation.date,
+                    pickupTime: reservation.pickupTime || selectedOperation.departureTime || "08:00",
+                    passengerName: reservation.clientName,
+                    product: selectedOperation.tourName,
+                    operator: selectedOperation.operator === "own-operation" ? undefined : selectedOperation.operator,
+                    pickupAddress: reservation.pickupLocation,
+                    paxAdl: reservation.passengers.adults,
+                    paxChd: reservation.passengers.children,
+                    paxInf: reservation.passengers.infants,
+                    contactPhone: reservation.contactPhone || "",
+                    salesperson: reservation.salesperson || "",
+                    driver: selectedOperation.mainDriver,
+                    guideCoordinator: selectedOperation.mainGuide,
+                  }))}
+                  rowsPerPage={5}
+                  selectedReservations={selectedReservations}
+                  onSelectionChange={toggleReservationSelection}
+                  onSelectAll={selectAllReservations}
+                  onClearSelection={clearReservationSelection}
+                />
+              </CardContent>
+            </Card>
+
             {/* Passenger Summary */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <Card>
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-blue-500" />
-                    <div>
-                      <p className="text-sm font-medium">Total PAX</p>
-                      <p className="text-lg font-bold">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-2 lg:gap-3 w-full">
+              <Card className="overflow-hidden">
+                <CardContent className="p-2 sm:p-3">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-2 text-center sm:text-left">
+                    <Users className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm font-medium truncate">Total PAX</p>
+                      <p className="text-base sm:text-lg font-bold">
                         {selectedOperation.totalPassengers}
                       </p>
                     </div>
@@ -656,13 +698,13 @@ const LogisticsPage = () => {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    <div>
-                      <p className="text-sm font-medium">Confirmed</p>
-                      <p className="text-lg font-bold">
+              <Card className="overflow-hidden">
+                <CardContent className="p-2 sm:p-3">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-2 text-center sm:text-left">
+                    <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm font-medium truncate">Confirmed</p>
+                      <p className="text-base sm:text-lg font-bold">
                         {
                           selectedOperation.reservations.filter(
                             (r) => r.status === "confirmed"
@@ -674,13 +716,13 @@ const LogisticsPage = () => {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-yellow-500" />
-                    <div>
-                      <p className="text-sm font-medium">Pending</p>
-                      <p className="text-lg font-bold">
+              <Card className="overflow-hidden">
+                <CardContent className="p-2 sm:p-3">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-2 text-center sm:text-left">
+                    <Clock className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm font-medium truncate">Pending</p>
+                      <p className="text-base sm:text-lg font-bold">
                         {
                           selectedOperation.reservations.filter(
                             (r) => r.status === "pending"
@@ -692,13 +734,13 @@ const LogisticsPage = () => {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-green-600" />
-                    <div>
-                      <p className="text-sm font-medium">Total Value</p>
-                      <p className="text-lg font-bold">
+              <Card className="overflow-hidden">
+                <CardContent className="p-2 sm:p-3">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-2 text-center sm:text-left">
+                    <DollarSign className="w-4 h-4 text-green-600 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm font-medium truncate">Total Value</p>
+                      <p className="text-sm sm:text-lg font-bold truncate">
                         {formatCurrency(
                           selectedOperation.reservations.reduce(
                             (sum, r) => sum + r.totalValue,
@@ -712,374 +754,34 @@ const LogisticsPage = () => {
               </Card>
             </div>
 
-            {/* Reservations Table */}
-            <Card>
-              <CardHeader className="pb-3 space-y-2">
-                <CardTitle className="text-base font-medium flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Reservation Details ({selectedOperation.reservations.length})
-                </CardTitle>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={selectAllReservations}
-                    disabled={selectedOperation.reservations.length === 0}
-                  >
-                    Select All
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={clearReservationSelection}
-                    disabled={selectedReservations.size === 0}
-                  >
-                    Clear Selection
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                {/* Desktop Table with Horizontal Scroll */}
-                <div className="hidden lg:block">
-                  <div className="overflow max-w-full">
-                    <Table className="min-w-[1600px]">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[50px]">
-                            <Checkbox
-                              checked={
-                                selectedReservations.size ===
-                                  selectedOperation.reservations.length &&
-                                selectedOperation.reservations.length > 0
-                              }
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  selectAllReservations();
-                                } else {
-                                  clearReservationSelection();
-                                }
-                              }}
-                            />
-                          </TableHead>
-                          <TableHead className="w-[120px]">
-                            Reservation Number
-                          </TableHead>
-                          <TableHead className="w-[100px]">
-                            Operation Date
-                          </TableHead>
-                          <TableHead className="w-[100px]">
-                            Pickup Time
-                          </TableHead>
-                          <TableHead className="w-[150px]">
-                            Passenger Name
-                          </TableHead>
-                          <TableHead className="w-[150px]">Product</TableHead>
-                          <TableHead className="w-[120px]">Operator</TableHead>
-                          <TableHead className="w-[180px]">
-                            Pickup Address
-                          </TableHead>
-                          <TableHead className="w-[70px] text-center">
-                            Pax ADL
-                          </TableHead>
-                          <TableHead className="w-[70px] text-center">
-                            Pax CHD
-                          </TableHead>
-                          <TableHead className="w-[70px] text-center">
-                            Pax INF
-                          </TableHead>
-                          <TableHead className="w-[120px]">
-                            Contact Phone
-                          </TableHead>
-                          <TableHead className="w-[120px]">
-                            Salesperson
-                          </TableHead>
-                          <TableHead className="w-[120px]">Driver</TableHead>
-                          <TableHead className="w-[120px]">
-                            Guide/Coordinator
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {selectedOperation.reservations.map((reservation) => (
-                          <TableRow
-                            key={reservation.id}
-                            className="hover:bg-muted/30"
-                          >
-                            <TableCell>
-                              <Checkbox
-                                checked={selectedReservations.has(
-                                  reservation.id
-                                )}
-                                onCheckedChange={() =>
-                                  toggleReservationSelection(reservation.id)
-                                }
-                              />
-                            </TableCell>
-                            <TableCell className="font-medium text-sm">
-                              {reservation.reservationNumber}
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              {format(
-                                reservation.operationDate ||
-                                  selectedOperation.date,
-                                "MM/dd/yyyy"
-                              )}
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              {reservation.pickupTime || "-"}
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              <div
-                                className="truncate max-w-[140px]"
-                                title={reservation.clientName}
-                              >
-                                {reservation.clientName}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              <div
-                                className="truncate max-w-[140px]"
-                                title={
-                                  reservation.product ||
-                                  selectedOperation.tourName
-                                }
-                              >
-                                {reservation.product ||
-                                  selectedOperation.tourName}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              <Badge
-                                variant={
-                                  reservation.operator === "own-operation"
-                                    ? "default"
-                                    : "secondary"
-                                }
-                                className="text-xs"
-                              >
-                                {reservation.operator === "own-operation"
-                                  ? "Own Operation"
-                                  : reservation.operator || "Own Operation"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              <div
-                                className="truncate max-w-[170px]"
-                                title={
-                                  reservation.pickupLocation ||
-                                  reservation.hotelName
-                                }
-                              >
-                                {reservation.pickupLocation ||
-                                  reservation.hotelName}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-center text-sm font-medium">
-                              {reservation.passengers.adults}
-                            </TableCell>
-                            <TableCell className="text-center text-sm font-medium">
-                              {reservation.passengers.children}
-                            </TableCell>
-                            <TableCell className="text-center text-sm font-medium">
-                              {reservation.passengers.infants}
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              {reservation.clientPhone}
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              <div
-                                className="truncate max-w-[110px]"
-                                title={reservation.salesperson || "N/A"}
-                              >
-                                {reservation.salesperson || "N/A"}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              <div
-                                className="truncate max-w-[110px]"
-                                title={
-                                  reservation.assignedDriver ||
-                                  (assignedOperator === "own-operation"
-                                    ? selectedOperation.mainDriver || "N/A"
-                                    : "N/A")
-                                }
-                              >
-                                {reservation.operator === "own-operation"
-                                  ? reservation.assignedDriver ||
-                                    selectedOperation.mainDriver ||
-                                    "N/A"
-                                  : "N/A"}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              <div
-                                className="truncate max-w-[110px]"
-                                title={
-                                  reservation.assignedGuide ||
-                                  (assignedOperator === "own-operation"
-                                    ? selectedOperation.mainGuide || "N/A"
-                                    : "N/A")
-                                }
-                              >
-                                {reservation.operator === "own-operation"
-                                  ? reservation.assignedGuide ||
-                                    selectedOperation.mainGuide ||
-                                    "N/A"
-                                  : "N/A"}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-
-                {/* Mobile/Tablet Cards */}
-                <div className="lg:hidden space-y-3 p-3">
-                  {selectedOperation.reservations.map((reservation) => (
-                    <Card key={reservation.id} className="hover:shadow-sm">
-                      <CardContent className="p-3">
-                        <div className="space-y-2">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-2">
-                              <Checkbox
-                                checked={selectedReservations.has(
-                                  reservation.id
-                                )}
-                                onCheckedChange={() =>
-                                  toggleReservationSelection(reservation.id)
-                                }
-                              />
-                              <div>
-                                <p className="font-semibold text-sm">
-                                  {reservation.reservationNumber}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {reservation.clientName}
-                                </p>
-                              </div>
-                            </div>
-                            <Badge
-                              variant={
-                                reservation.operator === "own-operation"
-                                  ? "default"
-                                  : "secondary"
-                              }
-                              className="text-xs"
-                            >
-                              {reservation.operator === "own-operation"
-                                ? "Own"
-                                : reservation.operator || "Own"}
-                            </Badge>
-                          </div>
-
-                          <div className="text-xs space-y-1">
-                            <p>
-                              <strong>Product:</strong>{" "}
-                              {reservation.product ||
-                                selectedOperation.tourName}
-                            </p>
-                            <p>
-                              <strong>Date:</strong>{" "}
-                              {format(
-                                reservation.operationDate ||
-                                  selectedOperation.date,
-                                "MM/dd/yyyy"
-                              )}
-                            </p>
-                            <p>
-                              <strong>Pickup:</strong>{" "}
-                              {reservation.pickupLocation ||
-                                reservation.hotelName}
-                            </p>
-                            <p>
-                              <strong>Time:</strong>{" "}
-                              {reservation.pickupTime || "Not set"}
-                            </p>
-                            <p>
-                              <strong>Phone:</strong> {reservation.clientPhone}
-                            </p>
-                          </div>
-
-                          <div className="grid grid-cols-3 gap-2 text-xs">
-                            <div>
-                              <p className="text-muted-foreground">ADL</p>
-                              <p className="font-semibold">
-                                {reservation.passengers.adults}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">CHD</p>
-                              <p className="font-semibold">
-                                {reservation.passengers.children}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">INF</p>
-                              <p className="font-semibold">
-                                {reservation.passengers.infants}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="text-xs space-y-1">
-                            <p>
-                              <strong>Salesperson:</strong>{" "}
-                              {reservation.salesperson || "N/A"}
-                            </p>
-                            {reservation.operator === "own-operation" && (
-                              <>
-                                <p>
-                                  <strong>Driver:</strong>{" "}
-                                  {reservation.assignedDriver ||
-                                    selectedOperation.mainDriver ||
-                                    "N/A"}
-                                </p>
-                                <p>
-                                  <strong>Guide:</strong>{" "}
-                                  {reservation.assignedGuide ||
-                                    selectedOperation.mainGuide ||
-                                    "N/A"}
-                                </p>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Vehicle Assignment & Passenger Distribution */}
             {selectedOperation.vehicleId && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-medium flex items-center gap-2">
-                    <Car className="w-4 h-4" />
-                    Vehicle Assignment & Passenger Distribution
+              <Card className="overflow-hidden w-full max-w-full">
+                <CardHeader className="pb-2 sm:pb-3 px-2 sm:px-6">
+                  <CardTitle className="text-sm sm:text-base font-medium flex items-center gap-2">
+                    <Car className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">Vehicle Assignment & Passenger Distribution</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-2 sm:px-6">
                   <div className="space-y-4">
                     {/* Vehicle Summary */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 w-full">
                       {vehicles
                         .filter((v) => v.id === selectedOperation.vehicleId)
                         .map((vehicle) => (
-                          <Card key={vehicle.id}>
-                            <CardContent className="p-3">
+                          <Card key={vehicle.id} className="overflow-hidden">
+                            <CardContent className="p-2 sm:p-3">
                               <div className="space-y-2">
                                 <div className="flex items-center gap-2">
-                                  <Car className="w-4 h-4 text-blue-500" />
-                                  <p className="font-semibold text-sm">
+                                  <Car className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                                  <p className="font-semibold text-sm truncate">
                                     {vehicle.name}
                                   </p>
                                 </div>
                                 <div className="text-xs space-y-1">
-                                  <p>
+                                  <p className="truncate">
                                     Cap: {vehicle.capacity} | Assigned:{" "}
                                     {selectedOperation.totalPassengers}
                                   </p>
@@ -1109,12 +811,12 @@ const LogisticsPage = () => {
                           </Card>
                         ))}
 
-                      <Card>
-                        <CardContent className="p-3">
+                      <Card className="overflow-hidden">
+                        <CardContent className="p-2 sm:p-3">
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                              <Navigation className="w-4 h-4 text-purple-500" />
-                              <p className="font-semibold text-sm">
+                              <Navigation className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                              <p className="font-semibold text-sm truncate">
                                 Route Info
                               </p>
                             </div>
@@ -1141,24 +843,24 @@ const LogisticsPage = () => {
                         </CardContent>
                       </Card>
 
-                      <Card>
-                        <CardContent className="p-3">
+                      <Card className="overflow-hidden">
+                        <CardContent className="p-2 sm:p-3">
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                              <Users className="w-4 h-4 text-green-500" />
-                              <p className="font-semibold text-sm">Staff</p>
+                              <Users className="w-4 h-4 text-green-500 flex-shrink-0" />
+                              <p className="font-semibold text-sm truncate">Staff</p>
                             </div>
                             <div className="text-xs space-y-1">
-                              <p>
+                              <p className="truncate">
                                 Driver:{" "}
                                 {selectedOperation.mainDriver || "Not assigned"}
                               </p>
-                              <p>
+                              <p className="truncate">
                                 Guide:{" "}
                                 {selectedOperation.mainGuide || "Not assigned"}
                               </p>
                               {selectedOperation.assistantGuide && (
-                                <p>
+                                <p className="truncate">
                                   Assist: {selectedOperation.assistantGuide}
                                 </p>
                               )}
@@ -1169,25 +871,25 @@ const LogisticsPage = () => {
                     </div>
 
                     {/* Passenger List Actions */}
-                    <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full">
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button
                             variant="outline"
-                            className="flex-1 sm:flex-none"
+                            className="flex-1 sm:flex-none text-sm"
                           >
-                            <FileText className="w-4 h-4 mr-2" />
-                            View Passenger List
+                            <FileText className="w-4 h-4 mr-1 flex-shrink-0" />
+                            <span className="truncate">View Passenger List</span>
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                        <DialogContent className="max-w-full sm:max-w-2xl max-h-[90vh] sm:max-h-[80vh] overflow-y-auto mx-2">
                           <DialogHeader>
-                            <DialogTitle>
-                              Passenger List - {selectedOperation.tourName}
+                            <DialogTitle className="text-base sm:text-lg pr-8">
+                              <span className="block truncate">Passenger List - {selectedOperation.tourName}</span>
                             </DialogTitle>
                           </DialogHeader>
-                          <div className="space-y-4">
-                            <div className="text-sm text-muted-foreground">
+                          <div className="space-y-3 sm:space-y-4">
+                            <div className="text-xs sm:text-sm text-muted-foreground space-y-1">
                               <p>
                                 Date: {format(selectedOperation.date, "PPP")}
                               </p>
@@ -1210,14 +912,14 @@ const LogisticsPage = () => {
                                 (reservation, index) => (
                                   <div
                                     key={reservation.id}
-                                    className="border rounded p-3 text-sm"
+                                    className="border rounded p-2 sm:p-3 text-xs sm:text-sm"
                                   >
-                                    <div className="flex justify-between items-start mb-2">
-                                      <div>
-                                        <p className="font-semibold">
+                                    <div className="flex justify-between items-start mb-2 gap-2">
+                                      <div className="min-w-0">
+                                        <p className="font-semibold truncate">
                                           {index + 1}. {reservation.clientName}
                                         </p>
-                                        <p className="text-xs text-muted-foreground">
+                                        <p className="text-xs text-muted-foreground truncate">
                                           {reservation.reservationNumber}
                                         </p>
                                       </div>
@@ -1227,17 +929,17 @@ const LogisticsPage = () => {
                                             ? "default"
                                             : "secondary"
                                         }
-                                        className="text-xs"
+                                        className="text-xs flex-shrink-0"
                                       >
                                         {reservation.passengers.total} PAX
                                       </Badge>
                                     </div>
                                     <div className="text-xs space-y-1">
-                                      <p>
+                                      <p className="break-words">
                                         <strong>Pickup:</strong>{" "}
                                         {reservation.pickupLocation}
                                       </p>
-                                      <p>
+                                      <p className="truncate">
                                         <strong>Hotel:</strong>{" "}
                                         {reservation.hotelName}
                                       </p>
@@ -1250,7 +952,7 @@ const LogisticsPage = () => {
                                           ` + ${reservation.passengers.infants}I`}
                                       </p>
                                       {reservation.specialRequests && (
-                                        <p className="text-orange-600">
+                                        <p className="text-orange-600 break-words">
                                           <strong>Special:</strong>{" "}
                                           {reservation.specialRequests}
                                         </p>
@@ -1266,10 +968,10 @@ const LogisticsPage = () => {
 
                       <Button
                         onClick={() => sendWhatsAppList(selectedOperation)}
-                        className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700"
+                        className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-xs sm:text-sm"
                       >
-                        <Send className="w-4 h-4 mr-2" />
-                        Send via WhatsApp
+                        <Send className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                        <span className="whitespace-nowrap">WhatsApp</span>
                       </Button>
                     </div>
                   </div>
@@ -1278,16 +980,16 @@ const LogisticsPage = () => {
             )}
 
             {/* Available Resources */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 w-full overflow-x-hidden">
               {/* Available Vehicles */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Car className="w-4 h-4" />
-                    Available Vehicles
+              <Card className="overflow-hidden w-full max-w-full">
+                <CardHeader className="pb-2 sm:pb-3 px-2 sm:px-6">
+                  <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2">
+                    <Car className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">Available Vehicles</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-2 max-h-[300px] overflow-y-auto">
                   {vehicles
                     .filter((v) => v.status === "available")
                     .map((vehicle) => (
@@ -1295,17 +997,17 @@ const LogisticsPage = () => {
                         key={vehicle.id}
                         className="p-2 rounded border text-xs"
                       >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-medium">{vehicle.name}</p>
-                            <p className="text-muted-foreground">
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{vehicle.name}</p>
+                            <p className="text-muted-foreground text-xs truncate">
                               {vehicle.capacity} seats • {vehicle.licensePlate}
                             </p>
                           </div>
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-6 px-2 text-xs"
+                            className="h-6 px-2 text-xs w-full sm:w-auto flex-shrink-0"
                             onClick={() => handleVehicleAssign(vehicle.id)}
                           >
                             Assign
@@ -1313,61 +1015,70 @@ const LogisticsPage = () => {
                         </div>
                       </div>
                     ))}
+                  {vehicles.filter((v) => v.status === "available").length === 0 && (
+                    <p className="text-center text-muted-foreground py-4">No vehicles available</p>
+                  )}
                 </CardContent>
               </Card>
 
               {/* Available Drivers */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    Available Drivers
+              <Card className="overflow-hidden w-full max-w-full">
+                <CardHeader className="pb-2 sm:pb-3 px-2 sm:px-6">
+                  <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2">
+                    <Users className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">Available Drivers</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-2 max-h-[300px] overflow-y-auto">
                   {drivers
                     .filter((d) => d.status === "available")
                     .map((driver) => (
                       <div
                         key={driver.id}
-                        className="p-2 rounded border text-xs"
+                        className="p-2 rounded border text-xs space-y-1"
                       >
-                        <p className="font-medium">{driver.name}</p>
-                        <p className="text-muted-foreground">{driver.phone}</p>
-                        <p className="text-muted-foreground">
+                        <p className="font-medium truncate">{driver.name}</p>
+                        <p className="text-muted-foreground text-xs break-words">{driver.phone}</p>
+                        <p className="text-muted-foreground text-xs truncate">
                           License: {driver.licenseNumber}
                         </p>
                       </div>
                     ))}
+                  {drivers.filter((d) => d.status === "available").length === 0 && (
+                    <p className="text-center text-muted-foreground py-4">No drivers available</p>
+                  )}
                 </CardContent>
               </Card>
 
               {/* Available Guides */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    Available Guides
+              <Card className="overflow-hidden w-full max-w-full">
+                <CardHeader className="pb-2 sm:pb-3 px-2 sm:px-6">
+                  <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2">
+                    <Users className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">Available Guides</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-2 max-h-[300px] overflow-y-auto">
                   {guides
                     .filter((g) => g.status === "available")
                     .map((guide) => (
                       <div
                         key={guide.id}
-                        className="p-2 rounded border text-xs"
+                        className="p-2 rounded border text-xs space-y-1"
                       >
-                        <p className="font-medium">{guide.name}</p>
-                        <p className="text-muted-foreground">{guide.phone}</p>
-                        <p className="text-muted-foreground">
+                        <p className="font-medium truncate">{guide.name}</p>
+                        <p className="text-muted-foreground text-xs break-words">{guide.phone}</p>
+                        <p className="text-muted-foreground text-xs truncate">
                           Languages: {guide.languages.join(", ")}
                         </p>
-                        <p className="text-muted-foreground">
+                        <p className="text-muted-foreground text-xs truncate">
                           Specialties: {guide.specialties.join(", ")}
                         </p>
                       </div>
                     ))}
+                  {guides.filter((g) => g.status === "available").length === 0 && (
+                    <p className="text-center text-muted-foreground py-4">No guides available</p>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -1375,12 +1086,12 @@ const LogisticsPage = () => {
         )}
 
         {!selectedOperation && (
-          <Card>
-            <CardContent className="p-8 text-center">
+          <Card className="overflow-hidden w-full max-w-full">
+            <CardContent className="p-4 sm:p-8 text-center">
               <div className="space-y-2">
-                <CalendarIcon className="w-12 h-12 mx-auto text-muted-foreground" />
-                <h3 className="text-lg font-medium">Select Date and Tour</h3>
-                <p className="text-sm text-muted-foreground">
+                <CalendarIcon className="w-8 h-8 sm:w-12 sm:h-12 mx-auto text-muted-foreground" />
+                <h3 className="text-sm sm:text-lg font-medium">Select Date and Tour</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground px-2">
                   Choose an operation date and tour to manage logistics
                 </p>
               </div>
