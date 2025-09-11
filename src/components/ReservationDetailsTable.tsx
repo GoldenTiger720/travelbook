@@ -350,7 +350,7 @@ const ReservationDetailsTable: React.FC<ReservationDetailsTableProps> = ({
   // Desktop Table View
   return (
     <div className="w-full max-w-full space-y-4 overflow-x-hidden">
-      <div className="w-full max-w-full overflow-x-auto border rounded-lg">
+      <div className="w-[900px] max-w-full overflow-x-auto border rounded-lg">
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">

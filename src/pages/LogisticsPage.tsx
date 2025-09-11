@@ -368,7 +368,7 @@ const LogisticsPage = () => {
   };
 
   return (
-    <div className="min-h-screen w-screen overflow-x-hidden">
+    <div className="min-h-screen w-full overflow-x-hidden">
       <div className="w-full max-w-full overflow-x-hidden px-2 sm:px-4 lg:px-6 py-2 sm:py-4 space-y-2 sm:space-y-4">
         {/* Header */}
         <div className="flex flex-col gap-2 sm:gap-4">
