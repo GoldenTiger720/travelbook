@@ -275,10 +275,12 @@ const BookQuotePage = () => {
 
   const addTour = async () => {
     if (!currentTour.tourId || !currentTour.date) {
-      toast({
-        title: t('quotes.validationError'),
-        description: t('quotes.selectTourAndDate'),
-        variant: "destructive"
+      Swal.fire({
+        title: 'Validation Error',
+        text: t('quotes.selectTourAndDate'),
+        icon: 'error',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ef4444'
       })
       return
     }
@@ -317,22 +319,45 @@ const BookQuotePage = () => {
 
     // Send booking data to API immediately after adding/updating tour
     const bookingData = createBookingData(updatedBookings)
-    createBookingMutation.mutate(bookingData)
-
-    // Reset form
-    setCurrentTour({
-      tourId: "",
-      date: undefined,
-      pickupAddress: "",
-      pickupTime: "",
-      adultPax: 1,
-      adultPrice: 0,
-      childPax: 0,
-      childPrice: 0,
-      infantPax: 0,
-      infantPrice: 0,
-      operator: "own-operation",
-      comments: ""
+    const isUpdating = editingTourId
+    
+    createBookingMutation.mutate(bookingData, {
+      onSuccess: (newBooking) => {
+        // Reset form only on success
+        setCurrentTour({
+          tourId: "",
+          date: undefined,
+          pickupAddress: "",
+          pickupTime: "",
+          adultPax: 1,
+          adultPrice: 0,
+          childPax: 0,
+          childPrice: 0,
+          infantPax: 0,
+          infantPrice: 0,
+          operator: "own-operation",
+          comments: ""
+        })
+        
+        // Show sweet alert for successful save
+        Swal.fire({
+          title: 'Success!',
+          text: isUpdating ? 'Tour updated successfully.' : 'Tour added successfully.',
+          icon: 'success',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#10b981'
+        })
+      },
+      onError: (error) => {
+        console.error('Error saving booking:', error)
+        Swal.fire({
+          title: 'Error',
+          text: 'Failed to save tour. Please try again.',
+          icon: 'error',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#ef4444'
+        })
+      }
     })
   }
 
@@ -362,10 +387,12 @@ const BookQuotePage = () => {
     e.preventDefault()
 
     if (tourBookings.length === 0) {
-      toast({
-        title: t('quotes.validationError'),
-        description: t('quotes.addAtLeastOneTour'),
-        variant: "destructive"
+      Swal.fire({
+        title: 'Validation Error',
+        text: t('quotes.addAtLeastOneTour'),
+        icon: 'error',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ef4444'
       })
       return
     }
@@ -376,17 +403,22 @@ const BookQuotePage = () => {
     // Send data to booking API endpoint using React Query
     createBookingMutation.mutate(bookingData, {
       onSuccess: () => {
-        toast({
-          title: "Success",
-          description: "Quote created successfully",
+        Swal.fire({
+          title: 'Success!',
+          text: 'Quote created successfully',
+          icon: 'success',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#10b981'
         })
         // Stay on the same page - don't redirect
       },
       onError: () => {
-        toast({
-          title: "Error",
-          description: "Failed to create quote",
-          variant: "destructive"
+        Swal.fire({
+          title: 'Error',
+          text: 'Failed to create quote',
+          icon: 'error',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#ef4444'
         })
       }
     })
@@ -405,10 +437,12 @@ const BookQuotePage = () => {
 
   const handleBookReservation = async () => {
     if (tourBookings.length === 0) {
-      toast({
-        title: t('quotes.validationError'),
-        description: t('quotes.addAtLeastOneTour'),
-        variant: "destructive"
+      Swal.fire({
+        title: 'Validation Error',
+        text: t('quotes.addAtLeastOneTour'),
+        icon: 'error',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ef4444'
       })
       return
     }
@@ -451,10 +485,12 @@ const BookQuotePage = () => {
       },
       onError: (error) => {
         console.error("Payment processing error:", error)
-        toast({
-          title: "Payment Error",
-          description: "Failed to process payment details",
-          variant: "destructive"
+        Swal.fire({
+          title: 'Payment Error',
+          text: 'Failed to process payment details',
+          icon: 'error',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#ef4444'
         })
       }
     })
@@ -1403,6 +1439,15 @@ const BookQuotePage = () => {
                     onClick={() => {
                       // Handle save quotation action
                       console.log("Save quotation clicked")
+                      
+                      // Show sweet alert for successful save
+                      Swal.fire({
+                        title: 'Success!',
+                        text: 'Quotation saved successfully.',
+                        icon: 'success',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#10b981'
+                      })
                     }}
                   >
                     {t('quotes.saveQuotation')}
