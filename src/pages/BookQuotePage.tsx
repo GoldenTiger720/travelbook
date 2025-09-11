@@ -170,7 +170,7 @@ const BookQuotePage = () => {
         adultPrice,
         childPrice,
         infantPrice,
-        pickupTime: tour.defaultPickupTime || prev.pickupTime
+        pickupTime: prev.pickupTime || tour.defaultPickupTime || ""
       }))
     }
   }
