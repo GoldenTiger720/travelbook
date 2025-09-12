@@ -138,9 +138,28 @@ const generateMockReservations = (): Reservation[] => {
 
 class ReservationService {
   private reservations: Reservation[] = generateMockReservations()
+  private apiUrl = '/api/reservations'
   
   async getAllReservations(): Promise<Reservation[]> {
-    return this.reservations
+    try {
+      const response = await fetch(this.apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error('Error fetching reservations:', error)
+      // Fallback to mock data if API call fails
+      return this.reservations
+    }
   }
   
   async getFilteredReservations(filters: ReservationFilters): Promise<Reservation[]> {
@@ -240,6 +259,89 @@ class ReservationService {
     }
   }
   
+  async getReservationById(id: string): Promise<Reservation | null> {
+    try {
+      const response = await fetch(`${this.apiUrl}/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching reservation:', error)
+      // Fallback to mock data
+      return this.reservations.find(r => r.id === id) || null
+    }
+  }
+
+  async createReservation(reservationData: any): Promise<Reservation> {
+    try {
+      const response = await fetch(this.apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reservationData),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error creating reservation:', error)
+      throw error
+    }
+  }
+
+  async updateReservation(id: string, updates: any): Promise<Reservation> {
+    try {
+      const response = await fetch(`${this.apiUrl}/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error updating reservation:', error)
+      throw error
+    }
+  }
+
+  async deleteReservation(id: string): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.apiUrl}/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return true
+    } catch (error) {
+      console.error('Error deleting reservation:', error)
+      throw error
+    }
+  }
+
   formatCurrency(amount: number, currency: string): string {
     const symbols: { [key: string]: string } = {
       CLP: 'CLP$',

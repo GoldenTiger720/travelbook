@@ -40,6 +40,7 @@ import { cn } from '@/lib/utils'
 import { reservationService } from '@/services/reservationService'
 import { Reservation, ReservationFilters } from '@/types/reservation'
 import { useToast } from '@/components/ui/use-toast'
+import { useReservations, useReservationUniqueValues, useFilteredReservations } from '@/hooks/useReservations'
 import {
   Tooltip,
   TooltipContent,
@@ -56,17 +57,6 @@ const AllReservationsPage = () => {
   const { t } = useLanguage()
   const { toast } = useToast()
   const navigate = useNavigate()
-  const [reservations, setReservations] = useState<Reservation[]>([])
-  const [filteredReservations, setFilteredReservations] = useState<Reservation[]>([])
-  const [loading, setLoading] = useState(true)
-  const [filterOptions, setFilterOptions] = useState<any>({
-    salespersons: [],
-    operators: [],
-    guides: [],
-    drivers: [],
-    agencies: [],
-    tours: []
-  })
   
   const [filters, setFilters] = useState<ReservationFilters>({
     dateType: 'operation',
@@ -86,45 +76,38 @@ const AllReservationsPage = () => {
   const [viewModalOpen, setViewModalOpen] = useState(false)
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
   
-  useEffect(() => {
-    loadInitialData()
-  }, [])
+  // React Query hooks
+  const { data: reservations = [], isLoading: reservationsLoading, error: reservationsError } = useReservations()
+  const { data: filterOptions = {
+    salespersons: [],
+    operators: [],
+    guides: [],
+    drivers: [],
+    agencies: [],
+    tours: []
+  }, isLoading: uniqueValuesLoading } = useReservationUniqueValues()
   
-  useEffect(() => {
-    applyFilters()
-  }, [filters, dateRange, reservations])
+  // Create complete filter criteria including date range
+  const completeFilters: ReservationFilters = {
+    ...filters,
+    startDate: dateRange.from,
+    endDate: dateRange.to
+  }
   
-  const loadInitialData = async () => {
-    setLoading(true)
-    try {
-      const [allReservations, uniqueValues] = await Promise.all([
-        reservationService.getAllReservations(),
-        reservationService.getUniqueValues()
-      ])
-      
-      setReservations(allReservations)
-      setFilterOptions(uniqueValues)
-    } catch (error) {
+  const { data: filteredReservations = [], isLoading: filteredLoading } = useFilteredReservations(completeFilters)
+  
+  const loading = reservationsLoading || uniqueValuesLoading || filteredLoading
+  
+  // Show error toast if there's an error
+  useEffect(() => {
+    if (reservationsError) {
       toast({
         title: t('allReservations.error'),
         description: t('allReservations.failedToLoad'),
         variant: 'destructive'
       })
-    } finally {
-      setLoading(false)
     }
-  }
-  
-  const applyFilters = async () => {
-    const filterCriteria: ReservationFilters = {
-      ...filters,
-      startDate: dateRange.from,
-      endDate: dateRange.to
-    }
-    
-    const filtered = await reservationService.getFilteredReservations(filterCriteria)
-    setFilteredReservations(filtered)
-  }
+  }, [reservationsError, toast, t])
   
   const handleFilterChange = (field: string, value: any) => {
     setFilters(prev => ({
@@ -281,20 +264,21 @@ const AllReservationsPage = () => {
 
   
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-4 sm:p-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">{t('allReservations.title')}</h1>
-          <p className="text-muted-foreground">{t('allReservations.subtitle')}</p>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold truncate">{t('allReservations.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('allReservations.subtitle')}</p>
         </div>
         <Button 
           onClick={exportToCSV} 
           disabled={filteredReservations.length === 0}
           size="sm"
+          className="w-full sm:w-auto"
         >
           <Download className="w-4 h-4 mr-2" />
-          {t('allReservations.exportCSV')}
+          <span className="sm:inline">{t('allReservations.exportCSV')}</span>
         </Button>
       </div>
       
@@ -313,7 +297,7 @@ const AllReservationsPage = () => {
           <CollapsibleContent>
             <CardContent className="space-y-4">
               {/* Date Range and Type */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <div>
                   <Label className="text-xs">{t('allReservations.dateType')}</Label>
                   <Select value={filters.dateType} onValueChange={(value) => handleFilterChange('dateType', value)}>
@@ -398,7 +382,7 @@ const AllReservationsPage = () => {
               </div>
               
               {/* Status Filters */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <div>
                   <Label className="text-xs">{t('allReservations.reservationStatus')}</Label>
                   <Select value={filters.status || 'all'} onValueChange={(value) => handleFilterChange('status', value === 'all' ? undefined : value)}>
@@ -465,7 +449,7 @@ const AllReservationsPage = () => {
               </div>
               
               {/* Additional Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <div>
                   <Label className="text-xs">{t('allReservations.operator')}</Label>
                   <Select value={filters.operator || 'all'} onValueChange={(value) => handleFilterChange('operator', value === 'all' ? undefined : value)}>
@@ -527,11 +511,12 @@ const AllReservationsPage = () => {
                 </div>
               </div>
               
-              <div className="flex justify-end">
+              <div className="flex flex-col sm:flex-row justify-end gap-2">
                 <Button 
                   variant="outline" 
                   onClick={clearFilters}
                   size="sm"
+                  className="w-full sm:w-auto"
                 >
                   {t('allReservations.clearFilters')}
                 </Button>
@@ -542,268 +527,406 @@ const AllReservationsPage = () => {
       </Collapsible>
       
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
         <Card>
-          <CardContent className="p-3">
+          <CardContent className="p-2 sm:p-3">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">{t('allReservations.reservations')}</p>
-                <p className="text-xl font-bold">{filteredReservations.length}</p>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">{t('allReservations.reservations')}</p>
+                <p className="text-lg sm:text-xl font-bold">{filteredReservations.length}</p>
               </div>
-              <Filter className="w-5 h-5 text-muted-foreground" />
+              <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardContent className="p-3">
+          <CardContent className="p-2 sm:p-3">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">{t('allReservations.passengers')}</p>
-                <p className="text-xl font-bold">{getTotalSummary().passengers}</p>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">{t('allReservations.passengers')}</p>
+                <p className="text-lg sm:text-xl font-bold">{getTotalSummary().passengers}</p>
               </div>
-              <Users className="w-5 h-5 text-muted-foreground" />
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardContent className="p-3">
+          <CardContent className="p-2 sm:p-3">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">{t('allReservations.adults')}</p>
-                <p className="text-xl font-bold">{getTotalSummary().adults}</p>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">{t('allReservations.adults')}</p>
+                <p className="text-lg sm:text-xl font-bold">{getTotalSummary().adults}</p>
               </div>
-              <UserCheck className="w-5 h-5 text-muted-foreground" />
+              <UserCheck className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardContent className="p-3">
+          <CardContent className="p-2 sm:p-3">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">{t('allReservations.childrenInf')}</p>
-                <p className="text-xl font-bold">
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">{t('allReservations.childrenInf')}</p>
+                <p className="text-lg sm:text-xl font-bold">
                   {getTotalSummary().children + getTotalSummary().infants}
                 </p>
               </div>
-              <Users className="w-5 h-5 text-muted-foreground" />
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardContent className="p-3">
+          <CardContent className="p-2 sm:p-3">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">{t('allReservations.revenue')}</p>
-                <p className="text-xl font-bold">
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">{t('allReservations.revenue')}</p>
+                <p className="text-lg sm:text-xl font-bold truncate">
                   ${Math.round(getTotalSummary().revenue).toLocaleString()}
                 </p>
               </div>
-              <DollarSign className="w-5 h-5 text-muted-foreground" />
+              <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
       </div>
       
-      {/* Reservations Table */}
+      {/* Reservations List */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg font-medium">
+          <CardTitle className="text-base sm:text-lg font-medium">
             {t('allReservations.reservationDetails')} ({filteredReservations.length} {t('allReservations.results')})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <TooltipProvider>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[120px]">{t('allReservations.reservation')}</TableHead>
-                  <TableHead className="w-[100px]">{t('allReservations.date')}</TableHead>
-                  <TableHead className="w-[150px]">{t('allReservations.client')}</TableHead>
-                  <TableHead className="w-[180px]">{t('allReservations.tour')}</TableHead>
-                  <TableHead className="w-[60px] text-center">{t('allReservations.pax')}</TableHead>
-                  <TableHead className="w-[100px] text-right">{t('allReservations.total')}</TableHead>
-                  <TableHead className="w-[80px]">{t('allReservations.status')}</TableHead>
-                  <TableHead className="w-[80px]">{t('allReservations.payment')}</TableHead>
-                  <TableHead className="w-[80px] text-center">{t('allReservations.actions')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
-                      {t('allReservations.loading')}
-                    </TableCell>
-                  </TableRow>
-                ) : filteredReservations.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
-                      {t('allReservations.noReservationsFound')}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredReservations.slice(0, 50).map((reservation) => (
-                    <React.Fragment key={reservation.id}>
-                      <TableRow 
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => toggleRowExpansion(reservation.id)}
-                      >
-                        <TableCell className="font-medium">
-                          <div>
-                            <div className="text-xs font-semibold">{reservation.reservationNumber}</div>
-                            {reservation.purchaseOrderNumber && (
-                              <div className="text-xs text-muted-foreground">
-                                {t('allReservations.po')}: {reservation.purchaseOrderNumber}
+          {loading ? (
+            <div className="text-center py-8 text-sm text-muted-foreground">
+              {t('allReservations.loading')}
+            </div>
+          ) : filteredReservations.length === 0 ? (
+            <div className="text-center py-8 text-sm text-muted-foreground">
+              {t('allReservations.noReservationsFound')}
+            </div>
+          ) : (
+            <>
+              {/* Desktop Table View (hidden on mobile) */}
+              <div className="hidden lg:block">
+                <TooltipProvider>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[120px]">{t('allReservations.reservation')}</TableHead>
+                        <TableHead className="w-[100px]">{t('allReservations.date')}</TableHead>
+                        <TableHead className="w-[150px]">{t('allReservations.client')}</TableHead>
+                        <TableHead className="w-[180px]">{t('allReservations.tour')}</TableHead>
+                        <TableHead className="w-[60px] text-center">{t('allReservations.pax')}</TableHead>
+                        <TableHead className="w-[100px] text-right">{t('allReservations.total')}</TableHead>
+                        <TableHead className="w-[80px]">{t('allReservations.status')}</TableHead>
+                        <TableHead className="w-[80px]">{t('allReservations.payment')}</TableHead>
+                        <TableHead className="w-[80px] text-center">{t('allReservations.actions')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredReservations.slice(0, 50).map((reservation) => (
+                        <React.Fragment key={reservation.id}>
+                          <TableRow 
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => toggleRowExpansion(reservation.id)}
+                          >
+                            <TableCell className="font-medium">
+                              <div>
+                                <div className="text-xs font-semibold">{reservation.reservationNumber}</div>
+                                {reservation.purchaseOrderNumber && (
+                                  <div className="text-xs text-muted-foreground">
+                                    {t('allReservations.po')}: {reservation.purchaseOrderNumber}
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="text-xs font-medium">
-                              {format(reservation.operationDate, 'dd/MM/yy')}
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <div className="text-xs font-medium">
+                                  {format(reservation.operationDate, 'dd/MM/yy')}
+                                </div>
+                                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {reservation.tour.pickupTime}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div>
+                                    <div className="text-xs font-medium truncate max-w-[140px]">
+                                      {reservation.client.name}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {reservation.client.country}
+                                    </div>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div>
+                                    <p>{reservation.client.name}</p>
+                                    <p className="text-xs">{reservation.client.email}</p>
+                                    <p className="text-xs">{reservation.client.phone}</p>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TableCell>
+                            <TableCell>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div>
+                                    <div className="text-xs font-medium truncate max-w-[170px]">
+                                      {reservation.tour.name}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {reservation.tour.code}
+                                    </div>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div>
+                                    <p>{reservation.tour.name}</p>
+                                    <p className="text-xs flex items-center gap-1">
+                                      <MapPin className="w-3 h-3" />
+                                      {reservation.tour.pickupAddress}
+                                    </p>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="text-xs">
+                                <span className="font-medium">{reservation.passengers.adults}</span>
+                                {(reservation.passengers.children > 0 || reservation.passengers.infants > 0) && (
+                                  <>
+                                    +{reservation.passengers.children + reservation.passengers.infants}
+                                  </>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="text-xs font-semibold">
+                                {reservationService.formatCurrency(
+                                  reservation.pricing.totalAmount,
+                                  reservation.pricing.currency
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>{getStatusBadge(reservation.status)}</TableCell>
+                            <TableCell>{getPaymentBadge(reservation.paymentStatus)}</TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex gap-1 justify-center">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleViewReservation(reservation)
+                                  }}
+                                >
+                                  <Eye className="w-3 h-3" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleEditReservation(reservation)
+                                  }}
+                                >
+                                  <Edit className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                          {expandedRows.has(reservation.id) && (
+                            <TableRow>
+                              <TableCell colSpan={9} className="bg-muted/30 p-3">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                                  <div>
+                                    <p className="font-semibold mb-1">{t('allReservations.passengerDetails')}</p>
+                                    <p>{t('allReservations.adults')}: {reservation.passengers.adults} × {reservationService.formatCurrency(reservation.pricing.adultPrice, reservation.pricing.currency)}</p>
+                                    {reservation.passengers.children > 0 && (
+                                      <p>{t('allReservations.children')}: {reservation.passengers.children} × {reservationService.formatCurrency(reservation.pricing.childPrice, reservation.pricing.currency)}</p>
+                                    )}
+                                    {reservation.passengers.infants > 0 && (
+                                      <p>{t('allReservations.infants')}: {reservation.passengers.infants} × {reservationService.formatCurrency(reservation.pricing.infantPrice, reservation.pricing.currency)}</p>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <p className="font-semibold mb-1">{t('allReservations.operations')}</p>
+                                    <p>{t('allReservations.salesperson')}: {reservation.salesperson}</p>
+                                    {reservation.operator && <p>{t('allReservations.operator')}: {reservation.operator}</p>}
+                                    {reservation.guide && <p>{t('allReservations.guide')}: {reservation.guide}</p>}
+                                    {reservation.driver && <p>{t('allReservations.driver')}: {reservation.driver}</p>}
+                                    {reservation.externalAgency && <p>{t('allReservations.externalAgency')}: {reservation.externalAgency}</p>}
+                                  </div>
+                                  <div>
+                                    <p className="font-semibold mb-1">{t('allReservations.pickupDetails')}</p>
+                                    <p className="flex items-center gap-1">
+                                      <MapPin className="w-3 h-3" />
+                                      {reservation.tour.pickupAddress}
+                                    </p>
+                                    <p>{t('allReservations.time')}: {reservation.tour.pickupTime}</p>
+                                    {reservation.notes && <p className="mt-1">{t('allReservations.notes')}: {reservation.notes}</p>}
+                                  </div>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TooltipProvider>
+              </div>
+
+              {/* Mobile Card View (visible on mobile and tablet) */}
+              <div className="lg:hidden space-y-3 p-4">
+                {filteredReservations.slice(0, 50).map((reservation) => (
+                  <Card key={reservation.id} className="overflow-hidden">
+                    <CardContent className="p-4">
+                      {/* Header with Reservation Number and Status */}
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold text-sm truncate">{reservation.reservationNumber}</div>
+                          {reservation.purchaseOrderNumber && (
+                            <div className="text-xs text-muted-foreground">
+                              {t('allReservations.po')}: {reservation.purchaseOrderNumber}
                             </div>
-                            <div className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {reservation.tour.pickupTime}
-                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-1 ml-2">
+                          {getStatusBadge(reservation.status)}
+                          {getPaymentBadge(reservation.paymentStatus)}
+                        </div>
+                      </div>
+
+                      {/* Client Info */}
+                      <div className="mb-3">
+                        <div className="text-sm font-medium truncate">{reservation.client.name}</div>
+                        <div className="text-xs text-muted-foreground flex items-center gap-2">
+                          <span>{reservation.client.country}</span>
+                          <span>•</span>
+                          <span className="truncate">{reservation.client.email}</span>
+                        </div>
+                      </div>
+
+                      {/* Tour and Date Info */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                        <div className="min-w-0">
+                          <div className="text-xs text-muted-foreground mb-1">{t('allReservations.tour')}</div>
+                          <div className="font-medium text-sm truncate">{reservation.tour.name}</div>
+                          <div className="text-xs text-muted-foreground">{reservation.tour.code}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">{t('allReservations.date')}</div>
+                          <div className="font-medium text-sm">{format(reservation.operationDate, 'dd/MM/yyyy')}</div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {reservation.tour.pickupTime}
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div>
-                                <div className="text-xs font-medium truncate max-w-[140px]">
-                                  {reservation.client.name}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  {reservation.client.country}
-                                </div>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <div>
-                                <p>{reservation.client.name}</p>
-                                <p className="text-xs">{reservation.client.email}</p>
-                                <p className="text-xs">{reservation.client.phone}</p>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TableCell>
-                        <TableCell>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div>
-                                <div className="text-xs font-medium truncate max-w-[170px]">
-                                  {reservation.tour.name}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  {reservation.tour.code}
-                                </div>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <div>
-                                <p>{reservation.tour.name}</p>
-                                <p className="text-xs flex items-center gap-1">
-                                  <MapPin className="w-3 h-3" />
-                                  {reservation.tour.pickupAddress}
-                                </p>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <div className="text-xs">
-                            <span className="font-medium">{reservation.passengers.adults}</span>
+                        </div>
+                      </div>
+
+                      {/* Passengers and Amount */}
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">{t('allReservations.passengers')}</div>
+                          <div className="font-medium text-sm">
+                            {reservation.passengers.adults} PAX
                             {(reservation.passengers.children > 0 || reservation.passengers.infants > 0) && (
-                              <>
-                                +{reservation.passengers.children + reservation.passengers.infants}
-                              </>
+                              <span className="text-muted-foreground">
+                                {' '}(+{reservation.passengers.children + reservation.passengers.infants})
+                              </span>
                             )}
                           </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="text-xs font-semibold">
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs text-muted-foreground mb-1">{t('allReservations.total')}</div>
+                          <div className="font-semibold text-sm text-primary">
                             {reservationService.formatCurrency(
                               reservation.pricing.totalAmount,
                               reservation.pricing.currency
                             )}
                           </div>
-                        </TableCell>
-                        <TableCell>{getStatusBadge(reservation.status)}</TableCell>
-                        <TableCell>{getPaymentBadge(reservation.paymentStatus)}</TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex gap-1 justify-center">
+                        </div>
+                      </div>
+
+                      {/* Expandable Details */}
+                      <Collapsible open={expandedRows.has(reservation.id)} onOpenChange={() => toggleRowExpansion(reservation.id)}>
+                        <div className="flex items-center justify-between pt-3 border-t">
+                          <CollapsibleTrigger asChild>
+                            <Button variant="ghost" size="sm" className="flex-1 justify-center">
+                              <span className="text-xs mr-2">Details</span>
+                              {expandedRows.has(reservation.id) ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                            </Button>
+                          </CollapsibleTrigger>
+                          <div className="flex gap-1 ml-2">
                             <Button 
                               variant="ghost" 
                               size="sm"
-                              className="h-7 w-7 p-0"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleViewReservation(reservation)
-                              }}
+                              className="h-8 w-8 p-0"
+                              onClick={() => handleViewReservation(reservation)}
                             >
                               <Eye className="w-3 h-3" />
                             </Button>
                             <Button 
                               variant="ghost" 
                               size="sm"
-                              className="h-7 w-7 p-0"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleEditReservation(reservation)
-                              }}
+                              className="h-8 w-8 p-0"
+                              onClick={() => handleEditReservation(reservation)}
                             >
                               <Edit className="w-3 h-3" />
                             </Button>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                      {expandedRows.has(reservation.id) && (
-                        <TableRow>
-                          <TableCell colSpan={9} className="bg-muted/30 p-3">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                              <div>
-                                <p className="font-semibold mb-1">{t('allReservations.passengerDetails')}</p>
-                                <p>{t('allReservations.adults')}: {reservation.passengers.adults} × {reservationService.formatCurrency(reservation.pricing.adultPrice, reservation.pricing.currency)}</p>
-                                {reservation.passengers.children > 0 && (
-                                  <p>{t('allReservations.children')}: {reservation.passengers.children} × {reservationService.formatCurrency(reservation.pricing.childPrice, reservation.pricing.currency)}</p>
-                                )}
-                                {reservation.passengers.infants > 0 && (
-                                  <p>{t('allReservations.infants')}: {reservation.passengers.infants} × {reservationService.formatCurrency(reservation.pricing.infantPrice, reservation.pricing.currency)}</p>
-                                )}
-                              </div>
-                              <div>
-                                <p className="font-semibold mb-1">{t('allReservations.operations')}</p>
-                                <p>{t('allReservations.salesperson')}: {reservation.salesperson}</p>
-                                {reservation.operator && <p>{t('allReservations.operator')}: {reservation.operator}</p>}
-                                {reservation.guide && <p>{t('allReservations.guide')}: {reservation.guide}</p>}
-                                {reservation.driver && <p>{t('allReservations.driver')}: {reservation.driver}</p>}
-                                {reservation.externalAgency && <p>{t('allReservations.externalAgency')}: {reservation.externalAgency}</p>}
-                              </div>
-                              <div>
-                                <p className="font-semibold mb-1">{t('allReservations.pickupDetails')}</p>
-                                <p className="flex items-center gap-1">
-                                  <MapPin className="w-3 h-3" />
-                                  {reservation.tour.pickupAddress}
-                                </p>
-                                <p>{t('allReservations.time')}: {reservation.tour.pickupTime}</p>
-                                {reservation.notes && <p className="mt-1">{t('allReservations.notes')}: {reservation.notes}</p>}
-                              </div>
+                        </div>
+                        <CollapsibleContent>
+                          <div className="pt-3 space-y-3 text-xs">
+                            <div>
+                              <p className="font-semibold mb-1">{t('allReservations.passengerDetails')}</p>
+                              <p>{t('allReservations.adults')}: {reservation.passengers.adults} × {reservationService.formatCurrency(reservation.pricing.adultPrice, reservation.pricing.currency)}</p>
+                              {reservation.passengers.children > 0 && (
+                                <p>{t('allReservations.children')}: {reservation.passengers.children} × {reservationService.formatCurrency(reservation.pricing.childPrice, reservation.pricing.currency)}</p>
+                              )}
+                              {reservation.passengers.infants > 0 && (
+                                <p>{t('allReservations.infants')}: {reservation.passengers.infants} × {reservationService.formatCurrency(reservation.pricing.infantPrice, reservation.pricing.currency)}</p>
+                              )}
                             </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </React.Fragment>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TooltipProvider>
+                            <div>
+                              <p className="font-semibold mb-1">{t('allReservations.operations')}</p>
+                              <p>{t('allReservations.salesperson')}: {reservation.salesperson}</p>
+                              {reservation.operator && <p>{t('allReservations.operator')}: {reservation.operator}</p>}
+                              {reservation.guide && <p>{t('allReservations.guide')}: {reservation.guide}</p>}
+                              {reservation.driver && <p>{t('allReservations.driver')}: {reservation.driver}</p>}
+                              {reservation.externalAgency && <p>{t('allReservations.externalAgency')}: {reservation.externalAgency}</p>}
+                            </div>
+                            <div>
+                              <p className="font-semibold mb-1">{t('allReservations.pickupDetails')}</p>
+                              <p className="flex items-center gap-1">
+                                <MapPin className="w-3 h-3" />
+                                {reservation.tour.pickupAddress}
+                              </p>
+                              <p>{t('allReservations.time')}: {reservation.tour.pickupTime}</p>
+                              {reservation.notes && <p className="mt-1">{t('allReservations.notes')}: {reservation.notes}</p>}
+                            </div>
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
+          )}
           
           {filteredReservations.length > 50 && (
             <div className="p-4 text-center text-sm text-muted-foreground border-t">
