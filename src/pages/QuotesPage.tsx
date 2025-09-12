@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
+import Swal from 'sweetalert2'
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -177,8 +178,19 @@ const QuotesPage = () => {
     console.log('Duplicate booking clicked:', quote.id)
   }
 
-  const handleDeleteQuote = (quote: Quote) => {
-    if (confirm(`Are you sure you want to delete booking ${quote.quoteNumber}?`)) {
+  const handleDeleteQuote = async (quote: Quote) => {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: `Do you want to delete booking ${quote.quoteNumber}? This action cannot be undone.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, delete it!',
+      cancelButtonText: 'Cancel'
+    })
+
+    if (result.isConfirmed) {
       deleteBookingMutation.mutate(quote.id)
     }
   }
