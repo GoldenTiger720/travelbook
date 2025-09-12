@@ -4,7 +4,6 @@ A modern travel agency management system built with React, TypeScript, and shadc
 
 ![Zenith Travel Ops](./public/omg.png)
 
-## 🚀 Features
 
 ### Core Modules
 
