@@ -2,6 +2,73 @@ import { Reservation, ReservationFilters } from '@/types/reservation'
 import { apiCall, API_ENDPOINTS } from '@/config/api'
 
 class ReservationService {
+  private mapBackendDataToReservation(backendReservation: any): Reservation {
+    // Get the first tour from the tours array for now
+    const firstTour = backendReservation.tours[0]
+    
+    return {
+      id: backendReservation.id,
+      reservationNumber: backendReservation.id.split('-')[0].toUpperCase(), // Generate reservation number from id
+      operationDate: new Date(firstTour.date),
+      saleDate: new Date(backendReservation.createdAt),
+      status: backendReservation.status,
+      paymentStatus: this.determinePaymentStatus(backendReservation.allPayments, backendReservation.pricing.amount),
+      client: {
+        name: backendReservation.customer.name,
+        email: backendReservation.customer.email,
+        phone: backendReservation.customer.phone,
+        country: backendReservation.customer.country,
+        idNumber: backendReservation.customer.idNumber || ''
+      },
+      tour: {
+        id: firstTour.tourId,
+        name: firstTour.tourName,
+        code: firstTour.tourCode,
+        destination: backendReservation.tourDetails.destination,
+        date: new Date(firstTour.date),
+        pickupTime: firstTour.pickupTime,
+        pickupAddress: firstTour.pickupAddress
+      },
+      passengers: {
+        adults: firstTour.adultPax,
+        children: firstTour.childPax,
+        infants: firstTour.infantPax
+      },
+      pricing: {
+        adultPrice: firstTour.adultPrice,
+        childPrice: firstTour.childPrice,
+        infantPrice: firstTour.infantPrice,
+        totalAmount: backendReservation.pricing.amount,
+        currency: backendReservation.pricing.currency
+      },
+      salesperson: backendReservation.createdBy.fullName || backendReservation.assignedTo,
+      operator: firstTour.operator !== 'own-operation' ? firstTour.operator : undefined,
+      guide: undefined, // Not present in backend data
+      driver: undefined, // Not present in backend data
+      externalAgency: backendReservation.agency,
+      purchaseOrderNumber: undefined, // Not present in backend data
+      notes: backendReservation.additionalNotes || firstTour.comments,
+      createdAt: new Date(backendReservation.createdAt),
+      updatedAt: new Date(backendReservation.updatedAt)
+    }
+  }
+
+  private determinePaymentStatus(payments: any[], totalAmount: number): Reservation['paymentStatus'] {
+    if (!payments || payments.length === 0) {
+      return 'pending'
+    }
+    
+    const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0)
+    
+    if (totalPaid >= totalAmount) {
+      return 'paid'
+    } else if (totalPaid > 0) {
+      return 'partial'
+    } else {
+      return 'pending'
+    }
+  }
+
   async getAllReservations(): Promise<Reservation[]> {
     try {
       const response = await apiCall(API_ENDPOINTS.RESERVATIONS.LIST, {
@@ -13,7 +80,13 @@ class ReservationService {
       }
 
       const data = await response.json()
-      return data
+      
+      // Map the backend data structure to frontend format
+      if (data.success && data.data) {
+        return data.data.map((reservation: any) => this.mapBackendDataToReservation(reservation))
+      }
+      
+      return []
     } catch (error) {
       console.error('Error fetching reservations from backend:', error)
       throw error
@@ -132,7 +205,14 @@ class ReservationService {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      return await response.json()
+      const data = await response.json()
+      
+      // Map the backend data structure to frontend format
+      if (data.success && data.data) {
+        return this.mapBackendDataToReservation(data.data)
+      }
+      
+      return data ? this.mapBackendDataToReservation(data) : null
     } catch (error) {
       console.error('Error fetching reservation from backend:', error)
       throw error

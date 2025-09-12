@@ -166,6 +166,7 @@
     "infants": "Infants",
     "time": "Time",
     "notes": "Notes",
+    "details": "Details",
     "exportSuccessful": "Export Successful",
     "exportedReservations": "Exported {count} reservations to CSV",
     "error": "Error",
