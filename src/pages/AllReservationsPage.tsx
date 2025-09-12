@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -40,7 +40,7 @@ import { cn } from '@/lib/utils'
 import { reservationService } from '@/services/reservationService'
 import { Reservation, ReservationFilters } from '@/types/reservation'
 import { useToast } from '@/components/ui/use-toast'
-import { useReservations, useReservationUniqueValues, useFilteredReservations } from '@/hooks/useReservations'
+import { useReservations } from '@/hooks/useReservations'
 import {
   Tooltip,
   TooltipContent,
@@ -76,27 +76,122 @@ const AllReservationsPage = () => {
   const [viewModalOpen, setViewModalOpen] = useState(false)
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
   
-  // React Query hooks
-  const { data: reservations = [], isLoading: reservationsLoading, error: reservationsError } = useReservations()
-  const { data: filterOptions = {
-    salespersons: [],
-    operators: [],
-    guides: [],
-    drivers: [],
-    agencies: [],
-    tours: []
-  }, isLoading: uniqueValuesLoading } = useReservationUniqueValues()
+  // Single React Query hook - only makes one API call
+  const { data: allReservations = [], isLoading: reservationsLoading, error: reservationsError } = useReservations()
   
-  // Create complete filter criteria including date range
-  const completeFilters: ReservationFilters = {
-    ...filters,
-    startDate: dateRange.from,
-    endDate: dateRange.to
-  }
+  // Compute filter options from all reservations (client-side)
+  const filterOptions = useMemo(() => {
+    if (allReservations.length === 0) {
+      return {
+        salespersons: [],
+        operators: [],
+        guides: [],
+        drivers: [],
+        agencies: [],
+        tours: []
+      }
+    }
+
+    const salespersons = new Set<string>()
+    const operators = new Set<string>()
+    const guides = new Set<string>()
+    const drivers = new Set<string>()
+    const agencies = new Set<string>()
+    const tours = new Map<string, string>()
+    
+    allReservations.forEach(r => {
+      salespersons.add(r.salesperson)
+      if (r.operator) operators.add(r.operator)
+      if (r.guide) guides.add(r.guide)
+      if (r.driver) drivers.add(r.driver)
+      if (r.externalAgency) agencies.add(r.externalAgency)
+      tours.set(r.tour.id, r.tour.name)
+    })
+    
+    return {
+      salespersons: Array.from(salespersons).sort(),
+      operators: Array.from(operators).sort(),
+      guides: Array.from(guides).sort(),
+      drivers: Array.from(drivers).sort(),
+      agencies: Array.from(agencies).sort(),
+      tours: Array.from(tours.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
+    }
+  }, [allReservations])
+
+  // Compute filtered reservations (client-side)
+  const filteredReservations = useMemo(() => {
+    if (allReservations.length === 0) return []
+    
+    let filtered = [...allReservations]
+    
+    // Date range filter
+    if (dateRange.from && dateRange.to) {
+      const dateField = filters.dateType === 'operation' ? 'operationDate' : 'saleDate'
+      filtered = filtered.filter(r => {
+        const date = r[dateField]
+        return date >= dateRange.from! && date <= dateRange.to!
+      })
+    }
+    
+    // Status filter
+    if (filters.status && filters.status !== 'all') {
+      filtered = filtered.filter(r => r.status === filters.status)
+    }
+    
+    // Payment status filter
+    if (filters.paymentStatus && filters.paymentStatus !== 'all') {
+      filtered = filtered.filter(r => r.paymentStatus === filters.paymentStatus)
+    }
+    
+    // Salesperson filter
+    if (filters.salesperson && filters.salesperson !== 'all') {
+      filtered = filtered.filter(r => r.salesperson === filters.salesperson)
+    }
+    
+    // Tour filter
+    if (filters.tour && filters.tour !== 'all') {
+      filtered = filtered.filter(r => r.tour.id === filters.tour)
+    }
+    
+    // Guide filter
+    if (filters.guide && filters.guide !== 'all') {
+      filtered = filtered.filter(r => r.guide === filters.guide)
+    }
+    
+    // Driver filter
+    if (filters.driver && filters.driver !== 'all') {
+      filtered = filtered.filter(r => r.driver === filters.driver)
+    }
+    
+    // Operator filter
+    if (filters.operator && filters.operator !== 'all') {
+      filtered = filtered.filter(r => r.operator === filters.operator)
+    }
+    
+    // External agency filter
+    if (filters.externalAgency && filters.externalAgency !== 'all') {
+      filtered = filtered.filter(r => r.externalAgency === filters.externalAgency)
+    }
+    
+    // Search term filter
+    if (filters.searchTerm) {
+      const search = filters.searchTerm.toLowerCase()
+      filtered = filtered.filter(r => 
+        r.reservationNumber.toLowerCase().includes(search) ||
+        r.client.name.toLowerCase().includes(search) ||
+        r.client.email.toLowerCase().includes(search) ||
+        r.tour.name.toLowerCase().includes(search) ||
+        r.purchaseOrderNumber?.toLowerCase().includes(search)
+      )
+    }
+    
+    // Sort by operation date descending
+    filtered.sort((a, b) => b.operationDate.getTime() - a.operationDate.getTime())
+    
+    return filtered
+  }, [allReservations, filters, dateRange])
   
-  const { data: filteredReservations = [], isLoading: filteredLoading } = useFilteredReservations(completeFilters)
-  
-  const loading = reservationsLoading || uniqueValuesLoading || filteredLoading
+  const loading = reservationsLoading
   
   // Show error toast if there's an error
   useEffect(() => {
