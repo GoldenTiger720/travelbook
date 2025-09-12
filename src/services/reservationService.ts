@@ -153,10 +153,16 @@ class ReservationService {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
+      // Check if response is actually JSON
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Response is not JSON')
+      }
+
       const data = await response.json()
       return data
     } catch (error) {
-      console.error('Error fetching reservations:', error)
+      console.warn('API not available, using mock data:', error)
       // Fallback to mock data if API call fails
       return this.reservations
     }
@@ -272,9 +278,15 @@ class ReservationService {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
+      // Check if response is actually JSON
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Response is not JSON')
+      }
+
       return await response.json()
     } catch (error) {
-      console.error('Error fetching reservation:', error)
+      console.warn('API not available for single reservation, using mock data:', error)
       // Fallback to mock data
       return this.reservations.find(r => r.id === id) || null
     }
@@ -294,9 +306,15 @@ class ReservationService {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
+      // Check if response is actually JSON
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Response is not JSON')
+      }
+
       return await response.json()
     } catch (error) {
-      console.error('Error creating reservation:', error)
+      console.warn('API not available for creating reservation:', error)
       throw error
     }
   }
@@ -315,9 +333,15 @@ class ReservationService {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
+      // Check if response is actually JSON
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Response is not JSON')
+      }
+
       return await response.json()
     } catch (error) {
-      console.error('Error updating reservation:', error)
+      console.warn('API not available for updating reservation:', error)
       throw error
     }
   }
@@ -337,7 +361,7 @@ class ReservationService {
 
       return true
     } catch (error) {
-      console.error('Error deleting reservation:', error)
+      console.warn('API not available for deleting reservation:', error)
       throw error
     }
   }
