@@ -1448,31 +1448,6 @@ const QuoteEditFormPage = () => {
           </CardContent>
         </Card>
 
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-start gap-2">
-            <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
-            <p className="text-sm text-yellow-800">
-              <strong>{t('quotes.important')}:</strong> {t('quotes.importantMessage')}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate("/my-quotes")}
-          >
-            {t('quotes.cancel')}
-          </Button>
-          <Button
-            type="submit"
-            className="bg-green-500 hover:bg-green-600 text-white px-8"
-            disabled={updateBookingMutation.isPending || tourBookings.length === 0}
-          >
-            {updateBookingMutation.isPending ? "Updating..." : "Update Quote"}
-          </Button>
-        </div>
       </form>
     </div>
   )
