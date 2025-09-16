@@ -27,7 +27,7 @@ import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { quoteService } from "@/services/quoteService"
 import { tourCatalogService } from "@/services/tourCatalogService"
-import { useUpdateBooking } from "@/hooks/useBookings"
+import { useCreateBooking, useUpdateBooking } from "@/hooks/useBookings"
 import { Tour, TourBooking } from "@/types/tour"
 import {
   Table,
@@ -57,6 +57,7 @@ const QuoteEditFormPage = () => {
   const { quoteId } = useParams()
   const { toast } = useToast()
   const { t } = useLanguage()
+  const createBookingMutation = useCreateBooking()
   const updateBookingMutation = useUpdateBooking()
   const [hasMultipleAddresses, setHasMultipleAddresses] = useState(false)
   const [availableTours, setAvailableTours] = useState<Tour[]>([])
@@ -282,7 +283,6 @@ const QuoteEditFormPage = () => {
 
   const createBookingData = (bookings: TourBooking[]) => {
     return {
-      id: quoteId, // Include the quote ID for updating
       customer: {
         name: formData.name || t('quotes.guest'),
         email: formData.email || "noemail@example.com",
@@ -465,23 +465,89 @@ const QuoteEditFormPage = () => {
     // Create booking data with all form information using helper function
     const bookingData = createBookingData(tourBookings)
 
-    // Send data to update booking API endpoint using React Query
-    updateBookingMutation.mutate(bookingData, {
-      onSuccess: () => {
-        toast({
-          title: "Success",
-          description: "Quote updated successfully",
-        })
-        navigate("/my-quotes")
-      },
-      onError: () => {
-        toast({
-          title: "Error",
-          description: "Failed to update quote",
-          variant: "destructive"
-        })
-      }
-    })
+    // Determine whether to create or update based on quoteId presence
+    if (quoteId) {
+      // Update existing quote
+      updateBookingMutation.mutate({
+        id: quoteId,
+        data: bookingData
+      }, {
+        onSuccess: () => {
+          Swal.fire({
+            title: 'Success!',
+            text: 'Quote updated successfully',
+            icon: 'success',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#10b981'
+          }).then(() => {
+            navigate("/my-quotes")
+          })
+        },
+        onError: (error: any) => {
+          // Check if it's a duplicate key error
+          const errorDetail = error?.response?.data?.error || '';
+          const isDuplicateError = errorDetail.toLowerCase().includes('duplicate key') ||
+                                  errorDetail.toLowerCase().includes('booking_tours_pkey');
+
+          // Set appropriate error message
+          let errorMessage = 'Failed to update quote';
+          if (isDuplicateError) {
+            errorMessage = 'This quote has already been added. Please add a new quote.';
+          } else if (error?.response?.data?.message) {
+            errorMessage = error.response.data.message;
+          } else if (error?.message) {
+            errorMessage = error.message;
+          }
+
+          Swal.fire({
+            title: 'Error',
+            text: errorMessage,
+            icon: 'error',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#ef4444'
+          })
+        }
+      })
+    } else {
+      // Create new quote - POST request
+      createBookingMutation.mutate(bookingData, {
+        onSuccess: () => {
+          Swal.fire({
+            title: 'Success!',
+            text: 'Quote created successfully',
+            icon: 'success',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#10b981'
+          }).then(() => {
+            navigate("/my-quotes")
+          })
+        },
+        onError: (error: any) => {
+          // Check if it's a duplicate key error
+          const errorDetail = error?.response?.data?.error || '';
+          const isDuplicateError = errorDetail.toLowerCase().includes('duplicate key') ||
+                                  errorDetail.toLowerCase().includes('booking_tours_pkey');
+
+          // Set appropriate error message
+          let errorMessage = 'Failed to create quote';
+          if (isDuplicateError) {
+            errorMessage = 'This quote has already been added. Please add a new quote.';
+          } else if (error?.response?.data?.message) {
+            errorMessage = error.response.data.message;
+          } else if (error?.message) {
+            errorMessage = error.message;
+          }
+
+          Swal.fire({
+            title: 'Error',
+            text: errorMessage,
+            icon: 'error',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#ef4444'
+          })
+        }
+      })
+    }
   }
 
   const getCurrencySymbol = (currency: string) => {
@@ -508,8 +574,8 @@ const QuoteEditFormPage = () => {
           Back to Quotes
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Edit Quote</h1>
-          <p className="text-muted-foreground">Update quote information and tours</p>
+          <h1 className="text-2xl font-bold">{quoteId ? 'Edit Quote' : 'Create New Quote'}</h1>
+          <p className="text-muted-foreground">{quoteId ? 'Update quote information and tours' : 'Add customer details and tour bookings'}</p>
         </div>
       </div>
 
@@ -1447,6 +1513,24 @@ const QuoteEditFormPage = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Submit Button */}
+        <div className="flex justify-end gap-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate("/my-quotes")}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={createBookingMutation.isPending || updateBookingMutation.isPending}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            {(createBookingMutation.isPending || updateBookingMutation.isPending) ? "Saving..." : "Save quotation"}
+          </Button>
+        </div>
 
       </form>
     </div>

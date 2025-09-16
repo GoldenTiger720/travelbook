@@ -307,57 +307,27 @@ const BookQuotePage = () => {
       comments: currentTour.comments
     }
 
-    let updatedBookings: TourBooking[]
     if (editingTourId) {
-      updatedBookings = tourBookings.map(t => t.id === editingTourId ? newTourBooking : t)
-      setTourBookings(updatedBookings)
+      setTourBookings(tourBookings.map(t => t.id === editingTourId ? newTourBooking : t))
       setEditingTourId(null)
     } else {
-      updatedBookings = [...tourBookings, newTourBooking]
-      setTourBookings(updatedBookings)
+      setTourBookings([...tourBookings, newTourBooking])
     }
 
-    // Send booking data to API immediately after adding/updating tour
-    const bookingData = createBookingData(updatedBookings)
-    const isUpdating = editingTourId
-    
-    createBookingMutation.mutate(bookingData, {
-      onSuccess: (newBooking) => {
-        // Reset form only on success
-        setCurrentTour({
-          tourId: "",
-          date: undefined,
-          pickupAddress: "",
-          pickupTime: "",
-          adultPax: 1,
-          adultPrice: 0,
-          childPax: 0,
-          childPrice: 0,
-          infantPax: 0,
-          infantPrice: 0,
-          operator: "own-operation",
-          comments: ""
-        })
-        
-        // Show sweet alert for successful save
-        Swal.fire({
-          title: 'Success!',
-          text: isUpdating ? 'Tour updated successfully.' : 'Tour added successfully.',
-          icon: 'success',
-          confirmButtonText: 'OK',
-          confirmButtonColor: '#10b981'
-        })
-      },
-      onError: (error) => {
-        console.error('Error saving booking:', error)
-        Swal.fire({
-          title: 'Error',
-          text: 'Failed to save tour. Please try again.',
-          icon: 'error',
-          confirmButtonText: 'OK',
-          confirmButtonColor: '#ef4444'
-        })
-      }
+    // Reset form after adding/updating tour (no API call here)
+    setCurrentTour({
+      tourId: "",
+      date: undefined,
+      pickupAddress: "",
+      pickupTime: "",
+      adultPax: 1,
+      adultPrice: 0,
+      childPax: 0,
+      childPrice: 0,
+      infantPax: 0,
+      infantPrice: 0,
+      operator: "own-operation",
+      comments: ""
     })
   }
 
@@ -412,10 +382,25 @@ const BookQuotePage = () => {
         })
         // Stay on the same page - don't redirect
       },
-      onError: () => {
+      onError: (error: any) => {
+        // Check if it's a duplicate key error
+        const errorDetail = error?.response?.data?.error || '';
+        const isDuplicateError = errorDetail.toLowerCase().includes('duplicate key') ||
+                                errorDetail.toLowerCase().includes('booking_tours_pkey');
+
+        // Set appropriate error message
+        let errorMessage = 'Failed to create quote';
+        if (isDuplicateError) {
+          errorMessage = 'This quote has already been added. Please add a new quote.';
+        } else if (error?.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+
         Swal.fire({
           title: 'Error',
-          text: 'Failed to create quote',
+          text: errorMessage,
           icon: 'error',
           confirmButtonText: 'OK',
           confirmButtonColor: '#ef4444'
@@ -1433,24 +1418,11 @@ const BookQuotePage = () => {
 
                 <div className="space-y-4">
                   <Button
-                    type="button"
+                    type="submit"
                     className="w-full bg-green-500 hover:bg-green-600 text-white py-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={tourBookings.length === 0}
-                    onClick={() => {
-                      // Handle save quotation action
-                      console.log("Save quotation clicked")
-                      
-                      // Show sweet alert for successful save
-                      Swal.fire({
-                        title: 'Success!',
-                        text: 'Quotation saved successfully.',
-                        icon: 'success',
-                        confirmButtonText: 'OK',
-                        confirmButtonColor: '#10b981'
-                      })
-                    }}
+                    disabled={tourBookings.length === 0 || createBookingMutation.isPending}
                   >
-                    {t('quotes.saveQuotation')}
+                    {createBookingMutation.isPending ? 'Saving...' : t('quotes.saveQuotation')}
                   </Button>
                   
                   <div className={`flex items-center gap-2 p-3 rounded-lg ${tourBookings.length > 0 ? 'bg-green-100' : 'bg-gray-100'}`}>

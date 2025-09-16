@@ -37,24 +37,16 @@ export function useBooking(id: string) {
 // Create booking mutation
 export function useCreateBooking() {
   const queryClient = useQueryClient()
-  const { toast } = useToast()
 
   return useMutation({
     mutationFn: (data: BookingData) => bookingService.createBooking(data),
     onSuccess: (newBooking) => {
       queryClient.invalidateQueries({ queryKey: bookingKeys.lists() })
-      toast({
-        title: 'Booking Created',
-        description: `Booking ${newBooking.bookingNumber} created successfully`,
-      })
+      // Success handling is done in the component
     },
     onError: (error) => {
       console.error('Error creating booking:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to create booking',
-        variant: 'destructive',
-      })
+      // Error handling is done in the component to show custom messages
     },
   })
 }
@@ -62,7 +54,6 @@ export function useCreateBooking() {
 // Update booking mutation
 export function useUpdateBooking() {
   const queryClient = useQueryClient()
-  const { toast } = useToast()
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<BookingData> }) =>
@@ -70,17 +61,11 @@ export function useUpdateBooking() {
     onSuccess: (updatedBooking) => {
       queryClient.invalidateQueries({ queryKey: bookingKeys.lists() })
       queryClient.invalidateQueries({ queryKey: bookingKeys.detail(updatedBooking.id) })
-      toast({
-        title: 'Success',
-        description: 'Booking updated successfully',
-      })
+      // Success handling is done in the component
     },
     onError: (error) => {
-      toast({
-        title: 'Error',
-        description: 'Failed to update booking',
-        variant: 'destructive',
-      })
+      console.error('Error updating booking:', error)
+      // Error handling is done in the component to show custom messages
     },
   })
 }
