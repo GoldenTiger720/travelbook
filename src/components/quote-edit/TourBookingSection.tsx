@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,8 @@ import {
   Building,
 } from "lucide-react";
 import { format } from "date-fns";
+import { tourCatalogService } from "@/services/tourCatalogService";
+import { Tour } from "@/types/tour";
 
 interface TourBookingSectionProps {
   currency: string;
@@ -57,6 +59,38 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
   onAddTour,
 }) => {
   const { t } = useLanguage();
+  const [availableTours, setAvailableTours] = useState<Tour[]>([]);
+  const [destinations, setDestinations] = useState<string[]>([]);
+  const [filteredTours, setFilteredTours] = useState<Tour[]>([]);
+
+  // Load tour data on component mount
+  useEffect(() => {
+    loadTourData();
+  }, []);
+
+  // Filter tours by selected destination
+  useEffect(() => {
+    if (tourBooking?.destination) {
+      const filtered = availableTours.filter(
+        tour => tour.destination === tourBooking.destination
+      );
+      setFilteredTours(filtered);
+    } else {
+      setFilteredTours(availableTours);
+    }
+  }, [tourBooking?.destination, availableTours]);
+
+  const loadTourData = async () => {
+    try {
+      const tours = await tourCatalogService.getAllTours();
+      const dests = await tourCatalogService.getDestinations();
+      setAvailableTours(tours);
+      setDestinations(dests);
+      setFilteredTours(tours);
+    } catch (error) {
+      console.error("Error loading tour data:", error);
+    }
+  };
 
   return (
     <Card>
@@ -69,24 +103,79 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <Label>{t("quotes.destination")}</Label>
-            <Select value={tourBooking?.destination || ""} onValueChange={(value) => onTourBookingChange?.('destination', value)}>
+            <Select
+              value={tourBooking?.destination || ""}
+              onValueChange={(value) => {
+                onTourBookingChange?.('destination', value);
+                // Reset tour selection when destination changes
+                onTourBookingChange?.('tourId', '');
+                onTourBookingChange?.('tourName', '');
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder={t("quotes.selectDestination")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Seven Lakes Route">Seven Lakes Route</SelectItem>
+                {destinations.map((destination) => (
+                  <SelectItem key={destination} value={destination}>
+                    {destination}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
           <div>
             <Label>{t("quotes.tour")}</Label>
-            <Select value={tourBooking?.tourId || ""} onValueChange={(value) => onTourBookingChange?.('tourId', value)}>
+            <Select
+              value={tourBooking?.tourId || ""}
+              onValueChange={async (value) => {
+                const selectedTour = availableTours.find(tour => tour.id === value);
+                if (selectedTour) {
+                  onTourBookingChange?.('tourId', value);
+                  onTourBookingChange?.('tourName', selectedTour.name);
+
+                  // Update prices based on selected tour and currency
+                  let adultPrice = selectedTour.basePricing.adultPrice;
+                  let childPrice = selectedTour.basePricing.childPrice;
+                  let infantPrice = selectedTour.basePricing.infantPrice;
+
+                  // Convert prices if currencies don't match
+                  if (currency && currency !== selectedTour.basePricing.currency) {
+                    const conversionRates: { [key: string]: { [key: string]: number } } = {
+                      'CLP': { 'ARS': 0.35, 'USD': 0.0012, 'EUR': 0.0011, 'BRL': 0.006 },
+                      'ARS': { 'CLP': 2.85, 'USD': 0.0034, 'EUR': 0.0031, 'BRL': 0.017 },
+                      'USD': { 'CLP': 850, 'ARS': 295, 'EUR': 0.92, 'BRL': 5.1 },
+                      'EUR': { 'CLP': 920, 'ARS': 320, 'USD': 1.09, 'BRL': 5.5 },
+                      'BRL': { 'CLP': 170, 'ARS': 59, 'USD': 0.20, 'EUR': 0.18 }
+                    };
+
+                    const rate = conversionRates[selectedTour.basePricing.currency]?.[currency] || 1;
+                    adultPrice = Math.round(adultPrice * rate);
+                    childPrice = Math.round(childPrice * rate);
+                    infantPrice = Math.round(infantPrice * rate);
+                  }
+
+                  onTourBookingChange?.('adultPrice', adultPrice);
+                  onTourBookingChange?.('childPrice', childPrice);
+                  onTourBookingChange?.('infantPrice', infantPrice);
+
+                  // Set default pickup time if available
+                  if (selectedTour.defaultPickupTime && !tourBooking?.pickupTime) {
+                    onTourBookingChange?.('pickupTime', selectedTour.defaultPickupTime);
+                  }
+                }
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder={t("quotes.selectTour")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="8">Seven Lakes Route (BAR-7L01)</SelectItem>
+                {filteredTours.map((tour) => (
+                  <SelectItem key={tour.id} value={tour.id}>
+                    {tour.name} ({tour.code})
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
