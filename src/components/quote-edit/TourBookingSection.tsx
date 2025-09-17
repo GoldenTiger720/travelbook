@@ -48,7 +48,7 @@ interface TourBookingSectionProps {
     comments: string;
   };
   onTourBookingChange?: (field: string, value: any) => void;
-  onAddTour?: () => void;
+  onUpdateTour?: () => void;
 }
 
 const TourBookingSection: React.FC<TourBookingSectionProps> = ({
@@ -56,7 +56,7 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
   getCurrencySymbol,
   tourBooking,
   onTourBookingChange,
-  onAddTour,
+  onUpdateTour,
 }) => {
   const { t } = useLanguage();
   const [availableTours, setAvailableTours] = useState<Tour[]>([]);
@@ -333,10 +333,10 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
           <Button
             type="button"
             className="bg-blue-600 hover:bg-blue-700"
-            onClick={onAddTour}
+            onClick={onUpdateTour}
           >
             <Plus className="w-4 h-4 mr-2" />
-            {t("quotes.addTour")}
+            {t("quotes.updateTour") || "Update Tour"}
           </Button>
         </div>
       </CardContent>

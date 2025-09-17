@@ -279,9 +279,32 @@ class BookingService {
 
   async updateBooking(id: string, bookingData: Partial<BookingData>): Promise<BookingResponse> {
     try {
-      const response = await apiCall(`${this.endpoint}/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(bookingData),
+      // Format the data to match the backend expectations
+      const formattedData = {
+        ...bookingData,
+        tourDetails: bookingData.tourDetails ? {
+          ...bookingData.tourDetails,
+          startDate: bookingData.tourDetails.startDate instanceof Date
+            ? bookingData.tourDetails.startDate.toISOString()
+            : bookingData.tourDetails.startDate,
+          endDate: bookingData.tourDetails.endDate instanceof Date
+            ? bookingData.tourDetails.endDate.toISOString()
+            : bookingData.tourDetails.endDate,
+        } : undefined,
+        validUntil: bookingData.validUntil instanceof Date
+          ? bookingData.validUntil.toISOString()
+          : bookingData.validUntil,
+        paymentDetails: bookingData.paymentDetails ? {
+          ...bookingData.paymentDetails,
+          date: bookingData.paymentDetails.date instanceof Date
+            ? bookingData.paymentDetails.date.toISOString()
+            : bookingData.paymentDetails.date,
+        } : undefined,
+      }
+
+      const response = await apiCall(`${this.endpoint}/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(formattedData),
       })
 
       if (!response.ok) {

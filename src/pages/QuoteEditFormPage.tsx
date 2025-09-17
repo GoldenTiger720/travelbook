@@ -130,47 +130,13 @@ const QuoteEditFormPage = () => {
     // If no existing tours, this would be handled by handleAddTour
   };
 
-  // Handle adding new tour
-  const handleAddTour = () => {
-    const currentTourData = getCurrentTourBooking();
-
-    // Calculate subtotal for the new tour
-    const adultTotal = (currentTourData.adultPax || 0) * (currentTourData.adultPrice || 0);
-    const childTotal = (currentTourData.childPax || 0) * (currentTourData.childPrice || 0);
-    const infantTotal = (currentTourData.infantPax || 0) * (currentTourData.infantPrice || 0);
-    const subtotal = adultTotal + childTotal + infantTotal;
-
-    // Create new tour object
-    const newTour = {
-      id: Date.now().toString(), // Generate temporary ID
-      tourId: currentTourData.tourId,
-      tourName: currentTourData.tourName || currentTourData.destination,
-      tourCode: `TOUR-${Date.now()}`,
-      date: currentTourData.date.toISOString(),
-      pickupAddress: currentTourData.pickupAddress,
-      pickupTime: currentTourData.pickupTime,
-      adultPax: currentTourData.adultPax,
-      adultPrice: currentTourData.adultPrice,
-      childPax: currentTourData.childPax,
-      childPrice: currentTourData.childPrice,
-      infantPax: currentTourData.infantPax,
-      infantPrice: currentTourData.infantPrice,
-      subtotal: subtotal,
-      operator: currentTourData.operator,
-      comments: currentTourData.comments,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    // Add to tours array
-    setFormData((prev: any) => ({
-      ...prev,
-      tours: [...(prev.tours || []), newTour],
-    }));
-
+  // Handle updating the tour
+  const handleUpdateTour = () => {
+    // The tour data is already being updated in real-time via handleTourBookingChange
+    // This is just a confirmation that the update is complete
     toast({
-      title: "Tour Added",
-      description: "Tour has been added to the quote",
+      title: "Tour Updated",
+      description: "Tour information has been updated successfully",
     });
   };
 
@@ -180,21 +146,77 @@ const QuoteEditFormPage = () => {
     if (!formData || !quoteId) return;
 
     try {
+      // Format the data to match the backend expectations (same as quotes page)
+      const bookingData = {
+        customer: {
+          name: formData.customer?.name || '',
+          email: formData.customer?.email || '',
+          phone: formData.customer?.phone || '',
+          language: formData.customer?.language || 'en',
+          country: formData.customer?.country || '',
+          idNumber: formData.customer?.idNumber || '',
+          cpf: formData.customer?.cpf || '',
+          address: formData.customer?.address || '',
+        },
+        tours: formData.tours || [],
+        tourDetails: {
+          destination: formData.tourDetails?.destination || '',
+          tourType: formData.tourDetails?.tourType || '',
+          startDate: formData.tourDetails?.startDate || new Date(),
+          endDate: formData.tourDetails?.endDate || new Date(),
+          passengers: formData.tourDetails?.passengers || 0,
+          passengerBreakdown: formData.tourDetails?.passengerBreakdown || {
+            adults: 0,
+            children: 0,
+            infants: 0,
+          },
+          hotel: formData.tourDetails?.hotel || '',
+          room: formData.tourDetails?.room || '',
+        },
+        pricing: {
+          amount: formData.pricing?.amount || 0,
+          currency: formData.pricing?.currency || 'USD',
+          breakdown: formData.pricing?.breakdown || [],
+        },
+        leadSource: formData.leadSource || '',
+        assignedTo: formData.assignedTo || '',
+        agency: formData.agency || null,
+        status: formData.status || 'pending',
+        validUntil: formData.validUntil || new Date(),
+        additionalNotes: formData.additionalNotes || '',
+        hasMultipleAddresses: formData.hasMultipleAddresses || false,
+        termsAccepted: formData.termsAccepted || { accepted: false },
+        quotationComments: formData.quotationComments || '',
+        includePayment: formData.includePayment || false,
+        copyComments: formData.copyComments || true,
+        sendPurchaseOrder: formData.sendPurchaseOrder || true,
+        sendQuotationAccess: formData.sendQuotationAccess || true,
+        paymentDetails: formData.paymentDetails || {
+          date: new Date(),
+          method: '',
+          percentage: 50,
+          amountPaid: 0,
+          comments: '',
+          status: '',
+          receiptFile: null,
+        },
+      };
+
       await updateBookingMutation.mutateAsync({
         id: quoteId,
-        data: formData,
+        data: bookingData,
       });
 
       toast({
         title: "Success",
-        description: "Quote updated successfully",
+        description: "Quotation updated successfully",
       });
 
       navigate("/my-quotes");
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update quote",
+        description: "Failed to update quotation",
         variant: "destructive",
       });
     }
@@ -296,7 +318,7 @@ const QuoteEditFormPage = () => {
           getCurrencySymbol={getCurrencySymbol}
           tourBooking={getCurrentTourBooking()}
           onTourBookingChange={handleTourBookingChange}
-          onAddTour={handleAddTour}
+          onUpdateTour={handleUpdateTour}
         />
 
         <TourListSection
