@@ -29,11 +29,32 @@ import { format } from "date-fns";
 interface TourBookingSectionProps {
   currency: string;
   getCurrencySymbol: (currency: string) => string;
+  tourBooking?: {
+    destination: string;
+    tourId: string;
+    tourName: string;
+    date: Date;
+    operator: string;
+    pickupAddress: string;
+    pickupTime: string;
+    adultPax: number;
+    adultPrice: number;
+    childPax: number;
+    childPrice: number;
+    infantPax: number;
+    infantPrice: number;
+    comments: string;
+  };
+  onTourBookingChange?: (field: string, value: any) => void;
+  onAddTour?: () => void;
 }
 
 const TourBookingSection: React.FC<TourBookingSectionProps> = ({
   currency,
   getCurrencySymbol,
+  tourBooking,
+  onTourBookingChange,
+  onAddTour,
 }) => {
   const { t } = useLanguage();
 
@@ -48,7 +69,7 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <Label>{t("quotes.destination")}</Label>
-            <Select value="Seven Lakes Route">
+            <Select value={tourBooking?.destination || ""} onValueChange={(value) => onTourBookingChange?.('destination', value)}>
               <SelectTrigger>
                 <SelectValue placeholder={t("quotes.selectDestination")} />
               </SelectTrigger>
@@ -60,7 +81,7 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
 
           <div>
             <Label>{t("quotes.tour")}</Label>
-            <Select value="8">
+            <Select value={tourBooking?.tourId || ""} onValueChange={(value) => onTourBookingChange?.('tourId', value)}>
               <SelectTrigger>
                 <SelectValue placeholder={t("quotes.selectTour")} />
               </SelectTrigger>
@@ -79,13 +100,14 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
                   className="w-full justify-start text-left font-normal"
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {format(new Date("2025-09-23T21:00:00Z"), "dd/MM/yyyy")}
+                  {tourBooking?.date ? format(tourBooking.date, "dd/MM/yyyy") : "Select date"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
                 <Calendar
                   mode="single"
-                  selected={new Date("2025-09-23T21:00:00Z")}
+                  selected={tourBooking?.date}
+                  onSelect={(date) => date && onTourBookingChange?.('date', date)}
                   initialFocus
                 />
               </PopoverContent>
@@ -94,7 +116,7 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
 
           <div>
             <Label>{t("quotes.operator")}</Label>
-            <Select value="others">
+            <Select value={tourBooking?.operator || ""} onValueChange={(value) => onTourBookingChange?.('operator', value)}>
               <SelectTrigger>
                 <SelectValue placeholder={t("quotes.selectOperator")} />
               </SelectTrigger>
@@ -120,9 +142,9 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
             </Label>
             <Input
               placeholder={t("quotes.pickupPlaceholder")}
-              value="101 Street1"
+              value={tourBooking?.pickupAddress || ""}
               className="border-blue-300"
-              readOnly
+              onChange={(e) => onTourBookingChange?.('pickupAddress', e.target.value)}
             />
           </div>
 
@@ -130,8 +152,8 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
             <Label>{t("quotes.pickupTime")}</Label>
             <Input
               type="time"
-              value="08:00"
-              readOnly
+              value={tourBooking?.pickupTime || ""}
+              onChange={(e) => onTourBookingChange?.('pickupTime', e.target.value)}
             />
           </div>
         </div>
@@ -142,8 +164,8 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
             <Input
               type="number"
               min="0"
-              value={1}
-              readOnly
+              value={tourBooking?.adultPax || 0}
+              onChange={(e) => onTourBookingChange?.('adultPax', parseInt(e.target.value) || 0)}
             />
           </div>
 
@@ -152,8 +174,8 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
             <Input
               type="number"
               min="0"
-              value={1105.0}
-              readOnly
+              value={tourBooking?.adultPrice || 0}
+              onChange={(e) => onTourBookingChange?.('adultPrice', parseFloat(e.target.value) || 0)}
             />
           </div>
 
@@ -162,8 +184,8 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
             <Input
               type="number"
               min="0"
-              value={0}
-              readOnly
+              value={tourBooking?.childPax || 0}
+              onChange={(e) => onTourBookingChange?.('childPax', parseInt(e.target.value) || 0)}
             />
           </div>
 
@@ -172,8 +194,8 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
             <Input
               type="number"
               min="0"
-              value={680.0}
-              readOnly
+              value={tourBooking?.childPrice || 0}
+              onChange={(e) => onTourBookingChange?.('childPrice', parseFloat(e.target.value) || 0)}
             />
           </div>
 
@@ -182,8 +204,8 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
             <Input
               type="number"
               min="0"
-              value={0}
-              readOnly
+              value={tourBooking?.infantPax || 0}
+              onChange={(e) => onTourBookingChange?.('infantPax', parseInt(e.target.value) || 0)}
             />
           </div>
 
@@ -192,8 +214,8 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
             <Input
               type="number"
               min="0"
-              value={0.0}
-              readOnly
+              value={tourBooking?.infantPrice || 0}
+              onChange={(e) => onTourBookingChange?.('infantPrice', parseFloat(e.target.value) || 0)}
             />
           </div>
         </div>
@@ -203,20 +225,26 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
           <Textarea
             rows={2}
             placeholder={t("quotes.tourCommentsPlaceholder")}
-            value=""
-            readOnly
+            value={tourBooking?.comments || ""}
+            onChange={(e) => onTourBookingChange?.('comments', e.target.value)}
           />
         </div>
 
         <div className="flex justify-between items-center">
           <div className="text-lg font-semibold">
             Subtotal: {getCurrencySymbol(currency || "CLP")}{" "}
-            {(1105.0).toLocaleString()}
+            {(() => {
+              if (!tourBooking) return "0";
+              const adultTotal = (tourBooking.adultPax || 0) * (tourBooking.adultPrice || 0);
+              const childTotal = (tourBooking.childPax || 0) * (tourBooking.childPrice || 0);
+              const infantTotal = (tourBooking.infantPax || 0) * (tourBooking.infantPrice || 0);
+              return (adultTotal + childTotal + infantTotal).toLocaleString();
+            })()}
           </div>
           <Button
             type="button"
             className="bg-blue-600 hover:bg-blue-700"
-            disabled
+            onClick={onAddTour}
           >
             <Plus className="w-4 h-4 mr-2" />
             {t("quotes.addTour")}

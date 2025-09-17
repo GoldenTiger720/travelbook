@@ -14,12 +14,18 @@ interface QuoteConfigSectionProps {
   assignedTo: string;
   currency: string;
   leadSource: string;
+  onAssignedToChange?: (value: string) => void;
+  onCurrencyChange?: (value: string) => void;
+  onLeadSourceChange?: (value: string) => void;
 }
 
 const QuoteConfigSection: React.FC<QuoteConfigSectionProps> = ({
   assignedTo,
   currency,
   leadSource,
+  onAssignedToChange,
+  onCurrencyChange,
+  onLeadSourceChange,
 }) => {
   const { t } = useLanguage();
 
@@ -34,7 +40,7 @@ const QuoteConfigSection: React.FC<QuoteConfigSectionProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <Label htmlFor="salesperson">{t("quotes.salesperson")}</Label>
-            <Select value={assignedTo || ""}>
+            <Select value={assignedTo || ""} onValueChange={onAssignedToChange}>
               <SelectTrigger>
                 <SelectValue placeholder={t("quotes.selectSalesperson")} />
               </SelectTrigger>
@@ -70,7 +76,7 @@ const QuoteConfigSection: React.FC<QuoteConfigSectionProps> = ({
 
           <div>
             <Label htmlFor="currency">{t("quotes.currency")}</Label>
-            <Select value={currency || "CLP"}>
+            <Select value={currency || "CLP"} onValueChange={onCurrencyChange}>
               <SelectTrigger>
                 <SelectValue placeholder={t("quotes.chileanPesos")} />
               </SelectTrigger>
@@ -92,7 +98,7 @@ const QuoteConfigSection: React.FC<QuoteConfigSectionProps> = ({
 
           <div>
             <Label htmlFor="origin">{t("quotes.origin")}</Label>
-            <Select value={leadSource || ""}>
+            <Select value={leadSource || ""} onValueChange={onLeadSourceChange}>
               <SelectTrigger>
                 <SelectValue placeholder={t("quotes.selectOrigin")} />
               </SelectTrigger>

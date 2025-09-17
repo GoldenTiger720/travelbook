@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useBooking } from "@/hooks/useBookings";
+import { useBooking, useUpdateBooking } from "@/hooks/useBookings";
+import { useToast } from "@/components/ui/use-toast";
 import {
   QuoteConfigSection,
   CustomerInfoSection,
@@ -14,6 +15,190 @@ const QuoteEditFormPage = () => {
   const { quoteId } = useParams();
   const navigate = useNavigate();
   const { data: booking, isLoading, error } = useBooking(quoteId || "");
+  const updateBookingMutation = useUpdateBooking();
+  const { toast } = useToast();
+
+  // Form state
+  const [formData, setFormData] = useState<any>(null);
+
+  // Helper function to get current tour booking data
+  const getCurrentTourBooking = () => {
+    // Use the first tour if it exists, otherwise return default values
+    const firstTour = formData?.tours?.[0];
+    if (firstTour) {
+      return {
+        destination: formData?.tourDetails?.destination || firstTour.tourName || "",
+        tourId: firstTour.tourId || "",
+        tourName: firstTour.tourName || "",
+        date: firstTour.date ? new Date(firstTour.date) : new Date(),
+        operator: firstTour.operator || "",
+        pickupAddress: firstTour.pickupAddress || "",
+        pickupTime: firstTour.pickupTime || "",
+        adultPax: firstTour.adultPax || 0,
+        adultPrice: firstTour.adultPrice || 0,
+        childPax: firstTour.childPax || 0,
+        childPrice: firstTour.childPrice || 0,
+        infantPax: firstTour.infantPax || 0,
+        infantPrice: firstTour.infantPrice || 0,
+        comments: firstTour.comments || "",
+      };
+    }
+
+    // Default empty values for new tour
+    return {
+      destination: "",
+      tourId: "",
+      tourName: "",
+      date: new Date(),
+      operator: "",
+      pickupAddress: "",
+      pickupTime: "",
+      adultPax: 0,
+      adultPrice: 0,
+      childPax: 0,
+      childPrice: 0,
+      infantPax: 0,
+      infantPrice: 0,
+      comments: "",
+    };
+  };
+
+  // Initialize form data when booking loads
+  useEffect(() => {
+    if (booking) {
+      setFormData(booking);
+    }
+  }, [booking]);
+
+  // Handle form field changes
+  const handleFieldChange = (field: string, value: any) => {
+    setFormData((prev: any) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  // Handle nested field changes
+  const handleNestedFieldChange = (parentField: string, field: string, value: any) => {
+    setFormData((prev: any) => ({
+      ...prev,
+      [parentField]: {
+        ...prev[parentField],
+        [field]: value,
+      },
+    }));
+  };
+
+  // Handle tour booking changes
+  const handleTourBookingChange = (field: string, value: any) => {
+    // If there's an existing tour, update it; otherwise prepare data for new tour
+    if (formData?.tours?.[0]) {
+      // Update the existing first tour
+      setFormData((prev: any) => ({
+        ...prev,
+        tours: prev.tours.map((tour: any, index: number) => {
+          if (index === 0) {
+            // Update the first tour
+            return {
+              ...tour,
+              [field]: value,
+              // Update related fields
+              ...(field === 'date' && { date: value.toISOString() }),
+              // Recalculate subtotal if price/pax changes
+              ...((['adultPax', 'adultPrice', 'childPax', 'childPrice', 'infantPax', 'infantPrice'].includes(field)) && {
+                subtotal: (() => {
+                  const updatedTour = { ...tour, [field]: value };
+                  const adultTotal = (updatedTour.adultPax || 0) * (updatedTour.adultPrice || 0);
+                  const childTotal = (updatedTour.childPax || 0) * (updatedTour.childPrice || 0);
+                  const infantTotal = (updatedTour.infantPax || 0) * (updatedTour.infantPrice || 0);
+                  return adultTotal + childTotal + infantTotal;
+                })()
+              })
+            };
+          }
+          return tour;
+        }),
+        // Also update tourDetails if destination changes
+        ...(field === 'destination' && {
+          tourDetails: {
+            ...prev.tourDetails,
+            destination: value
+          }
+        })
+      }));
+    }
+    // If no existing tours, this would be handled by handleAddTour
+  };
+
+  // Handle adding new tour
+  const handleAddTour = () => {
+    const currentTourData = getCurrentTourBooking();
+
+    // Calculate subtotal for the new tour
+    const adultTotal = (currentTourData.adultPax || 0) * (currentTourData.adultPrice || 0);
+    const childTotal = (currentTourData.childPax || 0) * (currentTourData.childPrice || 0);
+    const infantTotal = (currentTourData.infantPax || 0) * (currentTourData.infantPrice || 0);
+    const subtotal = adultTotal + childTotal + infantTotal;
+
+    // Create new tour object
+    const newTour = {
+      id: Date.now().toString(), // Generate temporary ID
+      tourId: currentTourData.tourId,
+      tourName: currentTourData.tourName || currentTourData.destination,
+      tourCode: `TOUR-${Date.now()}`,
+      date: currentTourData.date.toISOString(),
+      pickupAddress: currentTourData.pickupAddress,
+      pickupTime: currentTourData.pickupTime,
+      adultPax: currentTourData.adultPax,
+      adultPrice: currentTourData.adultPrice,
+      childPax: currentTourData.childPax,
+      childPrice: currentTourData.childPrice,
+      infantPax: currentTourData.infantPax,
+      infantPrice: currentTourData.infantPrice,
+      subtotal: subtotal,
+      operator: currentTourData.operator,
+      comments: currentTourData.comments,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Add to tours array
+    setFormData((prev: any) => ({
+      ...prev,
+      tours: [...(prev.tours || []), newTour],
+    }));
+
+    toast({
+      title: "Tour Added",
+      description: "Tour has been added to the quote",
+    });
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData || !quoteId) return;
+
+    try {
+      await updateBookingMutation.mutateAsync({
+        id: quoteId,
+        data: formData,
+      });
+
+      toast({
+        title: "Success",
+        description: "Quote updated successfully",
+      });
+
+      navigate("/my-quotes");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update quote",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Show loading state
   if (isLoading) {
@@ -31,7 +216,7 @@ const QuoteEditFormPage = () => {
   }
 
   // Show error state
-  if (error || !booking) {
+  if (error || (!isLoading && !booking)) {
     return (
       <div className="space-y-6 max-w-full overflow-x-hidden">
         <div>
@@ -50,8 +235,20 @@ const QuoteEditFormPage = () => {
     );
   }
 
-  // Use the actual booking data from the API
-  const bookingData = booking;
+  // Don't render form until formData is ready
+  if (!formData) {
+    return (
+      <div className="space-y-6 max-w-full overflow-x-hidden">
+        <div>
+          <h1 className="text-2xl font-bold">Edit Quote</h1>
+          <p className="text-muted-foreground">Initializing form...</p>
+        </div>
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
 
   const getCurrencySymbol = (currency: string) => {
     const symbols: { [key: string]: string } = {
@@ -65,7 +262,7 @@ const QuoteEditFormPage = () => {
   };
 
   const calculateGrandTotal = () => {
-    return (bookingData.tours || []).reduce((total: number, tour: any) => total + (tour.subtotal || 0), 0);
+    return (formData.tours || []).reduce((total: number, tour: any) => total + (tour.subtotal || 0), 0);
   };
 
   return (
@@ -75,46 +272,61 @@ const QuoteEditFormPage = () => {
         <p className="text-muted-foreground">Update quote information and tours</p>
       </div>
 
-      <form className="space-y-6">
+      <form className="space-y-6" onSubmit={handleSubmit}>
         <QuoteConfigSection
-          assignedTo={bookingData.assignedTo}
-          currency={bookingData.pricing?.currency}
-          leadSource={bookingData.leadSource}
+          assignedTo={formData.assignedTo}
+          currency={formData.pricing?.currency}
+          leadSource={formData.leadSource}
+          onAssignedToChange={(value) => handleFieldChange('assignedTo', value)}
+          onCurrencyChange={(value) => handleNestedFieldChange('pricing', 'currency', value)}
+          onLeadSourceChange={(value) => handleFieldChange('leadSource', value)}
         />
 
         <CustomerInfoSection
-          customer={bookingData.customer}
-          tourDetails={bookingData.tourDetails}
-          additionalNotes={bookingData.additionalNotes}
+          customer={formData.customer}
+          tourDetails={formData.tourDetails}
+          additionalNotes={formData.additionalNotes}
+          onCustomerChange={(field, value) => handleNestedFieldChange('customer', field, value)}
+          onTourDetailsChange={(field, value) => handleNestedFieldChange('tourDetails', field, value)}
+          onAdditionalNotesChange={(value) => handleFieldChange('additionalNotes', value)}
         />
 
         <TourBookingSection
-          currency={bookingData.pricing?.currency}
+          currency={formData.pricing?.currency}
           getCurrencySymbol={getCurrencySymbol}
+          tourBooking={getCurrentTourBooking()}
+          onTourBookingChange={handleTourBookingChange}
+          onAddTour={handleAddTour}
         />
 
         <TourListSection
-          tours={bookingData.tours}
-          currency={bookingData.pricing?.currency}
+          tours={formData.tours}
+          currency={formData.pricing?.currency}
           getCurrencySymbol={getCurrencySymbol}
           calculateGrandTotal={calculateGrandTotal}
         />
 
         <PaymentDetailsSection
-          includePayment={bookingData.includePayment}
-          currency={bookingData.pricing?.currency}
+          includePayment={formData.includePayment}
+          currency={formData.pricing?.currency}
           getCurrencySymbol={getCurrencySymbol}
           calculateGrandTotal={calculateGrandTotal}
         />
 
         <BookingOptionsSection
-          includePayment={bookingData.includePayment}
-          copyComments={bookingData.copyComments}
-          sendPurchaseOrder={bookingData.sendPurchaseOrder}
-          sendQuotationAccess={bookingData.sendQuotationAccess}
-          validUntil={bookingData.validUntil}
-          quotationComments={bookingData.quotationComments}
-          customerEmail={bookingData.customer?.email}
+          includePayment={formData.includePayment}
+          copyComments={formData.copyComments}
+          sendPurchaseOrder={formData.sendPurchaseOrder}
+          sendQuotationAccess={formData.sendQuotationAccess}
+          validUntil={formData.validUntil}
+          quotationComments={formData.quotationComments}
+          customerEmail={formData.customer?.email}
+          onIncludePaymentChange={(value) => handleFieldChange('includePayment', value)}
+          onCopyCommentsChange={(value) => handleFieldChange('copyComments', value)}
+          onSendPurchaseOrderChange={(value) => handleFieldChange('sendPurchaseOrder', value)}
+          onSendQuotationAccessChange={(value) => handleFieldChange('sendQuotationAccess', value)}
+          onValidUntilChange={(value) => handleFieldChange('validUntil', value)}
+          onQuotationCommentsChange={(value) => handleFieldChange('quotationComments', value)}
         />
       </form>
     </div>

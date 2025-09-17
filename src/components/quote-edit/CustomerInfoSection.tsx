@@ -28,12 +28,18 @@ interface CustomerInfoSectionProps {
     room: string;
   };
   additionalNotes: string;
+  onCustomerChange?: (field: string, value: string) => void;
+  onTourDetailsChange?: (field: string, value: string) => void;
+  onAdditionalNotesChange?: (value: string) => void;
 }
 
 const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
   customer,
   tourDetails,
   additionalNotes,
+  onCustomerChange,
+  onTourDetailsChange,
+  onAdditionalNotesChange,
 }) => {
   const { t } = useLanguage();
 
@@ -52,7 +58,7 @@ const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
               id="name"
               placeholder={t("quotes.fullNamePlaceholder")}
               value={customer?.name || ""}
-              readOnly
+              onChange={(e) => onCustomerChange?.('name', e.target.value)}
             />
           </div>
 
@@ -62,7 +68,7 @@ const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
               id="idPassport"
               placeholder={t("quotes.idPassportPlaceholder")}
               value={customer?.idNumber || ""}
-              readOnly
+              onChange={(e) => onCustomerChange?.('idNumber', e.target.value)}
             />
           </div>
         </div>
@@ -75,7 +81,7 @@ const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
               type="email"
               placeholder={t("quotes.emailPlaceholder")}
               value={customer?.email || ""}
-              readOnly
+              onChange={(e) => onCustomerChange?.('email', e.target.value)}
             />
           </div>
 
@@ -85,7 +91,7 @@ const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
               id="phone"
               placeholder={t("quotes.phonePlaceholder")}
               value={customer?.phone || ""}
-              readOnly
+              onChange={(e) => onCustomerChange?.('phone', e.target.value)}
             />
           </div>
         </div>
@@ -93,7 +99,7 @@ const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <Label htmlFor="language">{t("quotes.language")}</Label>
-            <Select value={customer?.language || ""}>
+            <Select value={customer?.language || ""} onValueChange={(value) => onCustomerChange?.('language', value)}>
               <SelectTrigger>
                 <SelectValue placeholder={t("quotes.selectLanguage")} />
               </SelectTrigger>
@@ -115,7 +121,7 @@ const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
               id="countryOfOrigin"
               placeholder={t("quotes.countryPlaceholder")}
               value={customer?.country || ""}
-              readOnly
+              onChange={(e) => onCustomerChange?.('country', e.target.value)}
             />
           </div>
 
@@ -125,7 +131,7 @@ const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
               id="cpf"
               placeholder=""
               value={customer?.cpf || ""}
-              readOnly
+              onChange={(e) => onCustomerChange?.('cpf', e.target.value)}
             />
           </div>
         </div>
@@ -136,7 +142,7 @@ const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
             id="address"
             placeholder={t("quotes.addressPlaceholder")}
             value={customer?.address || ""}
-            readOnly
+            onChange={(e) => onCustomerChange?.('address', e.target.value)}
           />
         </div>
 
@@ -150,7 +156,7 @@ const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
                 id="defaultHotel"
                 placeholder={t("quotes.hotelPlaceholder")}
                 value={tourDetails?.hotel || ""}
-                readOnly
+                onChange={(e) => onTourDetailsChange?.('hotel', e.target.value)}
               />
             </div>
 
@@ -160,7 +166,7 @@ const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
                 id="defaultRoom"
                 placeholder={t("quotes.roomPlaceholder")}
                 value={tourDetails?.room || ""}
-                readOnly
+                onChange={(e) => onTourDetailsChange?.('room', e.target.value)}
               />
             </div>
           </div>
@@ -174,7 +180,7 @@ const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
               rows={3}
               placeholder={t("quotes.accommodationPlaceholder")}
               value={additionalNotes || ""}
-              readOnly
+              onChange={(e) => onAdditionalNotesChange?.(e.target.value)}
             />
           </div>
         </div>

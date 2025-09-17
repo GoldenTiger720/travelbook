@@ -22,6 +22,12 @@ interface BookingOptionsSectionProps {
   validUntil: Date;
   quotationComments: string;
   customerEmail: string;
+  onIncludePaymentChange?: (value: boolean) => void;
+  onCopyCommentsChange?: (value: boolean) => void;
+  onSendPurchaseOrderChange?: (value: boolean) => void;
+  onSendQuotationAccessChange?: (value: boolean) => void;
+  onValidUntilChange?: (value: Date) => void;
+  onQuotationCommentsChange?: (value: string) => void;
 }
 
 const BookingOptionsSection: React.FC<BookingOptionsSectionProps> = ({
@@ -32,6 +38,12 @@ const BookingOptionsSection: React.FC<BookingOptionsSectionProps> = ({
   validUntil,
   quotationComments,
   customerEmail,
+  onIncludePaymentChange,
+  onCopyCommentsChange,
+  onSendPurchaseOrderChange,
+  onSendQuotationAccessChange,
+  onValidUntilChange,
+  onQuotationCommentsChange,
 }) => {
   const { t } = useLanguage();
 
@@ -53,7 +65,7 @@ const BookingOptionsSection: React.FC<BookingOptionsSectionProps> = ({
                   id="include-payment"
                   checked={includePayment}
                   className="data-[state=unchecked]:bg-red-500"
-                  disabled
+                  onCheckedChange={onIncludePaymentChange}
                 />
                 <span className="text-sm font-medium min-w-[30px]">
                   {includePayment ? t("quotes.yes") : t("quotes.no")}
@@ -73,7 +85,7 @@ const BookingOptionsSection: React.FC<BookingOptionsSectionProps> = ({
                   id="copy-comments"
                   checked={copyComments}
                   className="data-[state=checked]:bg-green-500"
-                  disabled
+                  onCheckedChange={onCopyCommentsChange}
                 />
                 <span className="text-sm font-medium min-w-[30px]">
                   {copyComments ? "Yes" : "No"}
@@ -94,7 +106,7 @@ const BookingOptionsSection: React.FC<BookingOptionsSectionProps> = ({
                     id="send-purchase-order"
                     checked={sendPurchaseOrder}
                     className="data-[state=checked]:bg-green-500"
-                    disabled
+                    onCheckedChange={onSendPurchaseOrderChange}
                   />
                   <span className="text-sm font-medium min-w-[30px]">
                     {sendPurchaseOrder ? "Yes" : "No"}
@@ -109,8 +121,7 @@ const BookingOptionsSection: React.FC<BookingOptionsSectionProps> = ({
             <div className="space-y-4">
               <Button
                 type="button"
-                className="w-full bg-green-500 hover:bg-green-600 text-white py-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled
+                className="w-full bg-green-500 hover:bg-green-600 text-white py-3"
               >
                 {t("quotes.reserve")}
               </Button>
@@ -141,7 +152,6 @@ const BookingOptionsSection: React.FC<BookingOptionsSectionProps> = ({
                     <Button
                       variant="outline"
                       className="w-full justify-start text-left font-normal mt-2"
-                      disabled
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {format(validUntil, "dd/MM/yyyy")}
@@ -151,6 +161,7 @@ const BookingOptionsSection: React.FC<BookingOptionsSectionProps> = ({
                     <Calendar
                       mode="single"
                       selected={validUntil}
+                      onSelect={(date) => date && onValidUntilChange?.(date)}
                       initialFocus
                     />
                   </PopoverContent>
@@ -170,7 +181,7 @@ const BookingOptionsSection: React.FC<BookingOptionsSectionProps> = ({
                   className="mt-2 min-h-[40px] resize-none"
                   placeholder={t("quotes.quotationCommentsPlaceholder")}
                   value={quotationComments || ""}
-                  readOnly
+                  onChange={(e) => onQuotationCommentsChange?.(e.target.value)}
                 />
               </div>
             </div>
@@ -188,7 +199,7 @@ const BookingOptionsSection: React.FC<BookingOptionsSectionProps> = ({
                     id="send-quotation-access"
                     checked={sendQuotationAccess}
                     className="data-[state=checked]:bg-green-500"
-                    disabled
+                    onCheckedChange={onSendQuotationAccessChange}
                   />
                   <span className="text-sm font-medium min-w-[30px]">
                     {sendQuotationAccess ? "Yes" : "No"}
@@ -203,8 +214,7 @@ const BookingOptionsSection: React.FC<BookingOptionsSectionProps> = ({
             <div className="space-y-4">
               <Button
                 type="submit"
-                className="w-full bg-green-500 hover:bg-green-600 text-white py-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled
+                className="w-full bg-green-500 hover:bg-green-600 text-white py-3"
               >
                 Update Quotation
               </Button>
