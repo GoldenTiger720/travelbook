@@ -231,6 +231,52 @@ class BookingService {
     }
   }
 
+  // Public method for shared quotes - tries multiple endpoints
+  async getSharedBooking(shareId: string): Promise<BookingResponse | null> {
+    try {
+      // Try the regular booking endpoint first
+      const response = await apiCall(`${this.endpoint}/${shareId}`, {
+        method: 'GET',
+      })
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          // Try alternative public endpoint
+          try {
+            const publicResponse = await apiCall(`/api/public/booking/${shareId}`, {
+              method: 'GET',
+            })
+
+            if (!publicResponse.ok) {
+              return null
+            }
+
+            const publicData = await publicResponse.json()
+            return {
+              ...publicData,
+              createdAt: new Date(publicData.createdAt),
+              updatedAt: new Date(publicData.updatedAt),
+            }
+          } catch (publicError) {
+            console.error('Error fetching booking from public endpoint:', publicError)
+            return null
+          }
+        }
+        throw new Error(`Failed to get shared booking: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      return {
+        ...data,
+        createdAt: new Date(data.createdAt),
+        updatedAt: new Date(data.updatedAt),
+      }
+    } catch (error) {
+      console.error('Error getting shared booking:', error)
+      return null
+    }
+  }
+
   async updateBooking(id: string, bookingData: Partial<BookingData>): Promise<BookingResponse> {
     try {
       const response = await apiCall(`${this.endpoint}/${id}`, {
@@ -366,6 +412,12 @@ class BookingService {
         ...booking,
         createdAt: booking.createdAt ? new Date(booking.createdAt) : new Date(),
         updatedAt: booking.updatedAt ? new Date(booking.updatedAt) : new Date(),
+        tours: booking.tours ? booking.tours.map((tour: any) => ({
+          ...tour,
+          date: tour.date ? new Date(tour.date) : new Date(),
+          createdAt: tour.createdAt ? new Date(tour.createdAt) : new Date(),
+          updatedAt: tour.updatedAt ? new Date(tour.updatedAt) : new Date(),
+        })) : [],
         tourDetails: booking.tourDetails ? {
           ...booking.tourDetails,
           startDate: booking.tourDetails.startDate ? new Date(booking.tourDetails.startDate) : new Date(),

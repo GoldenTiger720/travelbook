@@ -48,6 +48,8 @@ export interface TourBooking {
   subtotal: number
   operator?: string
   comments?: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface QuoteWithTours {

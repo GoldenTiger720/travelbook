@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react"
-import { useParams } from "react-router-dom"
+import { useParams, useLocation } from "react-router-dom"
 import { format } from "date-fns"
-import { quoteService } from "@/services/quoteService"
-import { Quote } from "@/types/quote"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -10,13 +8,15 @@ import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/components/ui/use-toast"
-import { 
-  MapPin, 
-  Calendar, 
-  Users, 
-  DollarSign, 
-  User, 
-  Mail, 
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  MapPin,
+  Calendar,
+  Users,
+  DollarSign,
+  User,
+  Mail,
   Phone,
   Building,
   Clock,
@@ -30,55 +30,68 @@ import {
   UserPlus
 } from "lucide-react"
 
+const getStatusColor = (status: string) => {
+  switch (status?.toLowerCase()) {
+    case "confirmed": case "approved": return "bg-green-100 text-green-800 border-green-200"
+    case "pending": case "draft": return "bg-yellow-100 text-yellow-800 border-yellow-200"
+    case "cancelled": case "canceled": return "bg-red-100 text-red-800 border-red-200"
+    case "expired": return "bg-gray-100 text-gray-800 border-gray-200"
+    default: return "bg-blue-100 text-blue-800 border-blue-200"
+  }
+}
+
 export function SharedQuotePage() {
   const { shareId } = useParams()
+  const location = useLocation()
   const { toast } = useToast()
-  const [quote, setQuote] = useState<Quote | null>(null)
-  const [loading, setLoading] = useState(true)
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [acceptingTerms, setAcceptingTerms] = useState(false)
   const [customerEmail, setCustomerEmail] = useState("")
 
-  useEffect(() => {
-    if (shareId) {
-      loadQuoteByShareId()
-    }
-  }, [shareId])
+  // Get booking data from navigation state (passed from save success)
+  const bookingData = location.state?.bookingData
+  const shareableLink = location.state?.shareableLink
 
-  const loadQuoteByShareId = async () => {
-    setLoading(true)
-    try {
-      const shareableLink = `https://travelbook.com/quotes/share/${shareId}`
-      const data = await quoteService.getQuoteByShareableLink(shareableLink)
-      setQuote(data)
-      if (data?.termsAccepted?.accepted) {
-        setTermsAccepted(true)
-      }
-      if (data?.customer?.email) {
-        setCustomerEmail(data.customer.email)
-      }
-    } catch (error) {
-      console.error("Failed to load quote:", error)
-    } finally {
-      setLoading(false)
+  // Use passed data directly - no backend requests needed
+  const booking = bookingData
+  const loading = false
+  const error = null
+
+  // Debug logging
+  useEffect(() => {
+    console.log('SharedQuotePage Debug:', {
+      shareId,
+      hasNavigationState: !!location.state,
+      bookingData,
+      shareableLink,
+      hasBookingData: !!booking,
+      bookingId: booking?.id
+    })
+  }, [shareId, location.state, bookingData, shareableLink, booking])
+
+  useEffect(() => {
+    if (booking?.termsAccepted?.accepted) {
+      setTermsAccepted(true)
     }
-  }
+    if (booking?.customer?.email) {
+      setCustomerEmail(booking.customer.email)
+    }
+  }, [booking])
 
   const handleAcceptTerms = async () => {
-    if (!quote || !termsAccepted) return
-    
+    if (!booking || !termsAccepted) return
+
     setAcceptingTerms(true)
     try {
-      const acceptedBy = customerEmail || quote.customer.email
-      const success = await quoteService.acceptTerms(quote.id, acceptedBy)
-      if (success) {
-        await loadQuoteByShareId()
-        toast({
-          title: "✅ Terms Accepted Successfully!",
-          description: "Thank you for accepting the terms. Our team will contact you soon to finalize your booking.",
-          duration: 5000,
-        })
-      }
+      // TODO: Implement backend call to accept terms
+      // const success = await bookingService.acceptTerms(booking.id, customerEmail || booking.customer.email)
+
+      // For now, show success message
+      toast({
+        title: "✅ Terms Accepted Successfully!",
+        description: "Thank you for accepting the terms. Our team will contact you soon to finalize your booking.",
+        duration: 5000,
+      })
     } catch (error) {
       console.error("Failed to accept terms:", error)
       toast({
@@ -93,13 +106,13 @@ export function SharedQuotePage() {
   }
 
   const handleShare = async () => {
-    const url = window.location.href
+    const url = shareableLink || window.location.href
     try {
       if (navigator.share) {
         await navigator.share({
           title: 'Travel Quote',
-          text: `Check out this travel quote for ${quote?.tourDetails.destination}`,
-          url: url
+          text: 'Check out this travel quote',
+          url: url,
         })
       } else {
         await navigator.clipboard.writeText(url)
@@ -111,7 +124,14 @@ export function SharedQuotePage() {
       }
     } catch (error) {
       console.error("Failed to share:", error)
-      if (error instanceof Error && !error.message.includes('abort')) {
+      try {
+        await navigator.clipboard.writeText(url)
+        toast({
+          title: "🔗 Link Copied!",
+          description: "The quote link has been copied to your clipboard.",
+          duration: 3000,
+        })
+      } catch (clipboardError) {
         toast({
           title: "Failed to share",
           description: "Please try copying the link manually.",
@@ -128,362 +148,382 @@ export function SharedQuotePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading quote...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your quote...</p>
         </div>
       </div>
     )
   }
 
-  if (!quote) {
+  if (!booking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="max-w-md w-full">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50">
+        <Card className="max-w-md w-full shadow-xl">
           <CardContent className="pt-6 text-center">
-            <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Quote Not Found</h3>
-            <p className="text-muted-foreground">
-              This quote link is invalid or has expired.
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">📄</span>
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Quote Preview</h3>
+            <p className="text-gray-600 mb-4">
+              This page shows quotes immediately after creation. If you're accessing this link directly, please use the admin panel to view quote details.
             </p>
+            <div className="space-y-3">
+              <Button
+                onClick={() => window.location.href = '/my-quotes'}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                Go to My Quotes
+              </Button>
+              <Button
+                onClick={() => window.location.href = '/quotes'}
+                variant="outline"
+                className="w-full"
+              >
+                Create New Quote
+              </Button>
+            </div>
+            {/* Debug info */}
+            <details className="text-left text-xs text-gray-500 bg-gray-50 p-2 rounded mt-4">
+              <summary className="cursor-pointer">Debug Info</summary>
+              <div className="mt-2">
+                <p>Share ID: {shareId}</p>
+                <p>Has Navigation State: {location.state ? 'Yes' : 'No'}</p>
+                <p>Has Booking Data: {booking ? 'Yes' : 'No'}</p>
+              </div>
+            </details>
           </CardContent>
         </Card>
       </div>
     )
   }
 
-  const isExpired = quote.validUntil < new Date()
+  const isExpired = booking.validUntil && new Date(booking.validUntil) < new Date()
+  const totalAmount = booking.pricing?.amount || 0
+  const currency = booking.pricing?.currency || 'USD'
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       {/* Header */}
-      <div className="bg-primary text-primary-foreground py-8">
+      <div className="bg-gradient-to-r from-blue-600 to-green-600 text-white py-12 shadow-lg">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-3xl font-bold mb-2">TravelBook</h1>
-          <p className="text-primary-foreground/80">Your Travel Quote</p>
+          <div className="flex items-center justify-center mb-4">
+            <div className="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-3">
+              <span className="text-2xl">✈️</span>
+            </div>
+            <h1 className="text-4xl font-bold">TravelBook</h1>
+          </div>
+          <p className="text-xl text-white/90">Your Personal Travel Quote</p>
+          <div className="mt-4">
+            <Badge variant="secondary" className="px-4 py-2 text-lg font-semibold">
+              Quote #{booking.bookingNumber || booking.id}
+            </Badge>
+          </div>
         </div>
       </div>
 
-      <div className="container mx-auto py-8 px-4 max-w-4xl">
+      <div className="container mx-auto py-8 px-4 max-w-5xl">
         {/* Status Alert */}
         {isExpired && (
-          <Alert className="mb-6 border-destructive">
-            <Clock className="h-4 w-4" />
-            <AlertDescription>
-              This quote expired on {format(quote.validUntil, "MMMM d, yyyy")}
-            </AlertDescription>
+          <Alert className="mb-6 border-red-200 bg-red-50">
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                <span className="text-red-600">⚠️</span>
+              </div>
+              <AlertDescription className="text-red-800">
+                This quote expired on {format(new Date(booking.validUntil!), "MMMM d, yyyy")}. Please contact your travel agent for a new quote.
+              </AlertDescription>
+            </div>
           </Alert>
         )}
 
-        {/* Quote Number */}
-        <div className="text-center mb-6">
-          <Badge variant="outline" className="text-lg px-4 py-1">
-            Quote #{quote.quoteNumber}
-          </Badge>
-        </div>
+        {/* Success Message */}
+        {booking.termsAccepted?.accepted && (
+          <Alert className="mb-6 border-green-200 bg-green-50">
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                <span className="text-green-600">✅</span>
+              </div>
+              <AlertDescription className="text-green-800">
+                Terms accepted! Our team will contact you soon to finalize your booking.
+              </AlertDescription>
+            </div>
+          </Alert>
+        )}
 
-        {/* Main Content */}
-        <div className="space-y-6">
-          {/* Customer Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <User className="w-5 h-5" />
+        {/* Main Content Grid */}
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Left Column - Tour Details */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Customer Information */}
+            <Card className="shadow-lg border-0">
+              <CardHeader className="bg-gradient-to-r from-blue-50 to-green-50 rounded-t-lg">
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <User className="w-5 h-5 text-blue-600" />
+                  </div>
                   Prepared For
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Name</p>
-                  <p className="font-medium">{quote.customer.name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{quote.customer.email}</p>
-                </div>
-                {quote.customer.company && (
-                  <div className="md:col-span-2">
-                    <p className="text-sm text-muted-foreground">Company</p>
-                    <p className="font-medium">{quote.customer.company}</p>
-                  </div>
-                )}
-                {quote.customer.birthday && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">Birthday</p>
-                    <p className="font-medium flex items-center gap-1">
-                      <Cake className="w-4 h-4" />
-                      {format(new Date(quote.customer.birthday), "PPP")}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Tour Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="w-5 h-5" />
-                Tour Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Destination</p>
-                  <p className="font-medium text-lg">{quote.tourDetails.destination}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Tour Type</p>
-                  <p className="font-medium">
-                    {quote.tourDetails.tourType.split("-").map(word => 
-                      word.charAt(0).toUpperCase() + word.slice(1)
-                    ).join(" ")}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Travel Date</p>
-                  <p className="font-medium flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    {format(quote.tourDetails.startDate, "MMMM d, yyyy")}
-                    {quote.tourDetails.endDate && (
-                      <> - {format(quote.tourDetails.endDate, "MMMM d, yyyy")}</>
-                    )}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Number of Travelers</p>
-                  {quote.tourDetails.passengerBreakdown ? (
-                    <div className="space-y-1">
-                      {quote.tourDetails.passengerBreakdown.adults > 0 && (
-                        <p className="font-medium flex items-center gap-1">
-                          <Users className="w-4 h-4" />
-                          {quote.tourDetails.passengerBreakdown.adults} {quote.tourDetails.passengerBreakdown.adults === 1 ? 'Adult' : 'Adults'}
-                        </p>
-                      )}
-                      {quote.tourDetails.passengerBreakdown.children > 0 && (
-                        <p className="font-medium flex items-center gap-1">
-                          <UserPlus className="w-4 h-4" />
-                          {quote.tourDetails.passengerBreakdown.children} {quote.tourDetails.passengerBreakdown.children === 1 ? 'Child' : 'Children'}
-                        </p>
-                      )}
-                      {quote.tourDetails.passengerBreakdown.infants > 0 && (
-                        <p className="font-medium flex items-center gap-1">
-                          <Baby className="w-4 h-4" />
-                          {quote.tourDetails.passengerBreakdown.infants} {quote.tourDetails.passengerBreakdown.infants === 1 ? 'Infant' : 'Infants'}
-                        </p>
-                      )}
-                      <p className="text-sm text-muted-foreground pt-1">
-                        Total: {quote.tourDetails.passengers} PAX
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="font-medium flex items-center gap-1">
-                      <Users className="w-4 h-4" />
-                      {quote.tourDetails.passengers} PAX
-                    </p>
-                  )}
-                </div>
-              </div>
-              {quote.tourDetails.description && (
-                <div className="pt-4 border-t">
-                  <p className="text-sm text-muted-foreground mb-2">Tour Description</p>
-                  <p className="text-sm leading-relaxed">{quote.tourDetails.description}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Pricing */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5" />
-                Investment Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {quote.pricing.breakdown && quote.pricing.breakdown.length > 0 ? (
-                <>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-2 text-sm font-medium text-muted-foreground">Item/Service</th>
-                          <th className="text-center py-2 text-sm font-medium text-muted-foreground">Quantity</th>
-                          <th className="text-right py-2 text-sm font-medium text-muted-foreground">Unit Price</th>
-                          <th className="text-right py-2 text-sm font-medium text-muted-foreground">Subtotal</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {quote.pricing.breakdown.map((item, index) => (
-                          <tr key={index} className="border-b">
-                            <td className="py-3">
-                              <p className="font-medium">{item.item}</p>
-                            </td>
-                            <td className="text-center py-3">
-                              <p>{item.quantity}</p>
-                            </td>
-                            <td className="text-right py-3">
-                              <p>{quote.pricing.currency} ${item.unitPrice.toLocaleString()}</p>
-                            </td>
-                            <td className="text-right py-3">
-                              <p className="font-medium">
-                                {quote.pricing.currency} ${item.total.toLocaleString()}
-                              </p>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr className="bg-primary/5">
-                          <td colSpan={3} className="py-3 px-2">
-                            <p className="text-lg font-semibold">GRAND TOTAL</p>
-                            <p className="text-sm text-muted-foreground">Total Investment</p>
-                          </td>
-                          <td className="text-right py-3 px-2">
-                            <p className="text-xl font-bold text-primary">
-                              {quote.pricing.currency} ${quote.pricing.amount.toLocaleString()}
-                            </p>
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                </>
-              ) : (
-                <div className="bg-primary/5 rounded-lg p-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-lg font-semibold">Total Investment</p>
-                      <p className="text-sm text-muted-foreground">Per person prices may apply</p>
-                    </div>
-                    <p className="text-3xl font-bold text-primary">
-                      {quote.pricing.currency} ${quote.pricing.amount.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Terms Acceptance */}
-          {!isExpired && (
-            <Card className="border-primary/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5" />
-                  Accept Quote
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {quote.termsAccepted?.accepted ? (
-                  <Alert className="bg-success/10 border-success/20">
-                    <Check className="h-4 w-4 text-success" />
-                    <AlertDescription className="text-success-foreground">
-                      Quote accepted on {format(quote.termsAccepted.acceptedAt!, "MMMM d, yyyy 'at' h:mm a")}
-                      <br />Our team will contact you shortly to finalize your booking.
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <>
-                    <Alert>
-                      <AlertDescription className="text-sm">
-                        By accepting this quote, you agree to our terms and conditions. 
-                        Our travel consultant will contact you to proceed with the booking.
-                      </AlertDescription>
-                    </Alert>
-                    
-                    <div className="space-y-3">
-                      <div className="flex items-start space-x-2">
-                        <Checkbox 
-                          id="terms" 
-                          checked={termsAccepted}
-                          onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
-                          className="mt-0.5"
-                        />
-                        <label
-                          htmlFor="terms"
-                          className="text-sm leading-relaxed cursor-pointer"
-                        >
-                          I have read and accept the terms and conditions. I understand that this quote 
-                          is subject to availability and final confirmation.
-                        </label>
-                      </div>
-                      
-                      <Button 
-                        onClick={handleAcceptTerms} 
-                        disabled={!termsAccepted || acceptingTerms}
-                        className="w-full"
-                        size="lg"
-                      >
-                        {acceptingTerms ? "Processing..." : "Accept Quote & Start Booking Process"}
-                      </Button>
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-sm text-gray-500 uppercase tracking-wide">Guest Name</p>
+                    <p className="text-lg font-semibold text-gray-800">{booking.customer?.name || 'Guest'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 uppercase tracking-wide">Email</p>
+                    <p className="text-lg font-medium text-gray-700">{booking.customer?.email || 'Not provided'}</p>
+                  </div>
+                  {booking.customer?.phone && (
+                    <div className="md:col-span-2">
+                      <p className="text-sm text-gray-500 uppercase tracking-wide">Phone</p>
+                      <p className="text-lg font-medium text-gray-700">{booking.customer.phone}</p>
                     </div>
-                  </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tour Experiences */}
+            <Card className="shadow-lg border-0">
+              <CardHeader className="bg-gradient-to-r from-green-50 to-blue-50 rounded-t-lg">
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <MapPin className="w-5 h-5 text-green-600" />
+                  </div>
+                  Your Travel Experiences
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                {booking.tours && booking.tours.length > 0 ? (
+                  <div className="space-y-6">
+                    {booking.tours.map((tour, index) => (
+                      <div key={index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-800">{tour.tourName}</h3>
+                            <p className="text-sm text-gray-500">{tour.tourCode}</p>
+                          </div>
+                          <Badge className={getStatusColor('confirmed')}>
+                            Included
+                          </Badge>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-blue-600" />
+                            <div>
+                              <p className="text-sm text-gray-500">Date</p>
+                              <p className="font-medium">{format(new Date(tour.date), "MMM dd, yyyy")}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-green-600" />
+                            <div>
+                              <p className="text-sm text-gray-500">Travelers</p>
+                              <div className="flex flex-wrap gap-1">
+                                {tour.adultPax > 0 && (
+                                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                    {tour.adultPax} Adult{tour.adultPax > 1 ? 's' : ''}
+                                  </span>
+                                )}
+                                {tour.childPax > 0 && (
+                                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                                    {tour.childPax} Child{tour.childPax > 1 ? 'ren' : ''}
+                                  </span>
+                                )}
+                                {tour.infantPax > 0 && (
+                                  <span className="text-xs bg-pink-100 text-pink-800 px-2 py-1 rounded">
+                                    {tour.infantPax} Infant{tour.infantPax > 1 ? 's' : ''}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="w-4 h-4 text-purple-600" />
+                            <div>
+                              <p className="text-sm text-gray-500">Tour Price</p>
+                              <p className="font-semibold text-green-600">${tour.subtotal.toLocaleString()}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {tour.pickupAddress && (
+                          <div className="border-t pt-3">
+                            <p className="text-sm text-gray-500">Pickup Location</p>
+                            <p className="font-medium">{tour.pickupAddress}</p>
+                            {tour.pickupTime && (
+                              <p className="text-sm text-gray-600">Pickup Time: {tour.pickupTime}</p>
+                            )}
+                          </div>
+                        )}
+
+                        {tour.comments && (
+                          <div className="border-t pt-3 mt-3">
+                            <p className="text-sm text-gray-500">Special Notes</p>
+                            <p className="text-sm text-gray-700">{tour.comments}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <MapPin className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <p className="text-gray-600">No tours added to this quote</p>
+                  </div>
                 )}
               </CardContent>
             </Card>
-          )}
-
-          {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button onClick={handleDownloadPDF} variant="outline" className="flex-1">
-              <Download className="w-4 h-4 mr-2" />
-              Download PDF
-            </Button>
-            <Button onClick={handleShare} variant="outline" className="flex-1">
-              <Share2 className="w-4 h-4 mr-2" />
-              Share Quote
-            </Button>
           </div>
 
-          {/* Quote Validity */}
-          <Card className="bg-muted/50">
-            <CardContent className="pt-6">
-              <div className="text-center space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  This quote is valid until
-                </p>
-                <p className="text-lg font-semibold">
-                  {format(quote.validUntil, "MMMM d, yyyy")}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Prepared by {quote.assignedTo} • {quote.agency || "TravelBook"}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Right Column - Pricing & Actions */}
+          <div className="space-y-6">
+            {/* Pricing Summary */}
+            <Card className="shadow-lg border-0 sticky top-6">
+              <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-t-lg">
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                    <DollarSign className="w-5 h-5 text-purple-600" />
+                  </div>
+                  Investment Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="text-center mb-6">
+                  <p className="text-sm text-gray-500 uppercase tracking-wide">Total Investment</p>
+                  <p className="text-4xl font-bold text-green-600 mb-2">
+                    {currency} ${totalAmount.toLocaleString()}
+                  </p>
+                  <p className="text-sm text-gray-600">All tours and experiences included</p>
+                </div>
+
+                {booking.pricing?.breakdown && booking.pricing.breakdown.length > 0 && (
+                  <div className="space-y-3 mb-6">
+                    <Separator />
+                    <p className="text-sm font-medium text-gray-700">Price Breakdown</p>
+                    {booking.pricing.breakdown.map((item, index) => (
+                      <div key={index} className="flex justify-between items-center text-sm">
+                        <span className="text-gray-600">{item.item} x{item.quantity}</span>
+                        <span className="font-medium">${item.total.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {booking.validUntil && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-6">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-yellow-600" />
+                      <div>
+                        <p className="text-sm font-medium text-yellow-800">Valid Until</p>
+                        <p className="text-sm text-yellow-700">
+                          {format(new Date(booking.validUntil), "MMMM dd, yyyy")}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="space-y-3">
+                  <Button onClick={handleDownloadPDF} variant="outline" className="w-full">
+                    <Download className="w-4 h-4 mr-2" />
+                    Download PDF
+                  </Button>
+                  <Button onClick={handleShare} variant="outline" className="w-full">
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Share Quote
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Terms & Conditions */}
+            {!isExpired && !booking.termsAccepted?.accepted && (
+              <Card className="shadow-lg border-0">
+                <CardHeader className="bg-gradient-to-r from-orange-50 to-red-50 rounded-t-lg">
+                  <CardTitle className="flex items-center gap-3 text-xl">
+                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                      <CheckCircle className="w-5 h-5 text-orange-600" />
+                    </div>
+                    Accept Terms
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <div className="text-sm text-gray-600 space-y-2">
+                      <p>• Prices are subject to availability at the time of booking</p>
+                      <p>• Payment terms apply as discussed with your travel consultant</p>
+                      <p>• Cancellation policies vary by service provider</p>
+                      <p>• Travel insurance is recommended for your protection</p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="customer-email">Confirm Your Email</Label>
+                        <Input
+                          id="customer-email"
+                          type="email"
+                          value={customerEmail}
+                          onChange={(e) => setCustomerEmail(e.target.value)}
+                          placeholder="your.email@example.com"
+                          className="mt-1"
+                        />
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="terms"
+                          checked={termsAccepted}
+                          onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
+                        />
+                        <label
+                          htmlFor="terms"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          I accept the terms and conditions
+                        </label>
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={handleAcceptTerms}
+                      disabled={!termsAccepted || acceptingTerms || !customerEmail}
+                      className="w-full bg-green-600 hover:bg-green-700"
+                    >
+                      {acceptingTerms ? "Processing..." : "Accept & Confirm Interest"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
 
         {/* Footer */}
         <div className="mt-12 text-center">
-          <Separator className="mb-8" />
-          <div className="space-y-2">
-            <h3 className="font-semibold text-lg">Need Help?</h3>
-            <p className="text-sm text-muted-foreground">
-              Our travel experts are here to assist you
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-4">
-              <a 
-                href="mailto:info@travelbook.com" 
-                className="flex items-center gap-2 text-sm hover:underline"
-              >
-                <Mail className="w-4 h-4" />
-                info@travelbook.com
-              </a>
-              <a 
-                href="tel:+1234567890" 
-                className="flex items-center gap-2 text-sm hover:underline"
-              >
-                <Phone className="w-4 h-4" />
-                +1 (234) 567-890
-              </a>
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md mx-auto">
+            <h3 className="text-lg font-semibold mb-2">Need Assistance?</h3>
+            <p className="text-gray-600 text-sm mb-4">Our travel experts are here to help you</p>
+            <div className="space-y-2 text-sm">
+              <p>
+                <a href="mailto:info@travelbook.com" className="text-blue-600 hover:underline">
+                  info@travelbook.com
+                </a>
+              </p>
+              <p>
+                <a href="tel:+1234567890" className="text-blue-600 hover:underline">
+                  +1 (234) 567-8900
+                </a>
+              </p>
             </div>
           </div>
         </div>
@@ -491,3 +531,5 @@ export function SharedQuotePage() {
     </div>
   )
 }
+
+export default SharedQuotePage

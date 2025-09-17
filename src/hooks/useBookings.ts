@@ -25,12 +25,30 @@ export function useBookings(filters?: any) {
   })
 }
 
-// Fetch single booking
+// Fetch single booking from cached list data
 export function useBooking(id: string) {
+  const { data: bookings = [], isLoading: listLoading, error: listError } = useBookings()
+
+  // Find the booking in the cached list data
+  const booking = bookings.find(booking => booking.id === id)
+
+  return {
+    data: booking || null,
+    isLoading: listLoading,
+    error: listError
+  }
+}
+
+// Fetch shared booking (public access)
+export function useSharedBooking(shareId: string) {
   return useQuery({
-    queryKey: bookingKeys.detail(id),
-    queryFn: () => bookingService.getBooking(id),
-    enabled: !!id,
+    queryKey: ['sharedBooking', shareId],
+    queryFn: () => bookingService.getSharedBooking(shareId),
+    enabled: !!shareId,
+    retry: (failureCount, error) => {
+      console.log('useSharedBooking retry attempt:', failureCount, error)
+      return failureCount < 2 // Only retry once for shared bookings
+    },
   })
 }
 

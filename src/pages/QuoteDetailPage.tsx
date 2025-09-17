@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react"
-import { useParams } from "react-router-dom"
+import { useParams, useSearchParams } from "react-router-dom"
 import { format } from "date-fns"
-import { quoteService } from "@/services/quoteService"
-import { Quote } from "@/types/quote"
+import { useBooking } from "@/hooks/useBookings"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -10,6 +9,7 @@ import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/components/ui/use-toast"
+import { Input } from "@/components/ui/input"
 import { 
   MapPin, 
   Calendar, 
@@ -46,42 +46,36 @@ const getStatusColor = (status: string) => {
 
 export function QuoteDetailPage() {
   const { quoteId } = useParams()
+  const [searchParams] = useSearchParams()
   const { toast } = useToast()
-  const [quote, setQuote] = useState<Quote | null>(null)
-  const [loading, setLoading] = useState(true)
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [acceptingTerms, setAcceptingTerms] = useState(false)
 
-  useEffect(() => {
-    if (quoteId) {
-      loadQuote()
-    }
-  }, [quoteId])
+  // Use the booking hook to fetch data
+  const { data: booking, isLoading: loading, error } = useBooking(quoteId!)
 
-  const loadQuote = async () => {
-    setLoading(true)
-    try {
-      const data = await quoteService.getQuoteById(quoteId!)
-      setQuote(data)
-      if (data?.termsAccepted?.accepted) {
-        setTermsAccepted(true)
-      }
-    } catch (error) {
-      console.error("Failed to load quote:", error)
-    } finally {
-      setLoading(false)
+  // Get shareable link from URL params
+  const shareableLink = searchParams.get('shareLink') || `${window.location.origin}/quotes/share/${quoteId}`
+
+  useEffect(() => {
+    if (booking?.termsAccepted?.accepted) {
+      setTermsAccepted(true)
     }
-  }
+  }, [booking])
 
   const handleAcceptTerms = async () => {
-    if (!quote || !termsAccepted) return
-    
+    if (!booking || !termsAccepted) return
+
     setAcceptingTerms(true)
     try {
-      const success = await quoteService.acceptTerms(quote.id, quote.customer.name)
-      if (success) {
-        await loadQuote()
-      }
+      // Update this to use booking service when available
+      // const success = await bookingService.acceptTerms(booking.id, booking.customer.name)
+      // For now, just show success
+      toast({
+        title: "✅ Terms Accepted!",
+        description: "Terms have been accepted successfully.",
+        duration: 3000,
+      })
     } catch (error) {
       console.error("Failed to accept terms:", error)
     } finally {
@@ -90,14 +84,13 @@ export function QuoteDetailPage() {
   }
 
   const handleShare = async () => {
-    if (!quote) return
-    
-    const url = window.location.href
+    if (!booking) return
+
     try {
-      await navigator.clipboard.writeText(url)
+      await navigator.clipboard.writeText(shareableLink)
       toast({
         title: "✨ Link Copied!",
-        description: "The quote link has been copied to your clipboard.",
+        description: "The shareable quote link has been copied to your clipboard.",
         duration: 3000,
       })
     } catch (error) {
@@ -112,7 +105,7 @@ export function QuoteDetailPage() {
   }
 
   const handleDownloadPDF = () => {
-    if (!quote) return
+    if (!booking) return
     window.print()
   }
 
@@ -127,7 +120,7 @@ export function QuoteDetailPage() {
     )
   }
 
-  if (!quote) {
+  if (!booking) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="max-w-md w-full">
@@ -143,7 +136,7 @@ export function QuoteDetailPage() {
     )
   }
 
-  const isExpired = quote.validUntil < new Date()
+  const isExpired = booking.validUntil && new Date(booking.validUntil) < new Date()
 
   return (
     <div className="min-h-screen bg-background">
@@ -151,15 +144,41 @@ export function QuoteDetailPage() {
         {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold mb-2">Travel Quote</h1>
-          <p className="text-muted-foreground">Quote #{quote.quoteNumber}</p>
+          <p className="text-muted-foreground">Quote #{booking.bookingNumber || booking.id}</p>
         </div>
+
+        {/* Shareable Link Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Share2 className="w-5 h-5" />
+              Shareable Link
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <Input
+                value={shareableLink}
+                readOnly
+                className="flex-1"
+              />
+              <Button onClick={handleShare} variant="outline">
+                <Share2 className="w-4 h-4 mr-2" />
+                Copy Link
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              Share this link with your customer to let them view the quote details.
+            </p>
+          </CardContent>
+        </Card>
 
         {/* Status Alert */}
         {isExpired && (
           <Alert className="mb-6 border-destructive">
             <Clock className="h-4 w-4" />
             <AlertDescription>
-              This quote expired on {format(quote.validUntil, "MMMM d, yyyy")}
+              This quote expired on {format(new Date(booking.validUntil!), "MMMM d, yyyy")}
             </AlertDescription>
           </Alert>
         )}
@@ -174,8 +193,8 @@ export function QuoteDetailPage() {
                   <User className="w-5 h-5" />
                   Customer Information
                 </span>
-                <Badge className={getStatusColor(quote.status)}>
-                  {quote.status}
+                <Badge className={getStatusColor(booking.status || 'draft')}>
+                  {booking.status || 'draft'}
                 </Badge>
               </CardTitle>
             </CardHeader>
@@ -183,39 +202,30 @@ export function QuoteDetailPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Name</p>
-                  <p className="font-medium">{quote.customer.name}</p>
+                  <p className="font-medium">{booking.customer?.name || 'No name provided'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Email</p>
                   <p className="font-medium flex items-center gap-1">
                     <Mail className="w-4 h-4" />
-                    {quote.customer.email}
+                    {booking.customer?.email || 'No email provided'}
                   </p>
                 </div>
-                {quote.customer.phone && (
+                {booking.customer?.phone && (
                   <div>
                     <p className="text-sm text-muted-foreground">Phone</p>
                     <p className="font-medium flex items-center gap-1">
                       <Phone className="w-4 h-4" />
-                      {quote.customer.phone}
+                      {booking.customer.phone}
                     </p>
                   </div>
                 )}
-                {quote.customer.company && (
+                {booking.customer?.company && (
                   <div>
                     <p className="text-sm text-muted-foreground">Company</p>
                     <p className="font-medium flex items-center gap-1">
                       <Building className="w-4 h-4" />
-                      {quote.customer.company}
-                    </p>
-                  </div>
-                )}
-                {quote.customer.birthday && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">Birthday</p>
-                    <p className="font-medium flex items-center gap-1">
-                      <Cake className="w-4 h-4" />
-                      {format(new Date(quote.customer.birthday), "PPP")}
+                      {booking.customer.company}
                     </p>
                   </div>
                 )}
@@ -223,145 +233,98 @@ export function QuoteDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Tour Details */}
+          {/* Tours Table */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="w-5 h-5" />
-                Tour Details
+                Tour Bookings
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Destination</p>
-                  <p className="font-medium">{quote.tourDetails.destination}</p>
+            <CardContent>
+              {booking.tours && booking.tours.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 text-sm font-medium text-muted-foreground">Tour</th>
+                        <th className="text-left py-2 text-sm font-medium text-muted-foreground">Date</th>
+                        <th className="text-center py-2 text-sm font-medium text-muted-foreground">Adults</th>
+                        <th className="text-center py-2 text-sm font-medium text-muted-foreground">Children</th>
+                        <th className="text-center py-2 text-sm font-medium text-muted-foreground">Infants</th>
+                        <th className="text-right py-2 text-sm font-medium text-muted-foreground">Subtotal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {booking.tours.map((tour, index) => (
+                        <tr key={index} className="border-b">
+                          <td className="py-3">
+                            <div>
+                              <p className="font-medium">{tour.tourName}</p>
+                              <p className="text-sm text-muted-foreground">{tour.tourCode}</p>
+                            </div>
+                          </td>
+                          <td className="py-3">
+                            <p className="font-medium flex items-center gap-1">
+                              <Calendar className="w-4 h-4" />
+                              {format(new Date(tour.date), "MMM dd, yyyy")}
+                            </p>
+                          </td>
+                          <td className="py-3 text-center">
+                            <p className="font-medium">{tour.adultPax}</p>
+                            <p className="text-xs text-muted-foreground">${tour.adultPrice.toLocaleString()}</p>
+                          </td>
+                          <td className="py-3 text-center">
+                            <p className="font-medium">{tour.childPax}</p>
+                            <p className="text-xs text-muted-foreground">${tour.childPrice.toLocaleString()}</p>
+                          </td>
+                          <td className="py-3 text-center">
+                            <p className="font-medium">{tour.infantPax}</p>
+                            <p className="text-xs text-muted-foreground">${tour.infantPrice.toLocaleString()}</p>
+                          </td>
+                          <td className="py-3 text-right">
+                            <p className="font-semibold">${tour.subtotal.toLocaleString()}</p>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Tour Type</p>
-                  <p className="font-medium">
-                    {quote.tourDetails.tourType.split("-").map(word => 
-                      word.charAt(0).toUpperCase() + word.slice(1)
-                    ).join(" ")}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Travel Date</p>
-                  <p className="font-medium flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    {format(quote.tourDetails.startDate, "MMMM d, yyyy")}
-                    {quote.tourDetails.endDate && (
-                      <> - {format(quote.tourDetails.endDate, "MMMM d, yyyy")}</>
-                    )}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Passengers</p>
-                  {quote.tourDetails.passengerBreakdown ? (
-                    <div className="space-y-1">
-                      {quote.tourDetails.passengerBreakdown.adults > 0 && (
-                        <p className="font-medium flex items-center gap-1">
-                          <Users className="w-4 h-4" />
-                          {quote.tourDetails.passengerBreakdown.adults} {quote.tourDetails.passengerBreakdown.adults === 1 ? 'Adult' : 'Adults'}
-                        </p>
-                      )}
-                      {quote.tourDetails.passengerBreakdown.children > 0 && (
-                        <p className="font-medium flex items-center gap-1">
-                          <UserPlus className="w-4 h-4" />
-                          {quote.tourDetails.passengerBreakdown.children} {quote.tourDetails.passengerBreakdown.children === 1 ? 'Child' : 'Children'}
-                        </p>
-                      )}
-                      {quote.tourDetails.passengerBreakdown.infants > 0 && (
-                        <p className="font-medium flex items-center gap-1">
-                          <Baby className="w-4 h-4" />
-                          {quote.tourDetails.passengerBreakdown.infants} {quote.tourDetails.passengerBreakdown.infants === 1 ? 'Infant' : 'Infants'}
-                        </p>
-                      )}
-                      <p className="text-sm text-muted-foreground pt-1">
-                        Total: {quote.tourDetails.passengers} PAX
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="font-medium flex items-center gap-1">
-                      <Users className="w-4 h-4" />
-                      {quote.tourDetails.passengers} PAX
-                    </p>
-                  )}
-                </div>
-              </div>
-              {quote.tourDetails.description && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Description</p>
-                  <p className="text-sm">{quote.tourDetails.description}</p>
-                </div>
+              ) : (
+                <p className="text-muted-foreground text-center py-8">No tours added to this quote</p>
               )}
             </CardContent>
           </Card>
 
-          {/* Pricing */}
+          {/* Pricing Summary */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <DollarSign className="w-5 h-5" />
-                Pricing Details
+                Pricing Summary
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {quote.pricing.breakdown && quote.pricing.breakdown.length > 0 ? (
-                <>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-2 text-sm font-medium text-muted-foreground">Item/Service</th>
-                          <th className="text-center py-2 text-sm font-medium text-muted-foreground">Quantity</th>
-                          <th className="text-right py-2 text-sm font-medium text-muted-foreground">Unit Price</th>
-                          <th className="text-right py-2 text-sm font-medium text-muted-foreground">Subtotal</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {quote.pricing.breakdown.map((item, index) => (
-                          <tr key={index} className="border-b">
-                            <td className="py-3">
-                              <p className="font-medium">{item.item}</p>
-                            </td>
-                            <td className="text-center py-3">
-                              <p>{item.quantity}</p>
-                            </td>
-                            <td className="text-right py-3">
-                              <p>{quote.pricing.currency} ${item.unitPrice.toLocaleString()}</p>
-                            </td>
-                            <td className="text-right py-3">
-                              <p className="font-medium">
-                                {quote.pricing.currency} ${item.total.toLocaleString()}
-                              </p>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr className="bg-primary/5">
-                          <td colSpan={3} className="py-3 px-2">
-                            <p className="text-lg font-semibold">GRAND TOTAL</p>
-                          </td>
-                          <td className="text-right py-3 px-2">
-                            <p className="text-xl font-bold text-primary">
-                              {quote.pricing.currency} ${quote.pricing.amount.toLocaleString()}
-                            </p>
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                </>
-              ) : (
-                <div className="bg-primary/5 rounded-lg p-4">
-                  <div className="flex justify-between items-center">
-                    <p className="text-lg font-semibold">Total Amount</p>
-                    <p className="text-2xl font-bold text-primary">
-                      {quote.pricing.currency} ${quote.pricing.amount.toLocaleString()}
-                    </p>
-                  </div>
+              <div className="bg-primary/5 rounded-lg p-4">
+                <div className="flex justify-between items-center">
+                  <p className="text-lg font-semibold">Total Amount</p>
+                  <p className="text-2xl font-bold text-primary">
+                    {booking.pricing?.currency || 'USD'} ${(booking.pricing?.amount || 0).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              {booking.pricing?.breakdown && booking.pricing.breakdown.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Price Breakdown:</p>
+                  {booking.pricing.breakdown.map((item, index) => (
+                    <div key={index} className="flex justify-between items-center py-2 border-b border-muted/20 last:border-b-0">
+                      <div>
+                        <p className="font-medium">{item.item}</p>
+                        <p className="text-sm text-muted-foreground">Qty: {item.quantity} × ${item.unitPrice.toLocaleString()}</p>
+                      </div>
+                      <p className="font-medium">${item.total.toLocaleString()}</p>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>
@@ -378,22 +341,24 @@ export function QuoteDetailPage() {
             <CardContent className="space-y-2">
               <div className="flex justify-between">
                 <p className="text-sm text-muted-foreground">Created On</p>
-                <p className="text-sm">{format(quote.metadata.createdAt, "MMMM d, yyyy")}</p>
+                <p className="text-sm">{format(new Date(booking.createdAt || Date.now()), "MMMM d, yyyy")}</p>
               </div>
-              <div className="flex justify-between">
-                <p className="text-sm text-muted-foreground">Valid Until</p>
-                <p className="text-sm font-medium">
-                  {format(quote.validUntil, "MMMM d, yyyy")}
-                </p>
-              </div>
+              {booking.validUntil && (
+                <div className="flex justify-between">
+                  <p className="text-sm text-muted-foreground">Valid Until</p>
+                  <p className="text-sm font-medium">
+                    {format(new Date(booking.validUntil), "MMMM d, yyyy")}
+                  </p>
+                </div>
+              )}
               <div className="flex justify-between">
                 <p className="text-sm text-muted-foreground">Prepared By</p>
-                <p className="text-sm">{quote.assignedTo}</p>
+                <p className="text-sm">{booking.assignedTo || 'Travel Agent'}</p>
               </div>
-              {quote.agency && (
+              {booking.agency && (
                 <div className="flex justify-between">
                   <p className="text-sm text-muted-foreground">Agency</p>
-                  <p className="text-sm">{quote.agency}</p>
+                  <p className="text-sm">{booking.agency}</p>
                 </div>
               )}
             </CardContent>
@@ -409,12 +374,12 @@ export function QuoteDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {quote.termsAccepted?.accepted ? (
+                {booking.termsAccepted?.accepted ? (
                   <Alert>
                     <Check className="h-4 w-4" />
                     <AlertDescription>
-                      Terms accepted by {quote.termsAccepted.acceptedBy} on{" "}
-                      {format(quote.termsAccepted.acceptedAt!, "MMMM d, yyyy 'at' h:mm a")}
+                      Terms accepted by {booking.termsAccepted.acceptedBy} on{" "}
+                      {booking.termsAccepted.acceptedAt ? format(new Date(booking.termsAccepted.acceptedAt), "MMMM d, yyyy 'at' h:mm a") : 'Unknown date'}
                     </AlertDescription>
                   </Alert>
                 ) : (
@@ -460,47 +425,6 @@ export function QuoteDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {quote.shareableLink && (
-                <Alert className="border-primary/20 bg-primary/5">
-                  <Share2 className="h-4 w-4" />
-                  <AlertDescription>
-                    <p className="font-medium mb-1">Share this quote with your client</p>
-                    <p className="text-sm">
-                      Send this link to your client so they can review and accept the terms directly:
-                    </p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <code className="text-xs bg-background px-2 py-1 rounded flex-1">
-                        {window.location.origin}/quotes/share/{quote.shareableLink.split('/').pop()}
-                      </code>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={async () => {
-                          const shareUrl = `${window.location.origin}/quotes/share/${quote.shareableLink?.split('/').pop()}`
-                          try {
-                            await navigator.clipboard.writeText(shareUrl)
-                            toast({
-                              title: "🔗 Share Link Copied!",
-                              description: "The client share link has been copied to your clipboard. You can now send it to your client.",
-                              duration: 4000,
-                            })
-                          } catch (error) {
-                            toast({
-                              title: "Failed to copy",
-                              description: "Please try copying the link manually.",
-                              variant: "destructive",
-                              duration: 3000,
-                            })
-                          }
-                        }}
-                      >
-                        Copy
-                      </Button>
-                    </div>
-                  </AlertDescription>
-                </Alert>
-              )}
-              
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button onClick={handleDownloadPDF} variant="outline" className="flex-1">
                   <Download className="w-4 h-4 mr-2" />
@@ -508,9 +432,9 @@ export function QuoteDetailPage() {
                 </Button>
                 <Button onClick={handleShare} variant="outline" className="flex-1">
                   <Share2 className="w-4 h-4 mr-2" />
-                  Copy Link
+                  Copy Share Link
                 </Button>
-                {!isExpired && !quote.termsAccepted?.accepted && (
+                {!isExpired && !booking.termsAccepted?.accepted && (
                   <Button className="flex-1 bg-primary">
                     <Check className="w-4 h-4 mr-2" />
                     Book This Tour

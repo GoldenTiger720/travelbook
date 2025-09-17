@@ -372,15 +372,25 @@ const BookQuotePage = () => {
 
     // Send data to booking API endpoint using React Query
     createBookingMutation.mutate(bookingData, {
-      onSuccess: () => {
+      onSuccess: (newBooking) => {
+        // Generate shareable link
+        const shareableLink = `${window.location.origin}/quotes/share/${newBooking.id}`;
+
         Swal.fire({
           title: 'Success!',
           text: 'Quote created successfully',
           icon: 'success',
-          confirmButtonText: 'OK',
+          confirmButtonText: 'View Quote',
           confirmButtonColor: '#10b981'
+        }).then(() => {
+          // Redirect to the customer-facing quote view with booking data
+          navigate(`/quotes/share/${newBooking.id}`, {
+            state: {
+              bookingData: newBooking,
+              shareableLink: shareableLink
+            }
+          })
         })
-        // Stay on the same page - don't redirect
       },
       onError: (error: any) => {
         // Check if it's a duplicate key error
