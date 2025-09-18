@@ -12,35 +12,13 @@ import { useToast } from "@/components/ui/use-toast"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
-  MapPin,
-  Calendar,
-  Users,
   DollarSign,
-  User,
-  Mail,
-  Phone,
-  Building,
   Clock,
-  Check,
   Download,
   Share2,
-  FileText,
   CheckCircle,
-  Cake,
-  Baby,
-  UserPlus,
   Send
 } from "lucide-react"
-
-const getStatusColor = (status: string) => {
-  switch (status?.toLowerCase()) {
-    case "confirmed": case "approved": return "bg-green-100 text-green-800 border-green-200"
-    case "pending": case "draft": return "bg-yellow-100 text-yellow-800 border-yellow-200"
-    case "cancelled": case "canceled": return "bg-red-100 text-red-800 border-red-200"
-    case "expired": return "bg-gray-100 text-gray-800 border-gray-200"
-    default: return "bg-blue-100 text-blue-800 border-blue-200"
-  }
-}
 
 export function SharedQuotePage() {
   const { shareId } = useParams()
@@ -268,24 +246,6 @@ export function SharedQuotePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-green-600 text-white py-12 shadow-lg">
-        <div className="container mx-auto px-4 text-center">
-          <div className="flex items-center justify-center mb-4">
-            <div className="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-3">
-              <span className="text-2xl">✈️</span>
-            </div>
-            <h1 className="text-4xl font-bold">TravelBook</h1>
-          </div>
-          <p className="text-xl text-white/90">Your Personal Travel Quote</p>
-          <div className="mt-4">
-            <Badge variant="secondary" className="px-4 py-2 text-lg font-semibold">
-              Quote #{booking.bookingNumber || booking.id}
-            </Badge>
-          </div>
-        </div>
-      </div>
-
       <div className="container mx-auto py-8 px-4 max-w-5xl">
         {/* Status Alert */}
         {isExpired && (
@@ -315,268 +275,135 @@ export function SharedQuotePage() {
           </Alert>
         )}
 
-        {/* Main Content Grid */}
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Left Column - Tour Details */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Customer Information */}
-            <Card className="shadow-lg border-0">
-              <CardHeader className="bg-gradient-to-r from-blue-50 to-green-50 rounded-t-lg">
-                <CardTitle className="flex items-center gap-3 text-xl">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-blue-600" />
-                  </div>
-                  Prepared For
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <p className="text-sm text-gray-500 uppercase tracking-wide">Guest Name</p>
-                    <p className="text-lg font-semibold text-gray-800">{booking.customer?.name || 'Guest'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 uppercase tracking-wide">Email</p>
-                    <p className="text-lg font-medium text-gray-700">{booking.customer?.email || 'Not provided'}</p>
-                  </div>
-                  {booking.customer?.phone && (
-                    <div className="md:col-span-2">
-                      <p className="text-sm text-gray-500 uppercase tracking-wide">Phone</p>
-                      <p className="text-lg font-medium text-gray-700">{booking.customer.phone}</p>
-                    </div>
-                  )}
+        {/* Simplified Content - Only Investment Summary and Accept Terms */}
+        <div className="max-w-2xl mx-auto space-y-6">
+          {/* Pricing Summary */}
+          <Card className="shadow-lg border-0">
+            <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-t-lg">
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-purple-600" />
                 </div>
-              </CardContent>
-            </Card>
+                Investment Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="text-center mb-6">
+                <p className="text-sm text-gray-500 uppercase tracking-wide">Total Investment</p>
+                <p className="text-4xl font-bold text-green-600 mb-2">
+                  {currency} ${totalAmount.toLocaleString()}
+                </p>
+                <p className="text-sm text-gray-600">All tours and experiences included</p>
+              </div>
 
-            {/* Tour Experiences */}
-            <Card className="shadow-lg border-0">
-              <CardHeader className="bg-gradient-to-r from-green-50 to-blue-50 rounded-t-lg">
-                <CardTitle className="flex items-center gap-3 text-xl">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                    <MapPin className="w-5 h-5 text-green-600" />
-                  </div>
-                  Your Travel Experiences
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                {booking.tours && booking.tours.length > 0 ? (
-                  <div className="space-y-6">
-                    {booking.tours.map((tour, index) => (
-                      <div key={index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h3 className="text-lg font-semibold text-gray-800">{tour.tourName}</h3>
-                            <p className="text-sm text-gray-500">{tour.tourCode}</p>
-                          </div>
-                          <Badge className={getStatusColor('confirmed')}>
-                            Included
-                          </Badge>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-blue-600" />
-                            <div>
-                              <p className="text-sm text-gray-500">Date</p>
-                              <p className="font-medium">{format(new Date(tour.date), "MMM dd, yyyy")}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <Users className="w-4 h-4 text-green-600" />
-                            <div>
-                              <p className="text-sm text-gray-500">Travelers</p>
-                              <div className="flex flex-wrap gap-1">
-                                {tour.adultPax > 0 && (
-                                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                    {tour.adultPax} Adult{tour.adultPax > 1 ? 's' : ''}
-                                  </span>
-                                )}
-                                {tour.childPax > 0 && (
-                                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                                    {tour.childPax} Child{tour.childPax > 1 ? 'ren' : ''}
-                                  </span>
-                                )}
-                                {tour.infantPax > 0 && (
-                                  <span className="text-xs bg-pink-100 text-pink-800 px-2 py-1 rounded">
-                                    {tour.infantPax} Infant{tour.infantPax > 1 ? 's' : ''}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <DollarSign className="w-4 h-4 text-purple-600" />
-                            <div>
-                              <p className="text-sm text-gray-500">Tour Price</p>
-                              <p className="font-semibold text-green-600">${tour.subtotal.toLocaleString()}</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {tour.pickupAddress && (
-                          <div className="border-t pt-3">
-                            <p className="text-sm text-gray-500">Pickup Location</p>
-                            <p className="font-medium">{tour.pickupAddress}</p>
-                            {tour.pickupTime && (
-                              <p className="text-sm text-gray-600">Pickup Time: {tour.pickupTime}</p>
-                            )}
-                          </div>
-                        )}
-
-                        {tour.comments && (
-                          <div className="border-t pt-3 mt-3">
-                            <p className="text-sm text-gray-500">Special Notes</p>
-                            <p className="text-sm text-gray-700">{tour.comments}</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <MapPin className="w-8 h-8 text-gray-400" />
+              {booking.pricing?.breakdown && booking.pricing.breakdown.length > 0 && (
+                <div className="space-y-3 mb-6">
+                  <Separator />
+                  <p className="text-sm font-medium text-gray-700">Price Breakdown</p>
+                  {booking.pricing.breakdown.map((item, index) => (
+                    <div key={index} className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600">{item.item} x{item.quantity}</span>
+                      <span className="font-medium">${item.total.toLocaleString()}</span>
                     </div>
-                    <p className="text-gray-600">No tours added to this quote</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right Column - Pricing & Actions */}
-          <div className="space-y-6">
-            {/* Pricing Summary */}
-            <Card className="shadow-lg border-0 sticky top-6">
-              <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-t-lg">
-                <CardTitle className="flex items-center gap-3 text-xl">
-                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-purple-600" />
-                  </div>
-                  Investment Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="text-center mb-6">
-                  <p className="text-sm text-gray-500 uppercase tracking-wide">Total Investment</p>
-                  <p className="text-4xl font-bold text-green-600 mb-2">
-                    {currency} ${totalAmount.toLocaleString()}
-                  </p>
-                  <p className="text-sm text-gray-600">All tours and experiences included</p>
+                  ))}
                 </div>
+              )}
 
-                {booking.pricing?.breakdown && booking.pricing.breakdown.length > 0 && (
-                  <div className="space-y-3 mb-6">
-                    <Separator />
-                    <p className="text-sm font-medium text-gray-700">Price Breakdown</p>
-                    {booking.pricing.breakdown.map((item, index) => (
-                      <div key={index} className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600">{item.item} x{item.quantity}</span>
-                        <span className="font-medium">${item.total.toLocaleString()}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {booking.validUntil && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-6">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-yellow-600" />
-                      <div>
-                        <p className="text-sm font-medium text-yellow-800">Valid Until</p>
-                        <p className="text-sm text-yellow-700">
-                          {format(new Date(booking.validUntil), "MMMM dd, yyyy")}
-                        </p>
-                      </div>
+              {booking.validUntil && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-6">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-yellow-600" />
+                    <div>
+                      <p className="text-sm font-medium text-yellow-800">Valid Until</p>
+                      <p className="text-sm text-yellow-700">
+                        {format(new Date(booking.validUntil), "MMMM dd, yyyy")}
+                      </p>
                     </div>
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Action Buttons */}
-                <div className="space-y-3">
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                <Button
+                  onClick={handleSendEmail}
+                  disabled={sendingEmail}
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  {sendingEmail ? "Sending..." : "Send by Email"}
+                </Button>
+                <Button onClick={handleDownloadPDF} variant="outline" className="w-full">
+                  <Download className="w-4 h-4 mr-2" />
+                  Download PDF
+                </Button>
+                <Button onClick={handleShare} variant="outline" className="w-full">
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share Quote
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Terms & Conditions */}
+          {!isExpired && !booking.termsAccepted?.accepted && (
+            <Card className="shadow-lg border-0">
+              <CardHeader className="bg-gradient-to-r from-orange-50 to-red-50 rounded-t-lg">
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 text-orange-600" />
+                  </div>
+                  Accept Terms
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="text-sm text-gray-600 space-y-2">
+                    <p>• Prices are subject to availability at the time of booking</p>
+                    <p>• Payment terms apply as discussed with your travel consultant</p>
+                    <p>• Cancellation policies vary by service provider</p>
+                    <p>• Travel insurance is recommended for your protection</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="customer-email">Confirm Your Email</Label>
+                      <Input
+                        id="customer-email"
+                        type="email"
+                        value={customerEmail}
+                        onChange={(e) => setCustomerEmail(e.target.value)}
+                        placeholder="your.email@example.com"
+                        className="mt-1"
+                      />
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="terms"
+                        checked={termsAccepted}
+                        onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
+                      />
+                      <label
+                        htmlFor="terms"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        I accept the terms and conditions
+                      </label>
+                    </div>
+                  </div>
+
                   <Button
-                    onClick={handleSendEmail}
-                    disabled={sendingEmail}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    onClick={handleAcceptTerms}
+                    disabled={!termsAccepted || acceptingTerms || !customerEmail}
+                    className="w-full bg-green-600 hover:bg-green-700"
                   >
-                    <Send className="w-4 h-4 mr-2" />
-                    {sendingEmail ? "Sending..." : "Send by Email"}
-                  </Button>
-                  <Button onClick={handleDownloadPDF} variant="outline" className="w-full">
-                    <Download className="w-4 h-4 mr-2" />
-                    Download PDF
-                  </Button>
-                  <Button onClick={handleShare} variant="outline" className="w-full">
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Share Quote
+                    {acceptingTerms ? "Processing..." : "Accept & Confirm Interest"}
                   </Button>
                 </div>
               </CardContent>
             </Card>
-
-            {/* Terms & Conditions */}
-            {!isExpired && !booking.termsAccepted?.accepted && (
-              <Card className="shadow-lg border-0">
-                <CardHeader className="bg-gradient-to-r from-orange-50 to-red-50 rounded-t-lg">
-                  <CardTitle className="flex items-center gap-3 text-xl">
-                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                      <CheckCircle className="w-5 h-5 text-orange-600" />
-                    </div>
-                    Accept Terms
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <div className="text-sm text-gray-600 space-y-2">
-                      <p>• Prices are subject to availability at the time of booking</p>
-                      <p>• Payment terms apply as discussed with your travel consultant</p>
-                      <p>• Cancellation policies vary by service provider</p>
-                      <p>• Travel insurance is recommended for your protection</p>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div>
-                        <Label htmlFor="customer-email">Confirm Your Email</Label>
-                        <Input
-                          id="customer-email"
-                          type="email"
-                          value={customerEmail}
-                          onChange={(e) => setCustomerEmail(e.target.value)}
-                          placeholder="your.email@example.com"
-                          className="mt-1"
-                        />
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="terms"
-                          checked={termsAccepted}
-                          onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
-                        />
-                        <label
-                          htmlFor="terms"
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          I accept the terms and conditions
-                        </label>
-                      </div>
-                    </div>
-
-                    <Button
-                      onClick={handleAcceptTerms}
-                      disabled={!termsAccepted || acceptingTerms || !customerEmail}
-                      className="w-full bg-green-600 hover:bg-green-700"
-                    >
-                      {acceptingTerms ? "Processing..." : "Accept & Confirm Interest"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Footer */}
