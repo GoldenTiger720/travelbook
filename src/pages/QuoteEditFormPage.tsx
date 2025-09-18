@@ -286,8 +286,10 @@ const QuoteEditFormPage = () => {
             <p className="text-muted-foreground">Update quote information and tours</p>
           </div>
 
-          <form className="space-y-6 w-full max-w-full overflow-x-hidden" onSubmit={handleSubmit}>
-        <div className="w-full max-w-full overflow-x-hidden">
+          <form className="w-full max-w-full overflow-x-hidden" onSubmit={handleSubmit}>
+        <div className="w-full max-w-full overflow-x-hidden space-y-12">
+
+        {/* Booking or quotation configuration */}
         <QuoteConfigSection
           assignedTo={formData.assignedTo}
           currency={formData.pricing?.currency}
@@ -297,6 +299,7 @@ const QuoteEditFormPage = () => {
           onLeadSourceChange={(value) => handleFieldChange('leadSource', value)}
         />
 
+        {/* Client Information */}
         <CustomerInfoSection
           customer={formData.customer}
           tourDetails={formData.tourDetails}
@@ -306,6 +309,7 @@ const QuoteEditFormPage = () => {
           onAdditionalNotesChange={(value) => handleFieldChange('additionalNotes', value)}
         />
 
+        {/* Add Tour */}
         <TourBookingSection
           currency={formData.pricing?.currency}
           getCurrencySymbol={getCurrencySymbol}
@@ -314,6 +318,7 @@ const QuoteEditFormPage = () => {
           onUpdateTour={handleUpdateTour}
         />
 
+        {/* Bookings List */}
         <TourListSection
           tours={formData.tours}
           currency={formData.pricing?.currency}
@@ -321,6 +326,7 @@ const QuoteEditFormPage = () => {
           calculateGrandTotal={calculateGrandTotal}
         />
 
+        {/* Payment details */}
         <PaymentDetailsSection
           includePayment={formData.includePayment}
           currency={formData.pricing?.currency}
@@ -328,6 +334,7 @@ const QuoteEditFormPage = () => {
           calculateGrandTotal={calculateGrandTotal}
         />
 
+        {/* Booking Options */}
         <BookingOptionsSection
           includePayment={formData.includePayment}
           copyComments={formData.copyComments}
