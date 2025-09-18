@@ -58,9 +58,70 @@ const TourListSection: React.FC<TourListSectionProps> = ({
           {t("quotes.tourBookingsList")}
         </CardTitle>
       </CardHeader>
-      <CardContent className="overflow-x-hidden">
-        {/* Responsive Table Layout */}
-        <div className="overflow-x-auto">
+      <CardContent className="overflow-x-hidden p-3 sm:p-6">
+        {/* Mobile Card Layout - Visible on mobile */}
+        <div className="block sm:hidden space-y-4">
+          {tours.length > 0 ? tours.map((tour) => (
+            <div key={tour.id} className="border rounded-lg p-4 space-y-3 bg-gray-50">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="font-medium text-sm break-words">{tour.tourName}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {format(new Date(tour.date), "dd/MM/yyyy")}
+                    {tour.pickupTime && ` • ${tour.pickupTime}`}
+                  </div>
+                  {tour.pickupAddress && (
+                    <div className="text-xs text-muted-foreground flex items-center mt-1">
+                      <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
+                      <span className="break-words">{tour.pickupAddress}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs">
+                {tour.operator === "own-operation" && (
+                  <Building className="w-3 h-3 flex-shrink-0" />
+                )}
+                <span className="text-muted-foreground">Operator:</span>
+                <span className="break-words">
+                  {tour.operator === "own-operation" ? t("quotes.ownOperation") : tour.operator}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div>
+                  <div className="text-muted-foreground">Adults</div>
+                  <div className="font-medium">{tour.adultPax}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {getCurrencySymbol(currency || "CLP")} {tour.adultPrice.toLocaleString()}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Children</div>
+                  <div className="font-medium">{tour.childPax}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {getCurrencySymbol(currency || "CLP")} {tour.childPrice.toLocaleString()}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Infants</div>
+                  <div className="font-medium">{tour.infantPax}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {getCurrencySymbol(currency || "CLP")} {tour.infantPrice.toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )) : (
+            <div className="text-center text-muted-foreground py-8 text-sm">
+              {t("quotes.noBookingsAdded")}
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Table Layout - Hidden on mobile */}
+        <div className="hidden sm:block overflow-x-auto">
           <Table className="min-w-full">
             <TableHeader>
               <TableRow>
@@ -138,11 +199,11 @@ const TourListSection: React.FC<TourListSectionProps> = ({
         </div>
 
         <div className="mt-4 pt-4 border-t">
-          <div className="flex justify-between items-center gap-4">
-            <span className="text-xl font-bold flex-shrink-0">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-4">
+            <span className="text-lg sm:text-xl font-bold">
               {t("quotes.grandTotal")}
             </span>
-            <span className="text-2xl font-bold text-green-600 break-words text-right">
+            <span className="text-xl sm:text-2xl font-bold text-green-600 break-words">
               {getCurrencySymbol(currency || "CLP")}{" "}
               {calculateGrandTotal().toLocaleString()}
             </span>

@@ -49,7 +49,7 @@ const BookingOptionsSection: React.FC<BookingOptionsSectionProps> = ({
 
   return (
     <Card>
-      <CardContent className="pt-6">
+      <CardContent className="p-3 sm:p-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column */}
           <div className="space-y-4">

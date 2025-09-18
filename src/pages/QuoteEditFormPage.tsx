@@ -279,15 +279,15 @@ const QuoteEditFormPage = () => {
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden">
-      <div className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6">
-        <div className="space-y-6 max-w-full overflow-x-hidden">
+      <div className="container mx-auto max-w-6xl px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
+        <div className="space-y-4 sm:space-y-6 max-w-full overflow-x-hidden">
           <div>
-            <h1 className="text-2xl font-bold">Edit Quote</h1>
-            <p className="text-muted-foreground">Update quote information and tours</p>
+            <h1 className="text-xl sm:text-2xl font-bold">Edit Quote</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">Update quote information and tours</p>
           </div>
 
           <form className="w-full max-w-full overflow-x-hidden" onSubmit={handleSubmit}>
-        <div className="w-full max-w-full overflow-x-hidden space-y-12">
+        <div className="w-full max-w-full overflow-x-hidden space-y-6 sm:space-y-8 lg:space-y-12">
 
         {/* Booking or quotation configuration */}
         <QuoteConfigSection
