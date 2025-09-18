@@ -99,8 +99,8 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
           {t("quotes.addTourBooking")}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <CardContent className="space-y-4 overflow-x-hidden">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <div>
             <Label>{t("quotes.destination")}</Label>
             <Select
@@ -247,7 +247,7 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
           <div>
             <Label>{t("quotes.adultsPax")}</Label>
             <Input
@@ -319,8 +319,8 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
           />
         </div>
 
-        <div className="flex justify-between items-center">
-          <div className="text-lg font-semibold">
+        <div className="flex justify-between items-center gap-4">
+          <div className="text-lg font-semibold break-words">
             Subtotal: {getCurrencySymbol(currency || "CLP")}{" "}
             {(() => {
               if (!tourBooking) return "0";

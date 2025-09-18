@@ -147,6 +147,7 @@ const QuoteEditFormPage = () => {
 
     try {
       // Format the data to match the backend expectations (same as quotes page)
+      // Remove agency, hasMultipleAddresses, and paymentDetails
       const bookingData = {
         customer: {
           name: formData.customer?.name || '',
@@ -180,26 +181,15 @@ const QuoteEditFormPage = () => {
         },
         leadSource: formData.leadSource || '',
         assignedTo: formData.assignedTo || '',
-        agency: formData.agency || null,
         status: formData.status || 'pending',
         validUntil: formData.validUntil || new Date(),
         additionalNotes: formData.additionalNotes || '',
-        hasMultipleAddresses: formData.hasMultipleAddresses || false,
         termsAccepted: formData.termsAccepted || { accepted: false },
         quotationComments: formData.quotationComments || '',
         includePayment: formData.includePayment || false,
         copyComments: formData.copyComments || true,
         sendPurchaseOrder: formData.sendPurchaseOrder || true,
         sendQuotationAccess: formData.sendQuotationAccess || true,
-        paymentDetails: formData.paymentDetails || {
-          date: new Date(),
-          method: '',
-          percentage: 50,
-          amountPaid: 0,
-          comments: '',
-          status: '',
-          receiptFile: null,
-        },
       };
 
       await updateBookingMutation.mutateAsync({
@@ -288,13 +278,16 @@ const QuoteEditFormPage = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-full overflow-x-hidden">
-      <div>
-        <h1 className="text-2xl font-bold">Edit Quote</h1>
-        <p className="text-muted-foreground">Update quote information and tours</p>
-      </div>
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden">
+      <div className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6">
+        <div className="space-y-6 max-w-full overflow-x-hidden">
+          <div>
+            <h1 className="text-2xl font-bold">Edit Quote</h1>
+            <p className="text-muted-foreground">Update quote information and tours</p>
+          </div>
 
-      <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6 w-full max-w-full overflow-x-hidden" onSubmit={handleSubmit}>
+        <div className="w-full max-w-full overflow-x-hidden">
         <QuoteConfigSection
           assignedTo={formData.assignedTo}
           currency={formData.pricing?.currency}
@@ -350,7 +343,10 @@ const QuoteEditFormPage = () => {
           onValidUntilChange={(value) => handleFieldChange('validUntil', value)}
           onQuotationCommentsChange={(value) => handleFieldChange('quotationComments', value)}
         />
-      </form>
+        </div>
+          </form>
+        </div>
+      </div>
     </div>
   );
 };
