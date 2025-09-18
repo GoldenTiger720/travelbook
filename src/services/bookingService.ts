@@ -146,6 +146,7 @@ interface BookingResponse {
   copyComments?: boolean
   sendPurchaseOrder?: boolean
   sendQuotationAccess?: boolean
+  shareableLink?: string
   paymentDetails?: {
     date?: Date | string
     method?: string

@@ -186,7 +186,16 @@ const BookQuotePage = () => {
     return tourBookings.reduce((total, tour) => total + tour.subtotal, 0)
   }
 
+  // Generate a unique shareable link
+  const generateShareableLink = () => {
+    const timestamp = Date.now().toString()
+    const randomString = Math.random().toString(36).substring(2, 15)
+    return `${timestamp}-${randomString}`
+  }
+
   const createBookingData = (bookings: TourBooking[]) => {
+    const shareableLink = generateShareableLink()
+
     return {
       customer: {
         name: formData.name || t('quotes.guest'),
@@ -260,6 +269,7 @@ const BookQuotePage = () => {
       copyComments,
       sendPurchaseOrder,
       sendQuotationAccess,
+      shareableLink: shareableLink, // Include the generated shareable link
       // Include payment details if payment is included
       paymentDetails: includePayment ? {
         date: paymentDate,
@@ -373,8 +383,8 @@ const BookQuotePage = () => {
     // Send data to booking API endpoint using React Query
     createBookingMutation.mutate(bookingData, {
       onSuccess: (newBooking) => {
-        // Generate shareable link
-        const shareableLink = `${window.location.origin}/quotes/share/${newBooking.id}`;
+        // Use the shareable link from the booking data
+        const shareableLink = newBooking.shareableLink;
 
         Swal.fire({
           title: 'Success!',
@@ -384,7 +394,7 @@ const BookQuotePage = () => {
           confirmButtonColor: '#10b981'
         }).then(() => {
           // Redirect to the customer-facing quote view with booking data
-          navigate(`/quotes/share/${newBooking.id}`, {
+          navigate(`/quotes/share/${shareableLink}`, {
             state: {
               bookingData: newBooking,
               shareableLink: shareableLink

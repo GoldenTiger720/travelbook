@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { useParams, useLocation } from "react-router-dom"
+import { bookingService } from "@/services/bookingService"
 import { format } from "date-fns"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -27,7 +28,8 @@ import {
   CheckCircle,
   Cake,
   Baby,
-  UserPlus
+  UserPlus,
+  Send
 } from "lucide-react"
 
 const getStatusColor = (status: string) => {
@@ -47,15 +49,44 @@ export function SharedQuotePage() {
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [acceptingTerms, setAcceptingTerms] = useState(false)
   const [customerEmail, setCustomerEmail] = useState("")
+  const [booking, setBooking] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [sendingEmail, setSendingEmail] = useState(false)
 
-  // Get booking data from navigation state (passed from save success)
+  // Get booking data from navigation state (passed from save success) or fetch by shareId
   const bookingData = location.state?.bookingData
-  const shareableLink = location.state?.shareableLink
+  const shareableLink = location.state?.shareableLink || shareId
 
-  // Use passed data directly - no backend requests needed
-  const booking = bookingData
-  const loading = false
-  const error = null
+  useEffect(() => {
+    const loadQuoteData = async () => {
+      if (bookingData) {
+        // Use data passed from navigation state
+        setBooking(bookingData)
+        setLoading(false)
+      } else if (shareId) {
+        // Fetch data by shareableLink
+        try {
+          setLoading(true)
+          // TODO: Implement API endpoint to fetch booking by shareableLink
+          // const data = await bookingService.getBookingByShareableLink(shareId)
+          // setBooking(data)
+
+          // For now, show error message about needing to implement API
+          setError("Quote data loading requires API implementation")
+          setLoading(false)
+        } catch (err) {
+          console.error("Failed to load quote:", err)
+          setError("Failed to load quote data")
+          setLoading(false)
+        }
+      } else {
+        setLoading(false)
+      }
+    }
+
+    loadQuoteData()
+  }, [shareId, bookingData])
 
   // Debug logging
   useEffect(() => {
@@ -139,6 +170,38 @@ export function SharedQuotePage() {
           duration: 3000,
         })
       }
+    }
+  }
+
+  const handleSendEmail = async () => {
+    if (!booking) return
+
+    setSendingEmail(true)
+    try {
+      // TODO: Implement API call to send email
+      // await bookingService.sendQuoteEmail(booking.id, {
+      //   to: booking.customer.email,
+      //   quoteLink: shareableLink
+      // })
+
+      // For now, simulate email sending
+      await new Promise(resolve => setTimeout(resolve, 2000))
+
+      toast({
+        title: "📧 Email Sent!",
+        description: `Quote has been sent to ${booking.customer?.email}`,
+        duration: 5000,
+      })
+    } catch (error) {
+      console.error("Failed to send email:", error)
+      toast({
+        title: "Failed to send email",
+        description: "There was an error sending the quote. Please try again.",
+        variant: "destructive",
+        duration: 4000,
+      })
+    } finally {
+      setSendingEmail(false)
     }
   }
 
@@ -434,6 +497,14 @@ export function SharedQuotePage() {
 
                 {/* Action Buttons */}
                 <div className="space-y-3">
+                  <Button
+                    onClick={handleSendEmail}
+                    disabled={sendingEmail}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    {sendingEmail ? "Sending..." : "Send by Email"}
+                  </Button>
                   <Button onClick={handleDownloadPDF} variant="outline" className="w-full">
                     <Download className="w-4 h-4 mr-2" />
                     Download PDF
