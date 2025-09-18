@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { useQueryClient } from "@tanstack/react-query"
 import Swal from 'sweetalert2'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,22 +10,18 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { Badge } from "@/components/ui/badge"
-import { useToast } from "@/components/ui/use-toast"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { 
-  CalendarIcon, 
-  AlertCircle, 
-  Trash2, 
-  Edit2, 
+import {
+  CalendarIcon,
+  Trash2,
+  Edit2,
   Plus,
   MapPin,
   Building
 } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
-import { quoteService } from "@/services/quoteService"
 import { tourCatalogService } from "@/services/tourCatalogService"
 import { useCreateBooking, useCreateBookingPayment } from "@/hooks/useBookings"
 import { Tour, TourBooking } from "@/types/tour"
@@ -40,8 +37,8 @@ import {
 
 const BookQuotePage = () => {
   const navigate = useNavigate()
-  const { toast } = useToast()
   const { t } = useLanguage()
+  const queryClient = useQueryClient()
   const createBookingMutation = useCreateBooking()
   const createBookingPaymentMutation = useCreateBookingPayment()
   const [availableTours, setAvailableTours] = useState<Tour[]>([])
@@ -314,7 +311,9 @@ const BookQuotePage = () => {
       infantPrice: currentTour.infantPrice || 0,
       subtotal: calculateSubtotal(currentTour),
       operator: currentTour.operator,
-      comments: currentTour.comments
+      comments: currentTour.comments,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     }
 
     if (editingTourId) {
@@ -395,6 +394,15 @@ const BookQuotePage = () => {
           final: shareableLink
         });
 
+        // Store the successful API response in React Query cache for SharedQuotePage
+        queryClient.setQueryData(['shared-quote', shareableLink], newBooking);
+
+        console.log('Quote data stored in cache after API success:', {
+          shareableLink,
+          cacheKey: ['shared-quote', shareableLink],
+          data: newBooking
+        });
+
         Swal.fire({
           title: 'Success!',
           text: 'Quote created successfully',
@@ -402,13 +410,8 @@ const BookQuotePage = () => {
           confirmButtonText: 'View Quote',
           confirmButtonColor: '#10b981'
         }).then(() => {
-          // Redirect to the customer-facing quote view with booking data
-          navigate(`/quotes/share/${shareableLink}`, {
-            state: {
-              bookingData: newBooking,
-              shareableLink: shareableLink
-            }
-          })
+          // Redirect to the customer-facing quote view
+          navigate(`/quotes/share/${shareableLink}`)
         })
       },
       onError: (error: any) => {
