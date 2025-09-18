@@ -380,11 +380,20 @@ const BookQuotePage = () => {
     // Create booking data with all form information using helper function
     const bookingData = createBookingData(tourBookings)
 
+    // Store the generated shareableLink for fallback
+    const generatedShareableLink = bookingData.shareableLink
+
     // Send data to booking API endpoint using React Query
     createBookingMutation.mutate(bookingData, {
       onSuccess: (newBooking) => {
-        // Use the shareable link from the booking data
-        const shareableLink = newBooking.shareableLink;
+        // Use the shareable link from the booking response, or fallback to the one we generated
+        const shareableLink = newBooking.shareableLink || generatedShareableLink || generateShareableLink();
+
+        console.log('ShareableLink debug:', {
+          fromResponse: newBooking.shareableLink,
+          generated: generatedShareableLink,
+          final: shareableLink
+        });
 
         Swal.fire({
           title: 'Success!',
