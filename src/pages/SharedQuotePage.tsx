@@ -232,7 +232,7 @@ export function SharedQuotePage() {
         {/* Document Header */}
         <div className="text-center border-b-2 border-gray-200 pb-4 mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Travel Quotation</h1>
-          <p className="text-sm text-gray-600">Quote ID: {booking.id}</p>
+          <p className="text-sm text-gray-600">Public Link: {(apiResponse as ApiResponse)?.shareableLink || shareId}</p>
           {isExpired && (
             <p className="text-sm text-red-600 mt-1">⚠️ This quote expired on {format(new Date(booking.validUntil!), "MMMM d, yyyy")}</p>
           )}
@@ -525,17 +525,6 @@ export function SharedQuotePage() {
           )}
         </div>
 
-        {/* Document Footer */}
-        <div className="mt-8 pt-4 border-t border-gray-200 text-center">
-          <div className="text-sm text-gray-600">
-            <p className="font-semibold">Need assistance?</p>
-            <p>Our travel experts are here to help you</p>
-            <div className="mt-2 space-y-1">
-              <p>Email: <a href="mailto:info@travelbook.com" className="text-blue-600">info@travelbook.com</a></p>
-              <p>Phone: <a href="tel:+1234567890" className="text-blue-600">+1 (234) 567-8900</a></p>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   )
