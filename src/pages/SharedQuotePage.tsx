@@ -199,24 +199,22 @@ export function SharedQuotePage() {
   }
 
   if (!booking) {
+    // Check if we have an API error response with a specific message
+    const apiError = apiResponse as ApiResponse
+    const errorMessage = apiError?.success === false && apiError?.message
+      ? apiError.message
+      : "The requested quote could not be found or has expired."
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="max-w-md w-full text-center p-8">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-2xl">📄</span>
           </div>
-          <h3 className="text-lg font-semibold mb-2">Quote not found</h3>
+          <h3 className="text-lg font-semibold mb-2">Access Denied</h3>
           <p className="text-gray-600 mb-6">
-            The requested quote could not be found or has expired.
+            {errorMessage}
           </p>
-          <div className="space-y-3">
-            <Button
-              onClick={() => window.location.href = '/quotes'}
-              className="w-full"
-            >
-              Create new quote
-            </Button>
-          </div>
         </div>
       </div>
     )
