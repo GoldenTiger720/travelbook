@@ -343,11 +343,15 @@ class BookingService {
 
   async createBookingPayment(paymentData: {
     bookingId?: string
+    quotationId?: string
     customer: {
       name: string
       email: string
       phone?: string
     }
+    tours?: any[]
+    tourDetails?: any
+    pricing?: any
     paymentDetails: {
       date?: Date
       method?: string
@@ -364,7 +368,17 @@ class BookingService {
       quotationComments?: string
       sendQuotationAccess?: boolean
     }
-  }): Promise<any> {
+  }): Promise<{
+    success: boolean
+    message: string
+    data: {
+      bookingId: string
+      reservationId: string
+      purchaseOrderId?: string
+      paymentId?: string
+      status: 'confirmed'
+    }
+  }> {
     try {
       const response = await apiCall('/api/booking/payment/', {
         method: 'POST',

@@ -112,19 +112,22 @@ export function useDeleteBooking() {
   })
 }
 
-// Create booking payment mutation
+// Create booking payment mutation (converts quotation to confirmed reservation)
 export function useCreateBookingPayment() {
   const queryClient = useQueryClient()
-  const { toast } = useToast()
 
   return useMutation({
     mutationFn: (paymentData: {
       bookingId?: string
+      quotationId?: string
       customer: {
         name: string
         email: string
         phone?: string
       }
+      tours?: any[]
+      tourDetails?: any
+      pricing?: any
       paymentDetails: {
         date?: Date
         method?: string
@@ -142,20 +145,15 @@ export function useCreateBookingPayment() {
         sendQuotationAccess?: boolean
       }
     }) => bookingService.createBookingPayment(paymentData),
-    onSuccess: (data) => {
+    onSuccess: () => {
+      // Invalidate bookings cache to refresh All Reservations
       queryClient.invalidateQueries({ queryKey: bookingKeys.lists() })
-      toast({
-        title: 'Payment Processed',
-        description: 'Booking payment details have been successfully processed',
-      })
+      queryClient.invalidateQueries({ queryKey: ['reservations'] })
+      // Note: Success handling is done in component for better UX control
     },
     onError: (error) => {
-      console.error('Error creating booking payment:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to process booking payment',
-        variant: 'destructive',
-      })
+      console.error('Error converting quotation to booking:', error)
+      // Note: Error handling is done in component for better UX control
     },
   })
 }
@@ -174,7 +172,7 @@ export function useConvertQuoteToBooking() {
       
       toast({
         title: 'Booking Created',
-        description: `Quote has been converted to booking ${newBooking.bookingNumber}`,
+        description: `Quote has been converted to booking ${newBooking.id}`,
       })
     },
     onError: (error) => {

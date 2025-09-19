@@ -464,13 +464,19 @@ const BookQuotePage = () => {
       return
     }
 
-    // Prepare payment data to send to the backend
+    // Create comprehensive booking data for conversion to confirmed reservation
+    const fullBookingData = createBookingData(tourBookings)
+
+    // Prepare payment data to send to the backend for booking conversion
     const paymentData = {
       customer: {
         name: formData.name || t('quotes.guest'),
         email: formData.email || "noemail@example.com",
         phone: formData.phone || "",
       },
+      tours: tourBookings,
+      tourDetails: fullBookingData.tourDetails,
+      pricing: fullBookingData.pricing,
       paymentDetails: {
         date: paymentDate,
         method: paymentMethod,
@@ -489,22 +495,90 @@ const BookQuotePage = () => {
       }
     }
 
-    // Send payment data to the backend
+    // Send payment data to the backend to convert quotation to confirmed reservation
     createBookingPaymentMutation.mutate(paymentData, {
-      onSuccess: () => {
-        // Show success message
+      onSuccess: (response) => {
+        console.log('Booking conversion successful:', response)
+
+        // Show success message with details
         Swal.fire({
-          title: t('quotes.tourSavedSuccessfully'),
+          title: '✅ Booking Confirmed!',
+          html: `
+            <div class="text-left">
+              <p><strong>Reservation ID:</strong> ${response.data?.reservationId || 'Generated'}</p>
+              ${response.data?.purchaseOrderId ? `<p><strong>Purchase Order:</strong> ${response.data.purchaseOrderId}</p>` : ''}
+              ${response.data?.paymentId ? `<p><strong>Payment ID:</strong> ${response.data.paymentId}</p>` : ''}
+              <p class="mt-3 text-sm text-gray-600">
+                • Quotation converted to confirmed reservation<br/>
+                • Record moved to "All Reservations"<br/>
+                ${copyComments ? '• Comments copied to Purchase Order<br/>' : ''}
+                ${includePayment ? '• Payment workflow activated in Financial<br/>' : ''}
+                ${sendPurchaseOrder ? '• Purchase Order generated<br/>' : ''}
+              </p>
+            </div>
+          `,
           icon: 'success',
-          confirmButtonText: t('quotes.ok'),
-          confirmButtonColor: '#10b981'
+          confirmButtonText: 'View All Reservations',
+          showCancelButton: true,
+          cancelButtonText: 'Create New Quote',
+          confirmButtonColor: '#10b981',
+          cancelButtonColor: '#6b7280'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // Navigate to All Reservations page
+            navigate('/reservations/all')
+          } else {
+            // Reset form for new quote
+            setTourBookings([])
+            setFormData({
+              salesperson: "",
+              currency: "CLP",
+              origin: "",
+              name: "",
+              idPassport: "",
+              email: "",
+              phone: "",
+              language: "",
+              countryOfOrigin: "",
+              address: "",
+              cpf: "",
+              defaultHotel: "",
+              defaultRoom: "",
+              accommodationComments: ""
+            })
+            setCurrentTour({
+              tourId: "",
+              date: undefined,
+              pickupAddress: "",
+              pickupTime: "",
+              adultPax: 1,
+              adultPrice: 0,
+              childPax: 0,
+              childPrice: 0,
+              infantPax: 0,
+              infantPrice: 0,
+              operator: "own-operation",
+              comments: ""
+            })
+          }
         })
+
+        // Invalidate the bookings cache to refresh All Reservations data
+        queryClient.invalidateQueries({ queryKey: ['bookings'] })
       },
       onError: (error) => {
-        console.error("Payment processing error:", error)
+        console.error("Booking conversion error:", error)
+
+        let errorMessage = 'Failed to convert quotation to reservation'
+        if ((error as any)?.response?.data?.message) {
+          errorMessage = (error as any).response.data.message
+        } else if (error?.message) {
+          errorMessage = error.message
+        }
+
         Swal.fire({
-          title: 'Payment Error',
-          text: 'Failed to process payment details',
+          title: 'Booking Conversion Failed',
+          text: errorMessage,
           icon: 'error',
           confirmButtonText: 'OK',
           confirmButtonColor: '#ef4444'
@@ -932,18 +1006,18 @@ const BookQuotePage = () => {
               <Table>
                 <TableHeader>
                 <TableRow>
-                  <TableHead>{t('quotes.operationDate')}</TableHead>
-                  <TableHead>{t('quotes.pickupTime')}</TableHead>
-                  <TableHead>{t('quotes.tour')}</TableHead>
-                  <TableHead>{t('quotes.operator')}</TableHead>
-                  <TableHead className="text-center">{t('quotes.adultPax')}</TableHead>
-                  <TableHead className="text-right">{t('quotes.adultPrice')}</TableHead>
-                  <TableHead className="text-center">{t('quotes.childPax')}</TableHead>
-                  <TableHead className="text-right">{t('quotes.childPrice')}</TableHead>
-                  <TableHead className="text-center">{t('quotes.infantPax')}</TableHead>
-                  <TableHead className="text-right">{t('quotes.infantPrice')}</TableHead>
-                  <TableHead className="text-right">{t('quotes.subTotal')}</TableHead>
-                  <TableHead className="text-center">{t('quotes.actions')}</TableHead>
+                  <TableHead className="text-sm">{t('quotes.operationDate')}</TableHead>
+                  <TableHead className="text-sm">{t('quotes.pickupTime')}</TableHead>
+                  <TableHead className="text-sm">{t('quotes.tour')}</TableHead>
+                  <TableHead className="text-sm">{t('quotes.operator')}</TableHead>
+                  <TableHead className="text-center text-sm">{t('quotes.adultPax')}</TableHead>
+                  <TableHead className="text-right text-sm">{t('quotes.adultPrice')}</TableHead>
+                  <TableHead className="text-center text-sm">{t('quotes.childPax')}</TableHead>
+                  <TableHead className="text-right text-sm">{t('quotes.childPrice')}</TableHead>
+                  <TableHead className="text-center text-sm">{t('quotes.infantPax')}</TableHead>
+                  <TableHead className="text-right text-sm">{t('quotes.infantPrice')}</TableHead>
+                  <TableHead className="text-right text-sm">{t('quotes.subTotal')}</TableHead>
+                  <TableHead className="text-center text-sm">{t('quotes.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
