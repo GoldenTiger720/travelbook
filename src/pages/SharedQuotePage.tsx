@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react"
-import { useParams, useLocation } from "react-router-dom"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
-import type { BookingResponse } from "@/services/bookingService"
+import { useParams } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
+import { bookingService, type BookingResponse } from "@/services/bookingService"
 
-// Extended interface to ensure shareableLink is available
-interface ExtendedBookingResponse extends BookingResponse {
-  shareableLink?: string
+// API Response structure for public booking endpoint
+interface ApiResponse {
+  success: boolean
+  message: string
+  data: BookingResponse
+  shareableLink: string
+  timestamp: string
 }
 import { format } from "date-fns"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -44,40 +48,53 @@ const getStatusColor = (status: string) => {
 export function SharedQuotePage() {
   const { shareId } = useParams()
   const { toast } = useToast()
-  const queryClient = useQueryClient()
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [acceptingTerms, setAcceptingTerms] = useState(false)
   const [customerEmail, setCustomerEmail] = useState("")
   const [sendingEmail, setSendingEmail] = useState(false)
 
-  // Get quote data from React Query cache
-  const booking = queryClient.getQueryData<ExtendedBookingResponse>(['shared-quote', shareId])
-  const loading = false // Since we're reading from cache, no loading state
-  const error = !booking && shareId ? 'No quote data found in cache' : null
+  // Fetch quote data from backend API
+  const { data: apiResponse, isLoading: loading, error } = useQuery<BookingResponse | ApiResponse>({
+    queryKey: ['shared-booking', shareId],
+    queryFn: async () => {
+      if (!shareId) throw new Error('No share ID provided')
+
+      console.log('Fetching booking data from API:', `/api/booking/${shareId}/`)
+
+      // Try to get booking by share ID from the API
+      const response = await bookingService.getSharedBooking(shareId)
+
+      console.log('API Response:', response)
+      return response
+    },
+    enabled: !!shareId,
+    retry: (failureCount, error) => {
+      console.log('Retry attempt:', failureCount, error)
+      return failureCount < 2 // Only retry once
+    },
+    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+  })
+
+  // Extract booking data from the API response structure
+  // The API returns: { success: true, message: "...", data: { booking data }, shareableLink: "..." }
+  const booking = apiResponse?.data || apiResponse // Handle both nested and direct response structures
 
   // Debug logging
   useEffect(() => {
-    // Get all cached data to debug
-    const allCacheData = queryClient.getQueryCache().getAll()
-    const relevantCacheEntries = allCacheData.filter(entry =>
-      entry.queryKey[0] === 'shared-quote'
-    )
-
     console.log('SharedQuotePage Debug:', {
       shareId,
-      lookingForKey: ['shared-quote', shareId],
+      apiEndpoint: `/api/booking/${shareId}/`,
+      rawApiResponse: apiResponse,
+      extractedBookingData: booking,
       hasBookingData: !!booking,
-      bookingData: booking,
       bookingId: booking?.id,
       loading,
-      error,
-      allSharedQuoteCacheEntries: relevantCacheEntries.map(entry => ({
-        queryKey: entry.queryKey,
-        hasData: !!entry.state.data,
-        data: entry.state.data
-      }))
+      error: error?.message || error,
+      dataSource: 'Backend API',
+      apiSuccess: (apiResponse as ApiResponse)?.success,
+      apiMessage: (apiResponse as ApiResponse)?.message
     })
-  }, [shareId, booking, loading, error, queryClient])
+  }, [shareId, apiResponse, booking, loading, error])
 
   useEffect(() => {
     if (booking?.termsAccepted?.accepted) {
@@ -234,17 +251,27 @@ export function SharedQuotePage() {
               <summary className="cursor-pointer">Debug Info</summary>
               <div className="mt-2">
                 <p>Share ID: {shareId}</p>
-                <p>Cache Key: ['shared-quote', '{shareId}']</p>
+                <p>API Endpoint: GET /api/booking/{shareId}/</p>
                 <p>Has Booking Data: {booking ? 'Yes' : 'No'}</p>
                 <p>Loading: {loading ? 'Yes' : 'No'}</p>
-                <p>Error: {error || 'None'}</p>
-                <p>Data Source: React Query Cache (Direct)</p>
+                <p>Error: {error?.message || (typeof error === 'string' ? error : 'Unknown error') || 'None'}</p>
+                <p>Data Source: Backend API</p>
                 {booking && (
                   <div className="mt-2 p-2 bg-green-100 rounded text-green-800">
-                    <p>✅ Quote data found!</p>
+                    <p>✅ Quote data loaded from API!</p>
                     <p>Customer: {booking.customer?.name}</p>
                     <p>Tours: {booking.tours?.length || 0}</p>
-                    <p>Total: {booking.pricing?.currency} {booking.pricing?.amount}</p>
+                    <p>Total: {booking.pricing?.currency} {booking.pricing?.amount?.toLocaleString()}</p>
+                    <p>Status: {booking.status}</p>
+                    <p>Created By: {booking.createdBy?.fullName}</p>
+                    <p>API Success: {(apiResponse as ApiResponse)?.success ? 'Yes' : 'No'}</p>
+                    <p>API Message: {(apiResponse as ApiResponse)?.message}</p>
+                  </div>
+                )}
+                {error && (
+                  <div className="mt-2 p-2 bg-red-100 rounded text-red-800">
+                    <p>❌ API Error</p>
+                    <p>{error?.message || (typeof error === 'string' ? error : 'Unknown error')}</p>
                   </div>
                 )}
               </div>
@@ -305,7 +332,7 @@ export function SharedQuotePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div>
                     <p className="text-sm text-gray-500 uppercase tracking-wide">Guest Name</p>
                     <p className="text-lg font-semibold text-gray-800">{booking.customer?.name || 'Guest'}</p>
@@ -326,9 +353,185 @@ export function SharedQuotePage() {
                       <p className="text-lg font-medium text-gray-700">{booking.customer.country}</p>
                     </div>
                   )}
+                  {booking.customer?.language && (
+                    <div>
+                      <p className="text-sm text-gray-500 uppercase tracking-wide">Language</p>
+                      <p className="text-lg font-medium text-gray-700">{booking.customer.language}</p>
+                    </div>
+                  )}
+                  {booking.customer?.idNumber && (
+                    <div>
+                      <p className="text-sm text-gray-500 uppercase tracking-wide">ID Number</p>
+                      <p className="text-lg font-medium text-gray-700">{booking.customer.idNumber}</p>
+                    </div>
+                  )}
+                  {booking.customer?.cpf && (
+                    <div>
+                      <p className="text-sm text-gray-500 uppercase tracking-wide">CPF</p>
+                      <p className="text-lg font-medium text-gray-700">{booking.customer.cpf}</p>
+                    </div>
+                  )}
+                  {booking.customer?.address && (
+                    <div>
+                      <p className="text-sm text-gray-500 uppercase tracking-wide">Address</p>
+                      <p className="text-lg font-medium text-gray-700">{booking.customer.address}</p>
+                    </div>
+                  )}
+                  {booking.customer?.company && (
+                    <div>
+                      <p className="text-sm text-gray-500 uppercase tracking-wide">Company</p>
+                      <p className="text-lg font-medium text-gray-700">{booking.customer.company}</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
+
+            {/* Booking Details */}
+            <Card className="shadow-lg border-0">
+              <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-t-lg">
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                    <Building className="w-5 h-5 text-purple-600" />
+                  </div>
+                  Booking Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div>
+                    <p className="text-sm text-gray-500 uppercase tracking-wide">Booking ID</p>
+                    <p className="text-lg font-medium text-gray-700 font-mono">{booking.id}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 uppercase tracking-wide">Status</p>
+                    <Badge className={getStatusColor(booking.status)}>
+                      {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1)}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 uppercase tracking-wide">Lead Source</p>
+                    <p className="text-lg font-medium text-gray-700">{booking.leadSource}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 uppercase tracking-wide">Assigned To</p>
+                    <p className="text-lg font-medium text-gray-700">{booking.assignedTo}</p>
+                  </div>
+                  {booking.agency && (
+                    <div>
+                      <p className="text-sm text-gray-500 uppercase tracking-wide">Agency</p>
+                      <p className="text-lg font-medium text-gray-700">{booking.agency}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm text-gray-500 uppercase tracking-wide">Created Date</p>
+                    <p className="text-lg font-medium text-gray-700">
+                      {format(new Date(booking.createdAt), "MMM dd, yyyy 'at' HH:mm")}
+                    </p>
+                  </div>
+                  {booking.tourDetails?.hotel && (
+                    <div>
+                      <p className="text-sm text-gray-500 uppercase tracking-wide">Hotel</p>
+                      <p className="text-lg font-medium text-gray-700">{booking.tourDetails.hotel}</p>
+                    </div>
+                  )}
+                  {booking.tourDetails?.room && (
+                    <div>
+                      <p className="text-sm text-gray-500 uppercase tracking-wide">Room</p>
+                      <p className="text-lg font-medium text-gray-700">{booking.tourDetails.room}</p>
+                    </div>
+                  )}
+                  {booking.additionalNotes && (
+                    <div className="md:col-span-2 lg:col-span-3">
+                      <p className="text-sm text-gray-500 uppercase tracking-wide">Additional Notes</p>
+                      <p className="text-lg font-medium text-gray-700">{booking.additionalNotes}</p>
+                    </div>
+                  )}
+                  {booking.quotationComments && (
+                    <div className="md:col-span-2 lg:col-span-3">
+                      <p className="text-sm text-gray-500 uppercase tracking-wide">Quotation Comments</p>
+                      <p className="text-lg font-medium text-gray-700">{booking.quotationComments}</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Booking Options & Creator */}
+            {(booking.bookingOptions || booking.createdBy) && (
+              <Card className="shadow-lg border-0">
+                <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-t-lg">
+                  <CardTitle className="flex items-center gap-3 text-xl">
+                    <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                      <User className="w-5 h-5 text-indigo-600" />
+                    </div>
+                    Additional Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {booking.createdBy && (
+                      <>
+                        <div>
+                          <p className="text-sm text-gray-500 uppercase tracking-wide">Created By</p>
+                          <p className="text-lg font-medium text-gray-700">{booking.createdBy.fullName}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500 uppercase tracking-wide">Creator Email</p>
+                          <p className="text-lg font-medium text-gray-700">{booking.createdBy.email}</p>
+                        </div>
+                        {booking.createdBy.phone && (
+                          <div>
+                            <p className="text-sm text-gray-500 uppercase tracking-wide">Creator Phone</p>
+                            <p className="text-lg font-medium text-gray-700">{booking.createdBy.phone}</p>
+                          </div>
+                        )}
+                        {booking.createdBy.company && (
+                          <div>
+                            <p className="text-sm text-gray-500 uppercase tracking-wide">Creator Company</p>
+                            <p className="text-lg font-medium text-gray-700">{booking.createdBy.company}</p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {booking.bookingOptions && (
+                      <>
+                        <div>
+                          <p className="text-sm text-gray-500 uppercase tracking-wide">Include Payment</p>
+                          <Badge variant={booking.includePayment ? "default" : "secondary"}>
+                            {booking.includePayment ? "Yes" : "No"}
+                          </Badge>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500 uppercase tracking-wide">Copy Comments</p>
+                          <Badge variant={booking.copyComments ? "default" : "secondary"}>
+                            {booking.copyComments ? "Yes" : "No"}
+                          </Badge>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500 uppercase tracking-wide">Send Purchase Order</p>
+                          <Badge variant={booking.sendPurchaseOrder ? "default" : "secondary"}>
+                            {booking.sendPurchaseOrder ? "Yes" : "No"}
+                          </Badge>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500 uppercase tracking-wide">Send Quotation Access</p>
+                          <Badge variant={booking.sendQuotationAccess ? "default" : "secondary"}>
+                            {booking.sendQuotationAccess ? "Yes" : "No"}
+                          </Badge>
+                        </div>
+                      </>
+                    )}
+                    {booking.shareableLink && (
+                      <div className="md:col-span-2 lg:col-span-3">
+                        <p className="text-sm text-gray-500 uppercase tracking-wide">Shareable Link</p>
+                        <p className="text-lg font-medium text-gray-700 font-mono break-all">{booking.shareableLink}</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Included Items (Tours) */}
             <Card className="shadow-lg border-0">
