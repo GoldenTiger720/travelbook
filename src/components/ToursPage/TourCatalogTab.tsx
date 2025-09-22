@@ -14,7 +14,7 @@ import {
   Clock,
   Users,
   Edit,
-  Eye,
+  Trash2,
   CheckCircle,
   XCircle,
 } from 'lucide-react'
@@ -30,6 +30,7 @@ interface TourCatalogTabProps {
   setShowNewTourDialog: (value: boolean) => void
   setSelectedTour: (tour: any) => void
   setShowEditDialog: (value: boolean) => void
+  onDeleteTour: (tour: any) => void
   toursData: any[]
   destinations: string[]
   filteredTours: any[]
@@ -45,6 +46,7 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
   setShowNewTourDialog,
   setSelectedTour,
   setShowEditDialog,
+  onDeleteTour,
   toursData,
   destinations,
   filteredTours,
@@ -196,8 +198,13 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
-                          <Eye className="w-4 h-4" />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onDeleteTour(tour)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -260,8 +267,13 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="sm">
-                              <Eye className="w-4 h-4" />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onDeleteTour(tour)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -300,8 +312,13 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
                       >
                         <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => onDeleteTour(tour)}
+                      >
+                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
                     </div>
                   </div>

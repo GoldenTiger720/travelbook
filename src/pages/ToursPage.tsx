@@ -1,5 +1,4 @@
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import TourCatalogTab from "@/components/ToursPage/TourCatalogTab"
@@ -11,7 +10,6 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import {
-  Plus,
   Calendar,
   MapPin
 } from "lucide-react"
@@ -136,6 +134,9 @@ const ToursPage = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [calendarData] = useState(generateCalendarData())
   const [isLoading, setIsLoading] = useState(false)
+  const [tours, setTours] = useState<any[]>(toursData || [])
+  const [isLoadingTours, setIsLoadingTours] = useState(false)
+  const [editFormData, setEditFormData] = useState<any>(null)
 
   // Form data state for new tour
   const [formData, setFormData] = useState<CreateTourData>({
@@ -150,11 +151,30 @@ const ToursPage = () => {
     active: true
   })
 
+  // Load tours from API on component mount
+  React.useEffect(() => {
+    const loadTours = async () => {
+      setIsLoadingTours(true)
+      try {
+        const fetchedTours = await tourService.getTours()
+        setTours(Array.isArray(fetchedTours) ? fetchedTours : [])
+      } catch (error) {
+        console.error('Error loading tours:', error)
+        // Fallback to mock data if API fails
+        setTours(Array.isArray(toursData) ? toursData : [])
+      } finally {
+        setIsLoadingTours(false)
+      }
+    }
+
+    loadTours()
+  }, [])
+
   // Get unique destinations for filter
-  const destinations = [...new Set(toursData.map(tour => tour.destination))]
+  const destinations = [...new Set((tours || []).map(tour => tour.destination))]
 
   // Filter tours based on search and filters
-  const filteredTours = toursData.filter(tour => {
+  const filteredTours = (tours || []).filter(tour => {
     const matchesSearch = tour.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          tour.destination.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesDestination = destinationFilter === "all" || tour.destination === destinationFilter
@@ -232,7 +252,9 @@ const ToursPage = () => {
       await tourService.createTour(formData)
       setShowNewTourDialog(false)
       resetFormData()
-      // You might want to refresh the tours list here
+      // Refresh tours list
+      const updatedTours = await tourService.getTours()
+      setTours(Array.isArray(updatedTours) ? updatedTours : [])
       alert(t('tours.tourCreatedSuccessfully') || 'Tour created successfully!')
     } catch (error) {
       console.error('Error creating tour:', error)
@@ -241,6 +263,77 @@ const ToursPage = () => {
       setIsLoading(false)
     }
   }
+
+  // Handle update tour
+  const handleUpdateTour = async () => {
+    if (!selectedTour || !editFormData) {
+      alert('No tour data to update')
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      await tourService.updateTour(selectedTour.id.toString(), editFormData)
+      setShowEditDialog(false)
+      setSelectedTour(null)
+      setEditFormData(null)
+      // Refresh tours list
+      const updatedTours = await tourService.getTours()
+      setTours(Array.isArray(updatedTours) ? updatedTours : [])
+      alert(t('tours.tourUpdatedSuccessfully') || 'Tour updated successfully!')
+    } catch (error) {
+      console.error('Error updating tour:', error)
+      alert(t('tours.errorUpdatingTour') || 'Error updating tour. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Handle delete tour
+  const handleDeleteTour = async (tour: any) => {
+    if (!confirm(t('tours.confirmDeleteTour') || `Are you sure you want to delete "${tour.name}"?`)) {
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      await tourService.deleteTour(tour.id.toString())
+      // Refresh tours list
+      const updatedTours = await tourService.getTours()
+      setTours(Array.isArray(updatedTours) ? updatedTours : [])
+      alert(t('tours.tourDeletedSuccessfully') || 'Tour deleted successfully!')
+    } catch (error) {
+      console.error('Error deleting tour:', error)
+      alert(t('tours.errorDeletingTour') || 'Error deleting tour. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Handle edit form changes
+  const handleEditFormChange = (field: string, value: any) => {
+    setEditFormData((prev: any) => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  // Initialize edit form when tour is selected
+  React.useEffect(() => {
+    if (selectedTour && showEditDialog) {
+      setEditFormData({
+        name: selectedTour.name,
+        destination: selectedTour.destination,
+        capacity: selectedTour.capacity,
+        departureTime: selectedTour.departureTime,
+        adultPrice: selectedTour.adultPrice,
+        childPrice: selectedTour.childPrice,
+        startingPoint: selectedTour.startingPoint,
+        description: selectedTour.description,
+        active: selectedTour.status === 'active'
+      })
+    }
+  }, [selectedTour, showEditDialog])
 
   // Handle form field changes
   const handleFormChange = (field: keyof CreateTourData, value: any) => {
@@ -281,7 +374,12 @@ const ToursPage = () => {
 
         {/* Tour Catalog Tab */}
         <TabsContent value="catalog" className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
-          <TourCatalogTab
+          {isLoadingTours ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="text-muted-foreground">Loading tours...</div>
+            </div>
+          ) : (
+            <TourCatalogTab
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             destinationFilter={destinationFilter}
@@ -291,10 +389,12 @@ const ToursPage = () => {
             setShowNewTourDialog={setShowNewTourDialog}
             setSelectedTour={setSelectedTour}
             setShowEditDialog={setShowEditDialog}
-            toursData={toursData}
+            onDeleteTour={handleDeleteTour}
+            toursData={tours}
             destinations={destinations}
             filteredTours={filteredTours}
           />
+          )}
         </TabsContent>
 
         {/* Daily Availability Tab */}
@@ -447,15 +547,20 @@ const ToursPage = () => {
               {t('tours.editTourDescription')}
             </DialogDescription>
           </DialogHeader>
-          {selectedTour && (
+          {selectedTour && editFormData && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2 col-span-1">
                 <Label htmlFor="editTourName" className="text-sm font-medium">{t('tours.tourName')}</Label>
-                <Input id="editTourName" defaultValue={selectedTour.name} className="h-10" />
+                <Input
+                  id="editTourName"
+                  value={editFormData.name || ''}
+                  onChange={(e) => handleEditFormChange('name', e.target.value)}
+                  className="h-10"
+                />
               </div>
               <div className="space-y-2 col-span-1">
                 <Label htmlFor="editDestination" className="text-sm font-medium">{t('tours.destination')}</Label>
-                <Select defaultValue={selectedTour.destination}>
+                <Select value={editFormData.destination} onValueChange={(value) => handleEditFormChange('destination', value)}>
                   <SelectTrigger className="h-10">
                     <SelectValue />
                   </SelectTrigger>
@@ -468,30 +573,68 @@ const ToursPage = () => {
               </div>
               <div className="space-y-2 col-span-1">
                 <Label htmlFor="editCapacity" className="text-sm font-medium">{t('tours.capacity')}</Label>
-                <Input id="editCapacity" type="number" defaultValue={selectedTour.capacity} className="h-10" />
+                <Input
+                  id="editCapacity"
+                  type="number"
+                  value={editFormData.capacity || ''}
+                  onChange={(e) => handleEditFormChange('capacity', parseInt(e.target.value) || 0)}
+                  className="h-10"
+                />
               </div>
               <div className="space-y-2 col-span-1">
                 <Label htmlFor="editDepartureTime" className="text-sm font-medium">{t('tours.departureTime')}</Label>
-                <Input id="editDepartureTime" type="time" defaultValue={selectedTour.departureTime} className="h-10" />
+                <Input
+                  id="editDepartureTime"
+                  type="time"
+                  value={editFormData.departureTime || ''}
+                  onChange={(e) => handleEditFormChange('departureTime', e.target.value)}
+                  className="h-10"
+                />
               </div>
               <div className="space-y-2 col-span-1">
                 <Label htmlFor="editAdultPrice" className="text-sm font-medium">{t('tours.adultPrice')}</Label>
-                <Input id="editAdultPrice" type="number" defaultValue={selectedTour.adultPrice} className="h-10" />
+                <Input
+                  id="editAdultPrice"
+                  type="number"
+                  value={editFormData.adultPrice || ''}
+                  onChange={(e) => handleEditFormChange('adultPrice', parseFloat(e.target.value) || 0)}
+                  className="h-10"
+                />
               </div>
               <div className="space-y-2 col-span-1">
                 <Label htmlFor="editChildPrice" className="text-sm font-medium">{t('tours.childPrice')}</Label>
-                <Input id="editChildPrice" type="number" defaultValue={selectedTour.childPrice} className="h-10" />
+                <Input
+                  id="editChildPrice"
+                  type="number"
+                  value={editFormData.childPrice || ''}
+                  onChange={(e) => handleEditFormChange('childPrice', parseFloat(e.target.value) || 0)}
+                  className="h-10"
+                />
               </div>
               <div className="col-span-full space-y-2">
                 <Label htmlFor="editStartingPoint" className="text-sm font-medium">{t('tours.startingPoint')}</Label>
-                <Input id="editStartingPoint" defaultValue={selectedTour.startingPoint} className="h-10" />
+                <Input
+                  id="editStartingPoint"
+                  value={editFormData.startingPoint || ''}
+                  onChange={(e) => handleEditFormChange('startingPoint', e.target.value)}
+                  className="h-10"
+                />
               </div>
               <div className="col-span-full space-y-2">
                 <Label htmlFor="editDescription" className="text-sm font-medium">{t('tours.description')}</Label>
-                <Textarea id="editDescription" defaultValue={selectedTour.description} className="min-h-[80px] resize-none" />
+                <Textarea
+                  id="editDescription"
+                  value={editFormData.description || ''}
+                  onChange={(e) => handleEditFormChange('description', e.target.value)}
+                  className="min-h-[80px] resize-none"
+                />
               </div>
               <div className="col-span-full flex items-center space-x-3 py-2">
-                <Switch id="editActive" defaultChecked={selectedTour.status === 'active'} />
+                <Switch
+                  id="editActive"
+                  checked={editFormData.active}
+                  onCheckedChange={(checked) => handleEditFormChange('active', checked)}
+                />
                 <Label htmlFor="editActive" className="text-sm font-medium">{t('tours.activeTour')}</Label>
               </div>
             </div>
@@ -500,8 +643,12 @@ const ToursPage = () => {
             <Button variant="outline" onClick={() => setShowEditDialog(false)} className="w-full sm:w-auto">
               {t('common.cancel')}
             </Button>
-            <Button onClick={() => setShowEditDialog(false)} className="w-full sm:w-auto">
-              {t('tours.updateTour')}
+            <Button
+              onClick={handleUpdateTour}
+              disabled={isLoading}
+              className="w-full sm:w-auto"
+            >
+              {isLoading ? t('common.updating') || 'Updating...' : t('tours.updateTour')}
             </Button>
           </DialogFooter>
         </DialogContent>
