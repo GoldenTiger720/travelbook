@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useCreateCustomer } from "@/hooks/useCustomers"
+import { useCreateCustomer, useCustomers } from "@/hooks/useCustomers"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -50,7 +50,9 @@ import {
   Calendar,
   DollarSign,
   Filter,
-  Loader2
+  Loader2,
+  AlertCircle,
+  RefreshCw
 } from "lucide-react"
 
 // Helper function to generate avatar URL
@@ -61,129 +63,6 @@ const generateAvatar = (name: string, seed?: string) => {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${bgColor}&color=fff&size=128&bold=true`;
 };
 
-// Mock data for customers
-const mockCustomers = [
-  {
-    id: "C001",
-    name: "Maria González",
-    email: "maria.gonzalez@email.com",
-    phone: "+54 11 4567-8901",
-    location: "Buenos Aires, Argentina",
-    status: "active",
-    totalBookings: 12,
-    totalSpent: "$28,450",
-    lastBooking: "2024-01-10",
-    avatar: generateAvatar("Maria González", "C001")
-  },
-  {
-    id: "C002",
-    name: "João Silva",
-    email: "joao.silva@email.com",
-    phone: "+55 21 98765-4321",
-    location: "Rio de Janeiro, Brazil",
-    status: "active",
-    totalBookings: 8,
-    totalSpent: "$15,890",
-    lastBooking: "2024-01-08",
-    avatar: generateAvatar("João Silva", "C002")
-  },
-  {
-    id: "C003",
-    name: "Sarah Johnson",
-    email: "sarah.j@email.com",
-    phone: "+1 212-555-0123",
-    location: "New York, USA",
-    status: "vip",
-    totalBookings: 25,
-    totalSpent: "$84,200",
-    lastBooking: "2024-01-12",
-    avatar: generateAvatar("Sarah Johnson", "C003")
-  },
-  {
-    id: "C004",
-    name: "Carlos Rodriguez",
-    email: "carlos.r@email.com",
-    phone: "+52 55 1234-5678",
-    location: "Mexico City, Mexico",
-    status: "active",
-    totalBookings: 6,
-    totalSpent: "$9,650",
-    lastBooking: "2023-12-28",
-    avatar: generateAvatar("Carlos Rodriguez", "C004")
-  },
-  {
-    id: "C005",
-    name: "Emma Wilson",
-    email: "emma.wilson@email.com",
-    phone: "+44 20 7123 4567",
-    location: "London, UK",
-    status: "inactive",
-    totalBookings: 3,
-    totalSpent: "$4,200",
-    lastBooking: "2023-10-15",
-    avatar: generateAvatar("Emma Wilson", "C005")
-  },
-  {
-    id: "C006",
-    name: "Lucas Martins",
-    email: "lucas.martins@email.com",
-    phone: "+55 11 91234-5678",
-    location: "São Paulo, Brazil",
-    status: "vip",
-    totalBookings: 18,
-    totalSpent: "$52,300",
-    lastBooking: "2024-01-14",
-    avatar: generateAvatar("Lucas Martins", "C006")
-  },
-  {
-    id: "C007",
-    name: "Isabella Rossi",
-    email: "isabella.rossi@email.com",
-    phone: "+39 06 1234 5678",
-    location: "Rome, Italy",
-    status: "active",
-    totalBookings: 9,
-    totalSpent: "$18,900",
-    lastBooking: "2024-01-11",
-    avatar: generateAvatar("Isabella Rossi", "C007")
-  },
-  {
-    id: "C008",
-    name: "Robert Chen",
-    email: "robert.chen@email.com",
-    phone: "+1 415-555-0123",
-    location: "San Francisco, USA",
-    status: "active",
-    totalBookings: 15,
-    totalSpent: "$35,600",
-    lastBooking: "2024-01-13",
-    avatar: generateAvatar("Robert Chen", "C008")
-  },
-  {
-    id: "C009",
-    name: "Sakura Tanaka",
-    email: "sakura.tanaka@email.com",
-    phone: "+81 3-1234-5678",
-    location: "Tokyo, Japan",
-    status: "vip",
-    totalBookings: 22,
-    totalSpent: "$67,800",
-    lastBooking: "2024-01-15",
-    avatar: generateAvatar("Sakura Tanaka", "C009")
-  },
-  {
-    id: "C010",
-    name: "Ahmed Hassan",
-    email: "ahmed.hassan@email.com",
-    phone: "+20 2 1234 5678",
-    location: "Cairo, Egypt",
-    status: "active",
-    totalBookings: 7,
-    totalSpent: "$12,300",
-    lastBooking: "2024-01-09",
-    avatar: generateAvatar("Ahmed Hassan", "C010")
-  }
-]
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -217,6 +96,14 @@ const CustomersPage = () => {
   }
 
   const createCustomerMutation = useCreateCustomer(handleFieldErrors)
+
+  // Fetch customers from API
+  const {
+    data: customersResponse,
+    isLoading,
+    error,
+    refetch
+  } = useCustomers({ search: searchTerm })
 
   // Form validation
   const validateForm = (): boolean => {
@@ -283,17 +170,56 @@ const CustomersPage = () => {
     }
   }
   
-  const filteredCustomers = mockCustomers.filter(customer =>
+  // Get customers from API response or fallback to empty array
+  const customers = customersResponse?.customers || []
+
+  // Transform API customer data to match UI expectations
+  const transformedCustomers = customers.map(customer => ({
+    id: customer.id,
+    name: customer.fullName,
+    email: customer.email,
+    phone: customer.phone,
+    location: customer.countryOfOrigin || 'Unknown',
+    status: customer.status,
+    totalBookings: customer.totalBookings,
+    totalSpent: customer.totalSpent,
+    lastBooking: customer.lastBooking,
+    avatar: generateAvatar(customer.fullName, customer.id)
+  }))
+
+  // Apply search filtering (in addition to API search)
+  const filteredCustomers = transformedCustomers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.location.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  // Calculate stats from real data
   const stats = [
-    { label: "Total Customers", value: "1,247", icon: Users, color: "text-primary" },
-    { label: "Active Customers", value: "1,089", icon: Calendar, color: "text-success" },
-    { label: "VIP Customers", value: "48", icon: DollarSign, color: "text-accent" },
-    { label: "New This Month", value: "127", icon: Plus, color: "text-warning" }
+    {
+      label: "Total Customers",
+      value: customersResponse?.total?.toString() || "0",
+      icon: Users,
+      color: "text-primary"
+    },
+    {
+      label: "Active Customers",
+      value: transformedCustomers.filter(c => c.status === 'active').length.toString(),
+      icon: Calendar,
+      color: "text-success"
+    },
+    {
+      label: "VIP Customers",
+      value: transformedCustomers.filter(c => c.status === 'vip').length.toString(),
+      icon: DollarSign,
+      color: "text-accent"
+    },
+    {
+      label: "This Month",
+      value: transformedCustomers.length.toString(),
+      icon: Plus,
+      color: "text-warning"
+    }
   ]
 
   return (
@@ -600,111 +526,173 @@ const CustomersPage = () => {
       </div>
 
       {/* Customers Table - Desktop */}
-      <Card className="hidden lg:block">
-        <CardHeader>
-          <CardTitle>Customer Directory</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Total Spent</TableHead>
-                <TableHead>Last Booking</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredCustomers.map((customer) => (
-                <TableRow key={customer.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10 ring-2 ring-primary/10 shadow-sm">
-                        <AvatarImage src={customer.avatar} alt={customer.name} />
-                        <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold">
-                          {customer.name.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium">{customer.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {customer.totalBookings} bookings
+      {!isLoading && !error && filteredCustomers.length > 0 && (
+        <Card className="hidden lg:block">
+          <CardHeader>
+            <CardTitle>Customer Directory</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Total Spent</TableHead>
+                  <TableHead>Last Booking</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredCustomers.map((customer) => (
+                  <TableRow key={customer.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10 ring-2 ring-primary/10 shadow-sm">
+                          <AvatarImage src={customer.avatar} alt={customer.name} />
+                          <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold">
+                            {customer.name.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-medium">{customer.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {customer.totalBookings} bookings
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Mail className="w-3 h-3" />
+                          {customer.email}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Phone className="w-3 h-3" />
+                          {customer.phone}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
                       <div className="flex items-center gap-2 text-sm">
-                        <Mail className="w-3 h-3" />
-                        {customer.email}
+                        <MapPin className="w-3 h-3" />
+                        {customer.location}
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Phone className="w-3 h-3" />
-                        {customer.phone}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="w-3 h-3" />
-                      {customer.location}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(customer.status)}>
-                      {customer.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {customer.totalSpent}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {customer.lastBooking}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setSelectedCustomer(customer)}>
-                          View details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>Edit customer</DropdownMenuItem>
-                        <DropdownMenuItem>View bookings</DropdownMenuItem>
-                        <DropdownMenuItem>Send email</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">
-                          Delete customer
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(customer.status)}>
+                        {customer.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {customer.totalSpent}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {customer.lastBooking}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => setSelectedCustomer(customer)}>
+                            View details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>Edit customer</DropdownMenuItem>
+                          <DropdownMenuItem>View bookings</DropdownMenuItem>
+                          <DropdownMenuItem>Send email</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-destructive">
+                            Delete customer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Loading State */}
+      {isLoading && (
+        <Card className="p-8">
+          <div className="flex items-center justify-center space-x-4">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span className="text-lg">Loading customers...</span>
+          </div>
+        </Card>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <Card className="p-8">
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <AlertCircle className="h-12 w-12 text-destructive" />
+            <div className="text-center">
+              <h3 className="text-lg font-semibold mb-2">Failed to load customers</h3>
+              <p className="text-muted-foreground mb-4">
+                {error instanceof Error ? error.message : 'Something went wrong while fetching customer data.'}
+              </p>
+              <Button
+                onClick={() => refetch()}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Try Again
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* No Data State */}
+      {!isLoading && !error && filteredCustomers.length === 0 && (
+        <Card className="p-8">
+          <div className="text-center">
+            <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">
+              {searchTerm ? 'No customers found' : 'No customers yet'}
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              {searchTerm
+                ? `No customers match "${searchTerm}". Try adjusting your search.`
+                : 'Start by adding your first customer to the directory.'}
+            </p>
+            {!searchTerm && (
+              <Button
+                onClick={() => setIsAddCustomerOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Your First Customer
+              </Button>
+            )}
+          </div>
+        </Card>
+      )}
 
       {/* Customers Cards - Mobile & Tablet */}
-      <div className="lg:hidden space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Customer Directory</h2>
-          <span className="text-sm text-muted-foreground">
-            {filteredCustomers.length} customers
-          </span>
-        </div>
-        <div className="space-y-3">
-          {filteredCustomers.map((customer) => (
+      {!isLoading && !error && filteredCustomers.length > 0 && (
+        <div className="lg:hidden space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Customer Directory</h2>
+            <span className="text-sm text-muted-foreground">
+              {filteredCustomers.length} customers
+            </span>
+          </div>
+          <div className="space-y-3">
+            {filteredCustomers.map((customer) => (
             <Card key={customer.id} className="p-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3 flex-1">
@@ -775,9 +763,10 @@ const CustomersPage = () => {
                 </div>
               </div>
             </Card>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
