@@ -22,6 +22,7 @@ const SignUpPage = () => {
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
+    phone: "",
     password: "",
     confirmPassword: ""
   })
@@ -83,6 +84,17 @@ const SignUpPage = () => {
     }
   }
 
+  const isFormComplete = (): boolean => {
+    return (
+      formData.fullName.trim() !== "" &&
+      formData.email.trim() !== "" &&
+      formData.phone.trim() !== "" &&
+      formData.password !== "" &&
+      formData.confirmPassword !== "" &&
+      agreeTerms
+    )
+  }
+
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {}
     
@@ -99,6 +111,14 @@ const SignUpPage = () => {
       errors.email = "Email is required"
     } else if (!emailRegex.test(formData.email)) {
       errors.email = "Please enter a valid email address"
+    }
+
+    // Validate phone number
+    const phoneRegex = /^[+]?[1-9][\d]{0,15}$/
+    if (!formData.phone.trim()) {
+      errors.phone = "Phone number is required"
+    } else if (!phoneRegex.test(formData.phone.replace(/[\s\-()]/g, ''))) {
+      errors.phone = "Please enter a valid phone number"
     }
     
     // Validate password
@@ -138,6 +158,7 @@ const SignUpPage = () => {
       await signUpMutation.mutateAsync({
         fullName: formData.fullName.trim(),
         email: formData.email.toLowerCase().trim(),
+        phone: formData.phone.trim(),
         password: formData.password
       })
     } catch (error) {
@@ -196,6 +217,26 @@ const SignUpPage = () => {
                   <p className="text-xs text-destructive mt-1">{validationErrors.email}</p>
                 )}
                 {backendErrors.email && backendErrors.email.map((error, idx) => (
+                  <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
+                ))}
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="phone" className="text-sm">Phone Number</Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  placeholder="Enter your phone number"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  disabled={signUpMutation.isPending}
+                  className={`h-10 ${validationErrors.phone || backendErrors.phone ? 'border-destructive' : ''}`}
+                />
+                {validationErrors.phone && (
+                  <p className="text-xs text-destructive mt-1">{validationErrors.phone}</p>
+                )}
+                {backendErrors.phone && backendErrors.phone.map((error, idx) => (
                   <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
                 ))}
               </div>
@@ -281,10 +322,10 @@ const SignUpPage = () => {
               </div>
             </div>
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full h-10 text-sm"
-              disabled={signUpMutation.isPending}
+              disabled={signUpMutation.isPending || !isFormComplete()}
             >
               {signUpMutation.isPending ? (
                 <>

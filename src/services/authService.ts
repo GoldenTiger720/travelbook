@@ -10,6 +10,7 @@ export interface SignInData {
 export interface SignUpData {
   fullName: string;
   email: string;
+  phone: string;
   password: string;
 }
 
@@ -53,6 +54,7 @@ export interface AuthError {
     email?: string[];
     password?: string[];
     fullName?: string[];
+    phone?: string[];
     [key: string]: string[] | undefined;
   };
 }
