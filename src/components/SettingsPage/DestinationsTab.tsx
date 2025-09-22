@@ -29,7 +29,6 @@ import {
   MapPin,
   Plus,
   Search,
-  Download,
   MoreVertical,
   Edit,
   Trash2,
@@ -285,10 +284,6 @@ const DestinationsTab: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <Button variant="outline" size="sm" className="w-full h-9">
-                <Download className="w-3 h-3 mr-2" />
-                <span className="text-sm">Export</span>
-              </Button>
             </div>
 
             {/* Desktop: Horizontal filters */}
@@ -324,10 +319,6 @@ const DestinationsTab: React.FC = () => {
                   <SelectItem value="Asia">Asia</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="sm" className="h-10">
-                <Download className="w-4 h-4 mr-2" />
-                Export
-              </Button>
             </div>
           </div>
         </CardHeader>
