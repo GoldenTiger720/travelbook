@@ -166,18 +166,38 @@ const DestinationsTab: React.FC = () => {
       return
     }
 
-    setIsLoading(true)
+    // Show loading state with progress bar
+    Swal.fire({
+      title: 'Deleting Destination...',
+      text: 'Please wait while we delete the destination.',
+      icon: 'info',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      backdrop: `
+        rgba(0,0,0,0.6)
+        center
+        no-repeat
+      `,
+      didOpen: () => {
+        Swal.showLoading()
+      }
+    })
+
     try {
       await destinationService.deleteDestination(destination.id.toString())
       // Refresh destinations list
       const updatedDestinations = await destinationService.getDestinations()
       setDestinations(Array.isArray(updatedDestinations) ? updatedDestinations : [])
+
+      // Close loading and show success
+      Swal.close()
       toast.success('Destination deleted successfully!')
     } catch (error) {
       console.error('Error deleting destination:', error)
+      // Close loading and show error
+      Swal.close()
       toast.error('Error deleting destination. Please try again.')
-    } finally {
-      setIsLoading(false)
     }
   }
 
