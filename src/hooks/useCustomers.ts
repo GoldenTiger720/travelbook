@@ -53,8 +53,13 @@ export function useCreateCustomer(onFieldErrors?: (errors: Record<string, string
       // Invalidate and refetch customer lists
       queryClient.invalidateQueries({ queryKey: customerKeys.lists() })
 
+      // Debug: Log the actual response structure
+      console.log('Customer creation response:', response)
+
+      // Handle different possible response structures
+      const customerName = response?.customer?.name || response?.name || 'Customer'
       toast.success('Customer created successfully', {
-        description: `${response.customer.fullName} has been added to your customer directory.`
+        description: `${customerName} has been added to your customer directory.`
       })
     },
     onError: (error: any) => {
@@ -88,8 +93,10 @@ export function useUpdateCustomer(onFieldErrors?: (errors: Record<string, string
       queryClient.invalidateQueries({ queryKey: customerKeys.lists() })
       queryClient.invalidateQueries({ queryKey: customerKeys.detail(id) })
 
+      // Handle different possible response structures
+      const customerName = response?.customer?.name || response?.name || 'Customer'
       toast.success('Customer updated successfully', {
-        description: `${response.customer.fullName} has been updated.`
+        description: `${customerName} has been updated.`
       })
     },
     onError: (error: any) => {

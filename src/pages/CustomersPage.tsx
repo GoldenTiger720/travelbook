@@ -1261,7 +1261,7 @@ const CustomersPage = () => {
           <DialogHeader>
             <DialogTitle>Customer Bookings</DialogTitle>
             <DialogDescription>
-              View all bookings for {selectedCustomer?.name}
+              View all bookings for {selectedCustomer?.name || 'this customer'}
             </DialogDescription>
           </DialogHeader>
           {selectedCustomer && (
