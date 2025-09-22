@@ -1,5 +1,6 @@
 import { useState } from "react"
-import { useCreateCustomer, useCustomers } from "@/hooks/useCustomers"
+import { useCreateCustomer, useCustomers, useUpdateCustomer, useDeleteCustomer } from "@/hooks/useCustomers"
+import Swal from 'sweetalert2'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -77,9 +78,25 @@ const CustomersPage = () => {
   const [searchTerm, setSearchTerm] = useState("")
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
+  const [isViewDetailsOpen, setIsViewDetailsOpen] = useState(false)
+  const [isEditCustomerOpen, setIsEditCustomerOpen] = useState(false)
+  const [isViewBookingsOpen, setIsViewBookingsOpen] = useState(false)
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const [backendErrors, setBackendErrors] = useState<Record<string, string[]>>({})
+  const [editValidationErrors, setEditValidationErrors] = useState<Record<string, string>>({})
+  const [editBackendErrors, setEditBackendErrors] = useState<Record<string, string[]>>({})
   const [newCustomer, setNewCustomer] = useState({
+    name: "",
+    id_number: "",
+    email: "",
+    phone: "",
+    language: "",
+    country: "",
+    cpf: "",
+    address: ""
+  })
+
+  const [editCustomer, setEditCustomer] = useState({
     name: "",
     id_number: "",
     email: "",
@@ -96,6 +113,14 @@ const CustomersPage = () => {
   }
 
   const createCustomerMutation = useCreateCustomer(handleFieldErrors)
+
+  // Handle edit customer backend field errors
+  const handleEditFieldErrors = (errors: Record<string, string[]>) => {
+    setEditBackendErrors(errors)
+  }
+
+  const updateCustomerMutation = useUpdateCustomer(handleEditFieldErrors)
+  const deleteCustomerMutation = useDeleteCustomer()
 
   // Fetch customers from API
   const {
@@ -167,6 +192,139 @@ const CustomersPage = () => {
     } catch (error) {
       // Error is handled by the mutation hook
       console.error('Customer creation error:', error)
+    }
+  }
+
+  // Handle view details
+  const handleViewDetails = (customer: any) => {
+    // Find the original customer data from API
+    const originalCustomer = customers.find(c => c.id === customer.id)
+    if (originalCustomer) {
+      setSelectedCustomer(originalCustomer)
+      setIsViewDetailsOpen(true)
+    }
+  }
+
+  // Handle edit customer
+  const handleEditCustomer = (customer: any) => {
+    // Find the original customer data from API
+    const originalCustomer = customers.find(c => c.id === customer.id)
+    if (originalCustomer) {
+      setEditCustomer({
+        name: originalCustomer.name,
+        id_number: originalCustomer.id_number,
+        email: originalCustomer.email,
+        phone: originalCustomer.phone,
+        language: originalCustomer.language,
+        country: originalCustomer.country,
+        cpf: originalCustomer.cpf,
+        address: originalCustomer.address
+      })
+      setSelectedCustomer(originalCustomer)
+      setEditValidationErrors({})
+      setEditBackendErrors({})
+      setIsEditCustomerOpen(true)
+    }
+  }
+
+  // Handle view bookings
+  const handleViewBookings = (customer: any) => {
+    // Find the original customer data from API
+    const originalCustomer = customers.find(c => c.id === customer.id)
+    if (originalCustomer) {
+      setSelectedCustomer(originalCustomer)
+      setIsViewBookingsOpen(true)
+    }
+  }
+
+  // Handle delete customer
+  const handleDeleteCustomer = async (customer: any) => {
+    const result = await Swal.fire({
+      title: 'Delete Customer',
+      text: `Are you sure you want to delete ${customer.name}? This action cannot be undone.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, Delete',
+      cancelButtonText: 'Cancel'
+    })
+
+    if (result.isConfirmed) {
+      try {
+        await deleteCustomerMutation.mutateAsync(customer.id)
+      } catch (error) {
+        console.error('Delete customer error:', error)
+      }
+    }
+  }
+
+  // Edit form validation
+  const validateEditForm = (): boolean => {
+    const errors: Record<string, string> = {}
+
+    // Validate full name
+    if (!editCustomer.name.trim()) {
+      errors.name = "Full name is required"
+    } else if (editCustomer.name.trim().length < 2) {
+      errors.name = "Full name must be at least 2 characters"
+    }
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!editCustomer.email.trim()) {
+      errors.email = "Email is required"
+    } else if (!emailRegex.test(editCustomer.email)) {
+      errors.email = "Please enter a valid email address"
+    }
+
+    // Validate phone
+    if (!editCustomer.phone.trim()) {
+      errors.phone = "Phone number is required"
+    }
+
+    // Validate ID/Passport
+    if (!editCustomer.id_number.trim()) {
+      errors.id_number = "ID/Passport is required"
+    }
+
+    setEditValidationErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  // Handle edit form submission
+  const handleEditSubmit = async () => {
+    // Clear backend errors
+    setEditBackendErrors({})
+
+    // Validate form
+    if (!validateEditForm()) {
+      return
+    }
+
+    try {
+      await updateCustomerMutation.mutateAsync({
+        id: selectedCustomer.id,
+        data: editCustomer
+      })
+
+      // Reset form on success
+      setEditCustomer({
+        name: "",
+        id_number: "",
+        email: "",
+        phone: "",
+        language: "",
+        country: "",
+        cpf: "",
+        address: ""
+      })
+      setEditValidationErrors({})
+      setIsEditCustomerOpen(false)
+      setSelectedCustomer(null)
+    } catch (error) {
+      // Error is handled by the mutation hook
+      console.error('Customer update error:', error)
     }
   }
   
@@ -602,14 +760,14 @@ const CustomersPage = () => {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => setSelectedCustomer(customer)}>
+                          <DropdownMenuItem onClick={() => handleViewDetails(customer)}>
                             View details
                           </DropdownMenuItem>
-                          <DropdownMenuItem>Edit customer</DropdownMenuItem>
-                          <DropdownMenuItem>View bookings</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditCustomer(customer)}>Edit customer</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleViewBookings(customer)}>View bookings</DropdownMenuItem>
                           <DropdownMenuItem>Send email</DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive">
+                          <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteCustomer(customer)}>
                             Delete customer
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -734,14 +892,14 @@ const CustomersPage = () => {
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setSelectedCustomer(customer)}>
+                    <DropdownMenuItem onClick={() => handleViewDetails(customer)}>
                       View details
                     </DropdownMenuItem>
-                    <DropdownMenuItem>Edit customer</DropdownMenuItem>
-                    <DropdownMenuItem>View bookings</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleEditCustomer(customer)}>Edit customer</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleViewBookings(customer)}>View bookings</DropdownMenuItem>
                     <DropdownMenuItem>Send email</DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive">
+                    <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteCustomer(customer)}>
                       Delete customer
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -767,6 +925,429 @@ const CustomersPage = () => {
           </div>
         </div>
       )}
+
+      {/* View Details Modal */}
+      <Dialog open={isViewDetailsOpen} onOpenChange={setIsViewDetailsOpen}>
+        <DialogContent className="w-[95vw] max-w-[525px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Customer Details</DialogTitle>
+            <DialogDescription>
+              View detailed information about this customer.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedCustomer && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label>Full name</Label>
+                  <Input value={selectedCustomer.name} readOnly className="bg-muted" />
+                </div>
+                <div>
+                  <Label>ID/Passport</Label>
+                  <Input value={selectedCustomer.id_number} readOnly className="bg-muted" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label>Email</Label>
+                  <Input value={selectedCustomer.email} readOnly className="bg-muted" />
+                </div>
+                <div>
+                  <Label>Phone</Label>
+                  <Input value={selectedCustomer.phone} readOnly className="bg-muted" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div>
+                  <Label>Language</Label>
+                  <Input value={selectedCustomer.language} readOnly className="bg-muted" />
+                </div>
+                <div>
+                  <Label>Country of origin</Label>
+                  <Input value={selectedCustomer.country} readOnly className="bg-muted" />
+                </div>
+                <div>
+                  <Label>CPF</Label>
+                  <Input value={selectedCustomer.cpf} readOnly className="bg-muted" />
+                </div>
+              </div>
+
+              <div>
+                <Label>Address</Label>
+                <Input value={selectedCustomer.address} readOnly className="bg-muted" />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label>Status</Label>
+                  <Input value={selectedCustomer.status} readOnly className="bg-muted" />
+                </div>
+                <div>
+                  <Label>Total Bookings</Label>
+                  <Input value={selectedCustomer.total_bookings?.toString() || '0'} readOnly className="bg-muted" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label>Total Spent</Label>
+                  <Input value={`$${selectedCustomer.total_spent || '0.00'}`} readOnly className="bg-muted" />
+                </div>
+                <div>
+                  <Label>Last Booking</Label>
+                  <Input value={selectedCustomer.last_booking || 'Never'} readOnly className="bg-muted" />
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Customer Modal */}
+      <Dialog open={isEditCustomerOpen} onOpenChange={setIsEditCustomerOpen}>
+        <DialogContent className="w-[95vw] max-w-[525px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Customer</DialogTitle>
+            <DialogDescription>
+              Update customer information and save changes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-name">Full name</Label>
+                <Input
+                  id="edit-name"
+                  placeholder="Enter full name"
+                  value={editCustomer.name}
+                  onChange={(e) => {
+                    setEditCustomer({...editCustomer, name: e.target.value})
+                    if (editValidationErrors.name) {
+                      setEditValidationErrors(prev => ({ ...prev, name: '' }))
+                    }
+                    if (editBackendErrors.name) {
+                      setEditBackendErrors(prev => ({ ...prev, name: [] }))
+                    }
+                  }}
+                  disabled={updateCustomerMutation.isPending}
+                  className={editValidationErrors.name || editBackendErrors.name ? 'border-destructive' : ''}
+                />
+                {editValidationErrors.name && (
+                  <p className="text-xs text-destructive mt-1">{editValidationErrors.name}</p>
+                )}
+                {editBackendErrors.name && editBackendErrors.name.map((error, idx) => (
+                  <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
+                ))}
+              </div>
+              <div>
+                <Label htmlFor="edit-id_number">ID/Passport</Label>
+                <Input
+                  id="edit-id_number"
+                  placeholder="Enter ID or passport number"
+                  value={editCustomer.id_number}
+                  onChange={(e) => {
+                    setEditCustomer({...editCustomer, id_number: e.target.value})
+                    if (editValidationErrors.id_number) {
+                      setEditValidationErrors(prev => ({ ...prev, id_number: '' }))
+                    }
+                    if (editBackendErrors.id_number) {
+                      setEditBackendErrors(prev => ({ ...prev, id_number: [] }))
+                    }
+                  }}
+                  disabled={updateCustomerMutation.isPending}
+                  className={editValidationErrors.id_number || editBackendErrors.id_number ? 'border-destructive' : ''}
+                />
+                {editValidationErrors.id_number && (
+                  <p className="text-xs text-destructive mt-1">{editValidationErrors.id_number}</p>
+                )}
+                {editBackendErrors.id_number && editBackendErrors.id_number.map((error, idx) => (
+                  <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  placeholder="Enter email address"
+                  value={editCustomer.email}
+                  onChange={(e) => {
+                    setEditCustomer({...editCustomer, email: e.target.value})
+                    if (editValidationErrors.email) {
+                      setEditValidationErrors(prev => ({ ...prev, email: '' }))
+                    }
+                    if (editBackendErrors.email) {
+                      setEditBackendErrors(prev => ({ ...prev, email: [] }))
+                    }
+                  }}
+                  disabled={updateCustomerMutation.isPending}
+                  className={editValidationErrors.email || editBackendErrors.email ? 'border-destructive' : ''}
+                />
+                {editValidationErrors.email && (
+                  <p className="text-xs text-destructive mt-1">{editValidationErrors.email}</p>
+                )}
+                {editBackendErrors.email && editBackendErrors.email.map((error, idx) => (
+                  <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
+                ))}
+              </div>
+              <div>
+                <Label htmlFor="edit-phone">Phone</Label>
+                <Input
+                  id="edit-phone"
+                  type="tel"
+                  placeholder="Enter phone number"
+                  value={editCustomer.phone}
+                  onChange={(e) => {
+                    setEditCustomer({...editCustomer, phone: e.target.value})
+                    if (editValidationErrors.phone) {
+                      setEditValidationErrors(prev => ({ ...prev, phone: '' }))
+                    }
+                    if (editBackendErrors.phone) {
+                      setEditBackendErrors(prev => ({ ...prev, phone: [] }))
+                    }
+                  }}
+                  disabled={updateCustomerMutation.isPending}
+                  className={editValidationErrors.phone || editBackendErrors.phone ? 'border-destructive' : ''}
+                />
+                {editValidationErrors.phone && (
+                  <p className="text-xs text-destructive mt-1">{editValidationErrors.phone}</p>
+                )}
+                {editBackendErrors.phone && editBackendErrors.phone.map((error, idx) => (
+                  <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="edit-language">Language</Label>
+                <Select
+                  value={editCustomer.language}
+                  onValueChange={(value) => {
+                    setEditCustomer({...editCustomer, language: value})
+                    if (editValidationErrors.language) {
+                      setEditValidationErrors(prev => ({ ...prev, language: '' }))
+                    }
+                    if (editBackendErrors.language) {
+                      setEditBackendErrors(prev => ({ ...prev, language: [] }))
+                    }
+                  }}
+                  disabled={updateCustomerMutation.isPending}
+                >
+                  <SelectTrigger className={editValidationErrors.language || editBackendErrors.language ? 'border-destructive' : ''}>
+                    <SelectValue placeholder="Select language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="es">Spanish</SelectItem>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="pt">Portuguese</SelectItem>
+                    <SelectItem value="fr">French</SelectItem>
+                    <SelectItem value="de">German</SelectItem>
+                  </SelectContent>
+                </Select>
+                {editValidationErrors.language && (
+                  <p className="text-xs text-destructive mt-1">{editValidationErrors.language}</p>
+                )}
+                {editBackendErrors.language && editBackendErrors.language.map((error, idx) => (
+                  <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
+                ))}
+              </div>
+              <div>
+                <Label htmlFor="edit-country">Country of origin</Label>
+                <Input
+                  id="edit-country"
+                  placeholder="Enter country of origin"
+                  value={editCustomer.country}
+                  onChange={(e) => {
+                    setEditCustomer({...editCustomer, country: e.target.value})
+                    if (editValidationErrors.country) {
+                      setEditValidationErrors(prev => ({ ...prev, country: '' }))
+                    }
+                    if (editBackendErrors.country) {
+                      setEditBackendErrors(prev => ({ ...prev, country: [] }))
+                    }
+                  }}
+                  disabled={updateCustomerMutation.isPending}
+                  className={editValidationErrors.country || editBackendErrors.country ? 'border-destructive' : ''}
+                />
+                {editValidationErrors.country && (
+                  <p className="text-xs text-destructive mt-1">{editValidationErrors.country}</p>
+                )}
+                {editBackendErrors.country && editBackendErrors.country.map((error, idx) => (
+                  <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
+                ))}
+              </div>
+              <div>
+                <Label htmlFor="edit-cpf">CPF</Label>
+                <Input
+                  id="edit-cpf"
+                  placeholder="Enter CPF (Brazilian tax ID)"
+                  value={editCustomer.cpf}
+                  onChange={(e) => {
+                    setEditCustomer({...editCustomer, cpf: e.target.value})
+                    if (editValidationErrors.cpf) {
+                      setEditValidationErrors(prev => ({ ...prev, cpf: '' }))
+                    }
+                    if (editBackendErrors.cpf) {
+                      setEditBackendErrors(prev => ({ ...prev, cpf: [] }))
+                    }
+                  }}
+                  disabled={updateCustomerMutation.isPending}
+                  className={editValidationErrors.cpf || editBackendErrors.cpf ? 'border-destructive' : ''}
+                />
+                {editValidationErrors.cpf && (
+                  <p className="text-xs text-destructive mt-1">{editValidationErrors.cpf}</p>
+                )}
+                {editBackendErrors.cpf && editBackendErrors.cpf.map((error, idx) => (
+                  <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="edit-address">Address</Label>
+              <Input
+                id="edit-address"
+                placeholder="Enter full address"
+                value={editCustomer.address}
+                onChange={(e) => {
+                  setEditCustomer({...editCustomer, address: e.target.value})
+                  if (editValidationErrors.address) {
+                    setEditValidationErrors(prev => ({ ...prev, address: '' }))
+                  }
+                  if (editBackendErrors.address) {
+                    setEditBackendErrors(prev => ({ ...prev, address: [] }))
+                  }
+                }}
+                disabled={updateCustomerMutation.isPending}
+                className={editValidationErrors.address || editBackendErrors.address ? 'border-destructive' : ''}
+              />
+              {editValidationErrors.address && (
+                <p className="text-xs text-destructive mt-1">{editValidationErrors.address}</p>
+              )}
+              {editBackendErrors.address && editBackendErrors.address.map((error, idx) => (
+                <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="submit"
+              onClick={handleEditSubmit}
+              disabled={updateCustomerMutation.isPending}
+              className="w-full sm:w-auto"
+            >
+              {updateCustomerMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update Customer"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Bookings Modal */}
+      <Dialog open={isViewBookingsOpen} onOpenChange={setIsViewBookingsOpen}>
+        <DialogContent className="w-[95vw] max-w-[800px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Customer Bookings</DialogTitle>
+            <DialogDescription>
+              View all bookings for {selectedCustomer?.name}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedCustomer && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">
+                  {selectedCustomer.bookings?.length || 0} Booking(s)
+                </h3>
+                <Badge className={getStatusColor(selectedCustomer.status)}>
+                  {selectedCustomer.status}
+                </Badge>
+              </div>
+
+              {selectedCustomer.bookings && selectedCustomer.bookings.length > 0 ? (
+                <div className="space-y-4">
+                  {selectedCustomer.bookings.map((booking: any, index: number) => (
+                    <Card key={booking.id} className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-semibold">{booking.destination}</h4>
+                          <Badge className={booking.status === 'confirmed' ? 'bg-success text-success-foreground' : 'bg-warning text-warning-foreground'}>
+                            {booking.status}
+                          </Badge>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="font-medium">Tour Type:</span> {booking.tour_type}
+                          </div>
+                          <div>
+                            <span className="font-medium">Total Amount:</span> {booking.currency} {booking.total_amount}
+                          </div>
+                          <div>
+                            <span className="font-medium">Start Date:</span> {new Date(booking.start_date).toLocaleDateString()}
+                          </div>
+                          <div>
+                            <span className="font-medium">Passengers:</span> {booking.passengers}
+                          </div>
+                          <div>
+                            <span className="font-medium">Hotel:</span> {booking.hotel}
+                          </div>
+                          <div>
+                            <span className="font-medium">Room:</span> {booking.room}
+                          </div>
+                        </div>
+
+                        {booking.additional_notes && (
+                          <div>
+                            <span className="font-medium">Notes:</span> {booking.additional_notes}
+                          </div>
+                        )}
+
+                        {booking.booking_tours && booking.booking_tours.length > 0 && (
+                          <div>
+                            <h5 className="font-medium mb-2">Tour Details:</h5>
+                            {booking.booking_tours.map((tour: any, tourIndex: number) => (
+                              <div key={tour.id} className="bg-muted p-3 rounded text-sm">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                  <div><span className="font-medium">Tour:</span> {tour.tour_name}</div>
+                                  <div><span className="font-medium">Code:</span> {tour.tour_code}</div>
+                                  <div><span className="font-medium">Pickup:</span> {tour.pickup_address}</div>
+                                  <div><span className="font-medium">Time:</span> {tour.pickup_time}</div>
+                                  <div><span className="font-medium">Adults:</span> {tour.adult_pax} × ${tour.adult_price}</div>
+                                  <div><span className="font-medium">Children:</span> {tour.child_pax} × ${tour.child_price}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No bookings found</h3>
+                  <p className="text-muted-foreground">
+                    This customer hasn't made any bookings yet.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
