@@ -6,7 +6,6 @@ import TourCatalogTab from "@/components/ToursPage/TourCatalogTab"
 import DailyAvailabilityTab from "@/components/ToursPage/DailyAvailabilityTab"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -14,9 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import {
   Plus,
   Calendar,
-  MapPin,
-  CheckCircle,
-  XCircle
+  MapPin
 } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { tourService, CreateTourData } from "@/services/tourService"
@@ -253,48 +250,32 @@ const ToursPage = () => {
     }))
   }
 
-  const getStatusBadge = (status: string) => {
-    if (status === 'active') {
-      return <Badge className="bg-green-100 text-green-800 hover:bg-green-200"><CheckCircle className="w-3 h-3 mr-1" />{t('tours.active')}</Badge>
-    } else {
-      return <Badge className="bg-red-100 text-red-800 hover:bg-red-200"><XCircle className="w-3 h-3 mr-1" />{t('tours.inactive')}</Badge>
-    }
-  }
 
-  const monthNames = [
-    t('reservations.january'), t('reservations.february'), t('reservations.march'),
-    t('reservations.april'), t('reservations.may'), t('reservations.june'),
-    t('reservations.july'), t('reservations.august'), t('reservations.september'),
-    t('reservations.october'), t('reservations.november'), t('reservations.december')
-  ]
-
-  const dayNames = [
-    t('reservations.sunday'), t('reservations.monday'), t('reservations.tuesday'),
-    t('reservations.wednesday'), t('reservations.thursday'), t('reservations.friday'), t('reservations.saturday')
-  ]
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-3 sm:space-y-6 px-2 sm:px-0">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+      <div className="flex flex-col gap-1 sm:gap-2">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{t('tours.title')}</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">{t('tours.title')}</h1>
+          <p className="text-xs sm:text-sm lg:text-base text-muted-foreground mt-1">
             {t('tours.subtitle')}
           </p>
         </div>
       </div>
 
       {/* Main Content with Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="catalog" className="flex items-center gap-2">
-            <MapPin className="w-4 h-4" />
-            {t('tours.tourCatalog')}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3 sm:space-y-4">
+        <TabsList className="grid w-full grid-cols-2 h-auto">
+          <TabsTrigger value="catalog" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 text-xs sm:text-sm">
+            <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden xs:inline">{t('tours.tourCatalog')}</span>
+            <span className="xs:hidden">Catalog</span>
           </TabsTrigger>
-          <TabsTrigger value="availability" className="flex items-center gap-2">
-            <Calendar className="w-4 h-4" />
-            {t('tours.dailyAvailability')}
+          <TabsTrigger value="availability" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 text-xs sm:text-sm">
+            <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden xs:inline">{t('tours.dailyAvailability')}</span>
+            <span className="xs:hidden">Availability</span>
           </TabsTrigger>
         </TabsList>
 
@@ -332,27 +313,28 @@ const ToursPage = () => {
         setShowNewTourDialog(open)
         if (!open) resetFormData()
       }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[95vh] overflow-y-auto mx-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>{t('tours.createNewTour')}</DialogTitle>
             <DialogDescription>
               {t('tours.createTourDescription')}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2 sm:col-span-1">
-              <Label htmlFor="tourName">{t('tours.tourName')}</Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="space-y-2 col-span-1">
+              <Label htmlFor="tourName" className="text-sm font-medium">{t('tours.tourName')}</Label>
               <Input
                 id="tourName"
                 placeholder={t('tours.tourNamePlaceholder')}
                 value={formData.name}
                 onChange={(e) => handleFormChange('name', e.target.value)}
+                className="h-10"
               />
             </div>
-            <div className="space-y-2 sm:col-span-1">
-              <Label htmlFor="destination">{t('tours.destination')}</Label>
+            <div className="space-y-2 col-span-1">
+              <Label htmlFor="destination" className="text-sm font-medium">{t('tours.destination')}</Label>
               <Select value={formData.destination} onValueChange={(value) => handleFormChange('destination', value)}>
-                <SelectTrigger>
+                <SelectTrigger className="h-10">
                   <SelectValue placeholder={t('tours.selectDestination')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -362,73 +344,79 @@ const ToursPage = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2 sm:col-span-1">
-              <Label htmlFor="capacity">{t('tours.capacity')}</Label>
+            <div className="space-y-2 col-span-1">
+              <Label htmlFor="capacity" className="text-sm font-medium">{t('tours.capacity')}</Label>
               <Input
                 id="capacity"
                 type="number"
                 placeholder="0"
                 value={formData.capacity || ''}
                 onChange={(e) => handleFormChange('capacity', parseInt(e.target.value) || 0)}
+                className="h-10"
               />
             </div>
-            <div className="space-y-2 sm:col-span-1">
-              <Label htmlFor="departureTime">{t('tours.departureTime')}</Label>
+            <div className="space-y-2 col-span-1">
+              <Label htmlFor="departureTime" className="text-sm font-medium">{t('tours.departureTime')}</Label>
               <Input
                 id="departureTime"
                 type="time"
                 value={formData.departureTime}
                 onChange={(e) => handleFormChange('departureTime', e.target.value)}
+                className="h-10"
               />
             </div>
-            <div className="space-y-2 sm:col-span-1">
-              <Label htmlFor="adultPrice">{t('tours.adultPrice')}</Label>
+            <div className="space-y-2 col-span-1">
+              <Label htmlFor="adultPrice" className="text-sm font-medium">{t('tours.adultPrice')}</Label>
               <Input
                 id="adultPrice"
                 type="number"
                 placeholder="0"
                 value={formData.adultPrice || ''}
                 onChange={(e) => handleFormChange('adultPrice', parseFloat(e.target.value) || 0)}
+                className="h-10"
               />
             </div>
-            <div className="space-y-2 sm:col-span-1">
-              <Label htmlFor="childPrice">{t('tours.childPrice')}</Label>
+            <div className="space-y-2 col-span-1">
+              <Label htmlFor="childPrice" className="text-sm font-medium">{t('tours.childPrice')}</Label>
               <Input
                 id="childPrice"
                 type="number"
                 placeholder="0"
                 value={formData.childPrice || ''}
                 onChange={(e) => handleFormChange('childPrice', parseFloat(e.target.value) || 0)}
+                className="h-10"
               />
             </div>
-            <div className="col-span-1 sm:col-span-2 space-y-2">
-              <Label htmlFor="startingPoint">{t('tours.startingPoint')}</Label>
+            <div className="col-span-full space-y-2">
+              <Label htmlFor="startingPoint" className="text-sm font-medium">{t('tours.startingPoint')}</Label>
               <Input
                 id="startingPoint"
                 placeholder={t('tours.startingPointPlaceholder')}
                 value={formData.startingPoint}
                 onChange={(e) => handleFormChange('startingPoint', e.target.value)}
+                className="h-10"
               />
             </div>
-            <div className="col-span-1 sm:col-span-2 space-y-2">
-              <Label htmlFor="description">{t('tours.description')}</Label>
+            <div className="col-span-full space-y-2">
+              <Label htmlFor="description" className="text-sm font-medium">{t('tours.description')}</Label>
               <Textarea
                 id="description"
                 placeholder={t('tours.descriptionPlaceholder')}
                 value={formData.description}
                 onChange={(e) => handleFormChange('description', e.target.value)}
+                className="min-h-[80px] resize-none"
               />
             </div>
-            <div className="col-span-1 sm:col-span-2 flex items-center space-x-2">
+            <div className="col-span-full flex items-center space-x-3 py-2">
               <Switch
                 id="active"
                 checked={formData.active}
                 onCheckedChange={(checked) => handleFormChange('active', checked)}
               />
-              <Label htmlFor="active">{t('tours.activeTour')}</Label>
+              <Label htmlFor="active" className="text-sm font-medium">{t('tours.activeTour')}</Label>
             </div>
           </div>
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 pt-4">
             <Button
               variant="outline"
               onClick={() => {
@@ -452,7 +440,7 @@ const ToursPage = () => {
 
       {/* Edit Tour Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[95vh] overflow-y-auto mx-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>{t('tours.editTour')}</DialogTitle>
             <DialogDescription>
@@ -521,7 +509,7 @@ const ToursPage = () => {
 
       {/* Availability Edit Dialog */}
       <Dialog open={showAvailabilityDialog} onOpenChange={setShowAvailabilityDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[95vh] overflow-y-auto mx-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>{t('tours.editDailyAvailability')}</DialogTitle>
             <DialogDescription>
