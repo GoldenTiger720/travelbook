@@ -31,6 +31,13 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { 
   Users, 
   Search, 
@@ -189,6 +196,16 @@ const CustomersPage = () => {
   const [searchTerm, setSearchTerm] = useState("")
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
+  const [newCustomer, setNewCustomer] = useState({
+    fullName: "",
+    idPassport: "",
+    email: "",
+    phone: "",
+    language: "",
+    countryOfOrigin: "",
+    cpf: "",
+    address: ""
+  })
   
   const filteredCustomers = mockCustomers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -225,43 +242,120 @@ const CustomersPage = () => {
               <DialogHeader>
                 <DialogTitle>Add New Customer</DialogTitle>
                 <DialogDescription>
-                  Add a new customer to your travel agency database.
+                  Add a new customer with complete information including personal details, contact info, and preferences.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Name
-                  </Label>
-                  <Input id="name" className="col-span-3" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="fullName">Full name</Label>
+                    <Input
+                      id="fullName"
+                      placeholder="Enter full name"
+                      value={newCustomer.fullName}
+                      onChange={(e) => setNewCustomer({...newCustomer, fullName: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="idPassport">ID/Passport</Label>
+                    <Input
+                      id="idPassport"
+                      placeholder="Enter ID or passport number"
+                      value={newCustomer.idPassport}
+                      onChange={(e) => setNewCustomer({...newCustomer, idPassport: e.target.value})}
+                    />
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="email" className="text-right">
-                    Email
-                  </Label>
-                  <Input id="email" type="email" className="col-span-3" />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Enter email address"
+                      value={newCustomer.email}
+                      onChange={(e) => setNewCustomer({...newCustomer, email: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="Enter phone number"
+                      value={newCustomer.phone}
+                      onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
+                    />
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="phone" className="text-right">
-                    Phone
-                  </Label>
-                  <Input id="phone" type="tel" className="col-span-3" />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="language">Language</Label>
+                    <Select value={newCustomer.language} onValueChange={(value) => setNewCustomer({...newCustomer, language: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="es">Spanish</SelectItem>
+                        <SelectItem value="en">English</SelectItem>
+                        <SelectItem value="pt">Portuguese</SelectItem>
+                        <SelectItem value="fr">French</SelectItem>
+                        <SelectItem value="de">German</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="countryOfOrigin">Country of origin</Label>
+                    <Input
+                      id="countryOfOrigin"
+                      placeholder="Enter country of origin"
+                      value={newCustomer.countryOfOrigin}
+                      onChange={(e) => setNewCustomer({...newCustomer, countryOfOrigin: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cpf">CPF</Label>
+                    <Input
+                      id="cpf"
+                      placeholder="Enter CPF (Brazilian tax ID)"
+                      value={newCustomer.cpf}
+                      onChange={(e) => setNewCustomer({...newCustomer, cpf: e.target.value})}
+                    />
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="location" className="text-right">
-                    Location
-                  </Label>
-                  <Input id="location" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="notes" className="text-right">
-                    Notes
-                  </Label>
-                  <Textarea id="notes" className="col-span-3" />
+
+                <div>
+                  <Label htmlFor="address">Address</Label>
+                  <Input
+                    id="address"
+                    placeholder="Enter full address"
+                    value={newCustomer.address}
+                    onChange={(e) => setNewCustomer({...newCustomer, address: e.target.value})}
+                  />
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit" onClick={() => setIsAddCustomerOpen(false)}>
+                <Button
+                  type="submit"
+                  onClick={() => {
+                    // Here you would typically save the customer data
+                    console.log('New customer:', newCustomer)
+                    // Reset form
+                    setNewCustomer({
+                      fullName: "",
+                      idPassport: "",
+                      email: "",
+                      phone: "",
+                      language: "",
+                      countryOfOrigin: "",
+                      cpf: "",
+                      address: ""
+                    })
+                    setIsAddCustomerOpen(false)
+                  }}
+                >
                   Add Customer
                 </Button>
               </DialogFooter>
