@@ -19,6 +19,7 @@ import {
   XCircle
 } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { tourService, CreateTourData } from "@/services/tourService"
 
 // Mock data for tours
 const toursData = [
@@ -137,6 +138,20 @@ const ToursPage = () => {
   const [selectedDate, setSelectedDate] = useState<any>(null)
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [calendarData] = useState(generateCalendarData())
+  const [isLoading, setIsLoading] = useState(false)
+
+  // Form data state for new tour
+  const [formData, setFormData] = useState<CreateTourData>({
+    name: '',
+    destination: '',
+    capacity: 0,
+    departureTime: '',
+    adultPrice: 0,
+    childPrice: 0,
+    startingPoint: '',
+    description: '',
+    active: true
+  })
 
   // Get unique destinations for filter
   const destinations = [...new Set(toursData.map(tour => tour.destination))]
@@ -191,6 +206,51 @@ const ToursPage = () => {
   const handleEditAvailability = (date: any) => {
     setSelectedDate(date)
     setShowAvailabilityDialog(true)
+  }
+
+  // Reset form data when dialog closes
+  const resetFormData = () => {
+    setFormData({
+      name: '',
+      destination: '',
+      capacity: 0,
+      departureTime: '',
+      adultPrice: 0,
+      childPrice: 0,
+      startingPoint: '',
+      description: '',
+      active: true
+    })
+  }
+
+  // Handle form submission
+  const handleCreateTour = async () => {
+    if (!formData.name || !formData.destination || formData.capacity <= 0) {
+      alert(t('tours.fillRequiredFields') || 'Please fill in all required fields')
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      await tourService.createTour(formData)
+      setShowNewTourDialog(false)
+      resetFormData()
+      // You might want to refresh the tours list here
+      alert(t('tours.tourCreatedSuccessfully') || 'Tour created successfully!')
+    } catch (error) {
+      console.error('Error creating tour:', error)
+      alert(t('tours.errorCreatingTour') || 'Error creating tour. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Handle form field changes
+  const handleFormChange = (field: keyof CreateTourData, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
   }
 
   const getStatusBadge = (status: string) => {
@@ -253,8 +313,6 @@ const ToursPage = () => {
             toursData={toursData}
             destinations={destinations}
             filteredTours={filteredTours}
-            t={t}
-            getStatusBadge={getStatusBadge}
           />
         </TabsContent>
 
@@ -265,15 +323,15 @@ const ToursPage = () => {
             navigateMonth={navigateMonth}
             getCalendarDays={getCalendarDays}
             handleEditAvailability={handleEditAvailability}
-            monthNames={monthNames}
-            dayNames={dayNames}
-            t={t}
           />
         </TabsContent>
       </Tabs>
 
       {/* New Tour Dialog */}
-      <Dialog open={showNewTourDialog} onOpenChange={setShowNewTourDialog}>
+      <Dialog open={showNewTourDialog} onOpenChange={(open) => {
+        setShowNewTourDialog(open)
+        if (!open) resetFormData()
+      }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
           <DialogHeader>
             <DialogTitle>{t('tours.createNewTour')}</DialogTitle>
@@ -284,11 +342,16 @@ const ToursPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2 sm:col-span-1">
               <Label htmlFor="tourName">{t('tours.tourName')}</Label>
-              <Input id="tourName" placeholder={t('tours.tourNamePlaceholder')} />
+              <Input
+                id="tourName"
+                placeholder={t('tours.tourNamePlaceholder')}
+                value={formData.name}
+                onChange={(e) => handleFormChange('name', e.target.value)}
+              />
             </div>
             <div className="space-y-2 sm:col-span-1">
               <Label htmlFor="destination">{t('tours.destination')}</Label>
-              <Select>
+              <Select value={formData.destination} onValueChange={(value) => handleFormChange('destination', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder={t('tours.selectDestination')} />
                 </SelectTrigger>
@@ -301,39 +364,87 @@ const ToursPage = () => {
             </div>
             <div className="space-y-2 sm:col-span-1">
               <Label htmlFor="capacity">{t('tours.capacity')}</Label>
-              <Input id="capacity" type="number" placeholder="0" />
+              <Input
+                id="capacity"
+                type="number"
+                placeholder="0"
+                value={formData.capacity || ''}
+                onChange={(e) => handleFormChange('capacity', parseInt(e.target.value) || 0)}
+              />
             </div>
             <div className="space-y-2 sm:col-span-1">
               <Label htmlFor="departureTime">{t('tours.departureTime')}</Label>
-              <Input id="departureTime" type="time" />
+              <Input
+                id="departureTime"
+                type="time"
+                value={formData.departureTime}
+                onChange={(e) => handleFormChange('departureTime', e.target.value)}
+              />
             </div>
             <div className="space-y-2 sm:col-span-1">
               <Label htmlFor="adultPrice">{t('tours.adultPrice')}</Label>
-              <Input id="adultPrice" type="number" placeholder="0" />
+              <Input
+                id="adultPrice"
+                type="number"
+                placeholder="0"
+                value={formData.adultPrice || ''}
+                onChange={(e) => handleFormChange('adultPrice', parseFloat(e.target.value) || 0)}
+              />
             </div>
             <div className="space-y-2 sm:col-span-1">
               <Label htmlFor="childPrice">{t('tours.childPrice')}</Label>
-              <Input id="childPrice" type="number" placeholder="0" />
+              <Input
+                id="childPrice"
+                type="number"
+                placeholder="0"
+                value={formData.childPrice || ''}
+                onChange={(e) => handleFormChange('childPrice', parseFloat(e.target.value) || 0)}
+              />
             </div>
             <div className="col-span-1 sm:col-span-2 space-y-2">
               <Label htmlFor="startingPoint">{t('tours.startingPoint')}</Label>
-              <Input id="startingPoint" placeholder={t('tours.startingPointPlaceholder')} />
+              <Input
+                id="startingPoint"
+                placeholder={t('tours.startingPointPlaceholder')}
+                value={formData.startingPoint}
+                onChange={(e) => handleFormChange('startingPoint', e.target.value)}
+              />
             </div>
             <div className="col-span-1 sm:col-span-2 space-y-2">
               <Label htmlFor="description">{t('tours.description')}</Label>
-              <Textarea id="description" placeholder={t('tours.descriptionPlaceholder')} />
+              <Textarea
+                id="description"
+                placeholder={t('tours.descriptionPlaceholder')}
+                value={formData.description}
+                onChange={(e) => handleFormChange('description', e.target.value)}
+              />
             </div>
             <div className="col-span-1 sm:col-span-2 flex items-center space-x-2">
-              <Switch id="active" />
+              <Switch
+                id="active"
+                checked={formData.active}
+                onCheckedChange={(checked) => handleFormChange('active', checked)}
+              />
               <Label htmlFor="active">{t('tours.activeTour')}</Label>
             </div>
           </div>
           <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setShowNewTourDialog(false)} className="w-full sm:w-auto">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowNewTourDialog(false)
+                resetFormData()
+              }}
+              className="w-full sm:w-auto"
+            >
               {t('common.cancel')}
             </Button>
-            <Button onClick={() => setShowNewTourDialog(false)} className="w-full sm:w-auto">
-              {t('tours.createTour')}
+            <Button
+              onClick={handleCreateTour}
+              disabled={isLoading}
+              className="w-full sm:w-auto"
+            >
+              {isLoading ? t('common.creating') || 'Creating...' : t('tours.createTour')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -414,12 +525,12 @@ const ToursPage = () => {
           <DialogHeader>
             <DialogTitle>{t('tours.editDailyAvailability')}</DialogTitle>
             <DialogDescription>
-              {selectedDate && t('tours.editAvailabilityDescription', { date: selectedDate.date })}
+              {selectedDate && `${t('tours.editAvailabilityDescription')} ${selectedDate.date}`}
             </DialogDescription>
           </DialogHeader>
           {selectedDate && (
             <div className="space-y-4">
-              {selectedDate.tours?.map(tour => (
+              {selectedDate.tours?.map((tour: any) => (
                 <div key={tour.id} className="border rounded-lg p-4">
                   <h4 className="font-medium mb-3 text-sm sm:text-base">{tour.name}</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
