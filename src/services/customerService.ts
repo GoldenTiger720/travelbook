@@ -2,32 +2,39 @@ import { API_ENDPOINTS, apiCall } from '@/config/api';
 
 // Types
 export interface CreateCustomerData {
-  fullName: string;
-  idPassport: string;
+  name: string;
+  id_number: string;
   email: string;
   phone: string;
   language: string;
-  countryOfOrigin: string;
+  country: string;
   cpf: string;
   address: string;
 }
 
 export interface Customer {
   id: string;
-  fullName: string;
-  idPassport: string;
+  created_by: string;
+  name: string;
   email: string;
   phone: string;
   language: string;
-  countryOfOrigin: string;
+  country: string;
+  id_number: string;
   cpf: string;
   address: string;
+  company: string;
+  location: string;
   status: 'active' | 'inactive' | 'vip';
-  totalBookings: number;
-  totalSpent: string;
-  lastBooking: string;
-  dateCreated: string;
-  dateUpdated: string;
+  total_bookings: number;
+  total_spent: string;
+  last_booking: string | null;
+  notes: string;
+  avatar: string;
+  created_at: string;
+  updated_at: string;
+  bookings: any[];
+  reservations: any[];
 }
 
 export interface CustomerResponse {
@@ -38,12 +45,12 @@ export interface CustomerResponse {
 export interface CustomerError {
   message?: string;
   errors?: {
-    fullName?: string[];
-    idPassport?: string[];
+    name?: string[];
+    id_number?: string[];
     email?: string[];
     phone?: string[];
     language?: string[];
-    countryOfOrigin?: string[];
+    country?: string[];
     cpf?: string[];
     address?: string[];
     [key: string]: string[] | undefined;
@@ -51,10 +58,10 @@ export interface CustomerError {
 }
 
 export interface CustomerListResponse {
-  customers: Customer[];
-  total: number;
-  page: number;
-  pageSize: number;
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Customer[];
 }
 
 // Customer Service

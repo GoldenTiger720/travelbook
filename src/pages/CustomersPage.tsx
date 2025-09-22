@@ -80,12 +80,12 @@ const CustomersPage = () => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const [backendErrors, setBackendErrors] = useState<Record<string, string[]>>({})
   const [newCustomer, setNewCustomer] = useState({
-    fullName: "",
-    idPassport: "",
+    name: "",
+    id_number: "",
     email: "",
     phone: "",
     language: "",
-    countryOfOrigin: "",
+    country: "",
     cpf: "",
     address: ""
   })
@@ -110,10 +110,10 @@ const CustomersPage = () => {
     const errors: Record<string, string> = {}
 
     // Validate full name
-    if (!newCustomer.fullName.trim()) {
-      errors.fullName = "Full name is required"
-    } else if (newCustomer.fullName.trim().length < 2) {
-      errors.fullName = "Full name must be at least 2 characters"
+    if (!newCustomer.name.trim()) {
+      errors.name = "Full name is required"
+    } else if (newCustomer.name.trim().length < 2) {
+      errors.name = "Full name must be at least 2 characters"
     }
 
     // Validate email
@@ -130,8 +130,8 @@ const CustomersPage = () => {
     }
 
     // Validate ID/Passport
-    if (!newCustomer.idPassport.trim()) {
-      errors.idPassport = "ID/Passport is required"
+    if (!newCustomer.id_number.trim()) {
+      errors.id_number = "ID/Passport is required"
     }
 
     setValidationErrors(errors)
@@ -153,12 +153,12 @@ const CustomersPage = () => {
 
       // Reset form on success
       setNewCustomer({
-        fullName: "",
-        idPassport: "",
+        name: "",
+        id_number: "",
         email: "",
         phone: "",
         language: "",
-        countryOfOrigin: "",
+        country: "",
         cpf: "",
         address: ""
       })
@@ -171,20 +171,20 @@ const CustomersPage = () => {
   }
   
   // Get customers from API response or fallback to empty array
-  const customers = customersResponse?.customers || []
+  const customers = customersResponse?.results || []
 
   // Transform API customer data to match UI expectations
   const transformedCustomers = customers.map(customer => ({
     id: customer.id,
-    name: customer.fullName,
+    name: customer.name,
     email: customer.email,
     phone: customer.phone,
-    location: customer.countryOfOrigin || 'Unknown',
+    location: customer.country || customer.location || 'Unknown',
     status: customer.status,
-    totalBookings: customer.totalBookings,
-    totalSpent: customer.totalSpent,
-    lastBooking: customer.lastBooking,
-    avatar: generateAvatar(customer.fullName, customer.id)
+    totalBookings: customer.total_bookings,
+    totalSpent: `$${customer.total_spent}`,
+    lastBooking: customer.last_booking || 'Never',
+    avatar: generateAvatar(customer.name, customer.id)
   }))
 
   // Apply search filtering (in addition to API search)
@@ -198,7 +198,7 @@ const CustomersPage = () => {
   const stats = [
     {
       label: "Total Customers",
-      value: customersResponse?.total?.toString() || "0",
+      value: customersResponse?.count?.toString() || "0",
       icon: Users,
       color: "text-primary"
     },
@@ -250,53 +250,53 @@ const CustomersPage = () => {
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="fullName">Full name</Label>
+                    <Label htmlFor="name">Full name</Label>
                     <Input
-                      id="fullName"
+                      id="name"
                       placeholder="Enter full name"
-                      value={newCustomer.fullName}
+                      value={newCustomer.name}
                       onChange={(e) => {
-                        setNewCustomer({...newCustomer, fullName: e.target.value})
+                        setNewCustomer({...newCustomer, name: e.target.value})
                         // Clear errors when user starts typing
-                        if (validationErrors.fullName) {
-                          setValidationErrors(prev => ({ ...prev, fullName: '' }))
+                        if (validationErrors.name) {
+                          setValidationErrors(prev => ({ ...prev, name: '' }))
                         }
-                        if (backendErrors.fullName) {
-                          setBackendErrors(prev => ({ ...prev, fullName: [] }))
+                        if (backendErrors.name) {
+                          setBackendErrors(prev => ({ ...prev, name: [] }))
                         }
                       }}
                       disabled={createCustomerMutation.isPending}
-                      className={validationErrors.fullName || backendErrors.fullName ? 'border-destructive' : ''}
+                      className={validationErrors.name || backendErrors.name ? 'border-destructive' : ''}
                     />
-                    {validationErrors.fullName && (
-                      <p className="text-xs text-destructive mt-1">{validationErrors.fullName}</p>
+                    {validationErrors.name && (
+                      <p className="text-xs text-destructive mt-1">{validationErrors.name}</p>
                     )}
-                    {backendErrors.fullName && backendErrors.fullName.map((error, idx) => (
+                    {backendErrors.name && backendErrors.name.map((error, idx) => (
                       <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
                     ))}
                   </div>
                   <div>
-                    <Label htmlFor="idPassport">ID/Passport</Label>
+                    <Label htmlFor="id_number">ID/Passport</Label>
                     <Input
-                      id="idPassport"
+                      id="id_number"
                       placeholder="Enter ID or passport number"
-                      value={newCustomer.idPassport}
+                      value={newCustomer.id_number}
                       onChange={(e) => {
-                        setNewCustomer({...newCustomer, idPassport: e.target.value})
-                        if (validationErrors.idPassport) {
-                          setValidationErrors(prev => ({ ...prev, idPassport: '' }))
+                        setNewCustomer({...newCustomer, id_number: e.target.value})
+                        if (validationErrors.id_number) {
+                          setValidationErrors(prev => ({ ...prev, id_number: '' }))
                         }
-                        if (backendErrors.idPassport) {
-                          setBackendErrors(prev => ({ ...prev, idPassport: [] }))
+                        if (backendErrors.id_number) {
+                          setBackendErrors(prev => ({ ...prev, id_number: [] }))
                         }
                       }}
                       disabled={createCustomerMutation.isPending}
-                      className={validationErrors.idPassport || backendErrors.idPassport ? 'border-destructive' : ''}
+                      className={validationErrors.id_number || backendErrors.id_number ? 'border-destructive' : ''}
                     />
-                    {validationErrors.idPassport && (
-                      <p className="text-xs text-destructive mt-1">{validationErrors.idPassport}</p>
+                    {validationErrors.id_number && (
+                      <p className="text-xs text-destructive mt-1">{validationErrors.id_number}</p>
                     )}
-                    {backendErrors.idPassport && backendErrors.idPassport.map((error, idx) => (
+                    {backendErrors.id_number && backendErrors.id_number.map((error, idx) => (
                       <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
                     ))}
                   </div>
@@ -392,27 +392,27 @@ const CustomersPage = () => {
                     ))}
                   </div>
                   <div>
-                    <Label htmlFor="countryOfOrigin">Country of origin</Label>
+                    <Label htmlFor="country">Country of origin</Label>
                     <Input
-                      id="countryOfOrigin"
+                      id="country"
                       placeholder="Enter country of origin"
-                      value={newCustomer.countryOfOrigin}
+                      value={newCustomer.country}
                       onChange={(e) => {
-                        setNewCustomer({...newCustomer, countryOfOrigin: e.target.value})
-                        if (validationErrors.countryOfOrigin) {
-                          setValidationErrors(prev => ({ ...prev, countryOfOrigin: '' }))
+                        setNewCustomer({...newCustomer, country: e.target.value})
+                        if (validationErrors.country) {
+                          setValidationErrors(prev => ({ ...prev, country: '' }))
                         }
-                        if (backendErrors.countryOfOrigin) {
-                          setBackendErrors(prev => ({ ...prev, countryOfOrigin: [] }))
+                        if (backendErrors.country) {
+                          setBackendErrors(prev => ({ ...prev, country: [] }))
                         }
                       }}
                       disabled={createCustomerMutation.isPending}
-                      className={validationErrors.countryOfOrigin || backendErrors.countryOfOrigin ? 'border-destructive' : ''}
+                      className={validationErrors.country || backendErrors.country ? 'border-destructive' : ''}
                     />
-                    {validationErrors.countryOfOrigin && (
-                      <p className="text-xs text-destructive mt-1">{validationErrors.countryOfOrigin}</p>
+                    {validationErrors.country && (
+                      <p className="text-xs text-destructive mt-1">{validationErrors.country}</p>
                     )}
-                    {backendErrors.countryOfOrigin && backendErrors.countryOfOrigin.map((error, idx) => (
+                    {backendErrors.country && backendErrors.country.map((error, idx) => (
                       <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
                     ))}
                   </div>
