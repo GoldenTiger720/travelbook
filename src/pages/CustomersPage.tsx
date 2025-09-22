@@ -765,7 +765,6 @@ const CustomersPage = () => {
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEditCustomer(customer)}>Edit customer</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleViewBookings(customer)}>View bookings</DropdownMenuItem>
-                          <DropdownMenuItem>Send email</DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteCustomer(customer)}>
                             Delete customer
@@ -897,7 +896,6 @@ const CustomersPage = () => {
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleEditCustomer(customer)}>Edit customer</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleViewBookings(customer)}>View bookings</DropdownMenuItem>
-                    <DropdownMenuItem>Send email</DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteCustomer(customer)}>
                       Delete customer
