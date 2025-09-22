@@ -60,7 +60,7 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
       {/* Filters and Actions */}
       <div className="space-y-4">
         {/* Search and Filters */}
@@ -131,10 +131,11 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
             <Badge variant="secondary">{filteredTours.length} {t('tours.tours')}</Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 sm:p-6">
           {/* Desktop Table View */}
-          <div className="hidden lg:block">
-            <Table>
+          <div className="hidden xl:block">
+            <div className="overflow-x-auto">
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('tours.tour')}</TableHead>
@@ -203,82 +204,149 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
+          </div>
+
+          {/* Tablet Table View - Horizontal Scroll */}
+          <div className="hidden lg:block xl:hidden">
+            <div className="overflow-x-auto">
+              <div className="min-w-[800px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[150px]">{t('tours.tour')}</TableHead>
+                      <TableHead className="min-w-[120px]">{t('tours.destination')}</TableHead>
+                      <TableHead className="min-w-[100px]">{t('tours.status')}</TableHead>
+                      <TableHead className="min-w-[80px] text-center">{t('tours.capacity')}</TableHead>
+                      <TableHead className="min-w-[100px] text-right">{t('tours.adultPrice')}</TableHead>
+                      <TableHead className="min-w-[120px] text-center">{t('tours.actions')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTours.map((tour) => (
+                      <TableRow key={tour.id} className="hover:bg-muted/50">
+                        <TableCell className="min-w-[150px]">
+                          <div>
+                            <div className="font-medium truncate">{tour.name}</div>
+                            <div className="text-sm text-muted-foreground truncate">{tour.category}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="min-w-[120px]">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            <span className="truncate">{tour.destination}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="min-w-[100px]">
+                          {getStatusBadge(tour.status)}
+                        </TableCell>
+                        <TableCell className="min-w-[80px] text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                            <span className="font-medium">{tour.capacity}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="min-w-[100px] text-right font-medium">${tour.adultPrice}</TableCell>
+                        <TableCell className="min-w-[120px]">
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedTour(tour)
+                                setShowEditDialog(true)
+                              }}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm">
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </div>
 
           {/* Mobile Card View */}
-          <div className="lg:hidden space-y-4">
+          <div className="lg:hidden space-y-3 sm:space-y-4">
             {filteredTours.map((tour) => (
-              <Card key={tour.id} className="p-4 hover:bg-muted/50">
-                <div className="space-y-3">
+              <Card key={tour.id} className="p-3 sm:p-4 hover:bg-muted/50">
+                <div className="space-y-2 sm:space-y-3">
                   {/* Tour Header */}
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-medium text-base">{tour.name}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <MapPin className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">{tour.destination}</span>
-                        <Badge className="text-xs">{tour.category}</Badge>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-sm sm:text-base truncate">{tour.name}</h3>
+                      <div className="flex items-center gap-1 sm:gap-2 mt-1 flex-wrap">
+                        <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
+                        <span className="text-xs sm:text-sm text-muted-foreground truncate">{tour.destination}</span>
+                        <Badge className="text-xs flex-shrink-0">{tour.category}</Badge>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 ml-2">
+                    <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="h-8 w-8 p-0"
                         onClick={() => {
                           setSelectedTour(tour)
                           setShowEditDialog(true)
                         }}
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="w-4 h-4" />
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
                     </div>
                   </div>
 
                   {/* Tour Details */}
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">{t('tours.status')}</span>
-                      {getStatusBadge(tour.status)}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground truncate">{t('tours.status')}</span>
+                      <div className="flex-shrink-0">{getStatusBadge(tour.status)}</div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">{t('tours.capacity')}</span>
-                      <div className="flex items-center gap-1">
-                        <Users className="w-4 h-4 text-muted-foreground" />
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground truncate">{t('tours.capacity')}</span>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <Users className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />
                         <span className="font-medium">{tour.capacity}</span>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">{t('tours.departureTime')}</span>
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4 text-muted-foreground" />
-                        <span>{tour.departureTime}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground truncate">{t('tours.departureTime')}</span>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />
+                        <span className="truncate">{tour.departureTime}</span>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">{t('tours.adultPrice')}</span>
-                      <span className="font-medium">${tour.adultPrice}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground truncate">{t('tours.adultPrice')}</span>
+                      <span className="font-medium flex-shrink-0">${tour.adultPrice}</span>
                     </div>
                   </div>
 
                   {/* Starting Point */}
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">{t('tours.startingPoint')}</span>
-                    <span className="text-right flex-1 ml-2">{tour.startingPoint}</span>
+                  <div className="flex items-start justify-between gap-2 text-xs sm:text-sm">
+                    <span className="text-muted-foreground flex-shrink-0">{t('tours.startingPoint')}</span>
+                    <span className="text-right truncate max-w-[60%]">{tour.startingPoint}</span>
                   </div>
 
                   {/* Prices Row */}
-                  <div className="grid grid-cols-2 gap-3 text-sm border-t pt-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">{t('tours.childPrice')}</span>
-                      <span className="font-medium">${tour.childPrice}</span>
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm border-t pt-2 sm:pt-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground truncate">{t('tours.childPrice')}</span>
+                      <span className="font-medium flex-shrink-0">${tour.childPrice}</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">{t('tours.costs')}</span>
-                      <span>${tour.costs}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground truncate">{t('tours.costs')}</span>
+                      <span className="flex-shrink-0">${tour.costs}</span>
                     </div>
                   </div>
                 </div>

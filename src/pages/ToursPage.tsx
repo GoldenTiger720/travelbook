@@ -253,7 +253,7 @@ const ToursPage = () => {
 
 
   return (
-    <div className="space-y-3 sm:space-y-6 px-2 sm:px-0">
+    <div className="space-y-3 sm:space-y-6 px-2 sm:px-0 w-full max-w-full overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col gap-1 sm:gap-2">
         <div>
@@ -280,7 +280,7 @@ const ToursPage = () => {
         </TabsList>
 
         {/* Tour Catalog Tab */}
-        <TabsContent value="catalog" className="space-y-4 sm:space-y-6">
+        <TabsContent value="catalog" className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
           <TourCatalogTab
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
@@ -298,7 +298,7 @@ const ToursPage = () => {
         </TabsContent>
 
         {/* Daily Availability Tab */}
-        <TabsContent value="availability" className="space-y-4 sm:space-y-6">
+        <TabsContent value="availability" className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
           <DailyAvailabilityTab
             currentMonth={currentMonth}
             navigateMonth={navigateMonth}
@@ -448,15 +448,15 @@ const ToursPage = () => {
             </DialogDescription>
           </DialogHeader>
           {selectedTour && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2 sm:col-span-1">
-                <Label htmlFor="editTourName">{t('tours.tourName')}</Label>
-                <Input id="editTourName" defaultValue={selectedTour.name} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-2 col-span-1">
+                <Label htmlFor="editTourName" className="text-sm font-medium">{t('tours.tourName')}</Label>
+                <Input id="editTourName" defaultValue={selectedTour.name} className="h-10" />
               </div>
-              <div className="space-y-2 sm:col-span-1">
-                <Label htmlFor="editDestination">{t('tours.destination')}</Label>
+              <div className="space-y-2 col-span-1">
+                <Label htmlFor="editDestination" className="text-sm font-medium">{t('tours.destination')}</Label>
                 <Select defaultValue={selectedTour.destination}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-10">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -466,37 +466,37 @@ const ToursPage = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2 sm:col-span-1">
-                <Label htmlFor="editCapacity">{t('tours.capacity')}</Label>
-                <Input id="editCapacity" type="number" defaultValue={selectedTour.capacity} />
+              <div className="space-y-2 col-span-1">
+                <Label htmlFor="editCapacity" className="text-sm font-medium">{t('tours.capacity')}</Label>
+                <Input id="editCapacity" type="number" defaultValue={selectedTour.capacity} className="h-10" />
               </div>
-              <div className="space-y-2 sm:col-span-1">
-                <Label htmlFor="editDepartureTime">{t('tours.departureTime')}</Label>
-                <Input id="editDepartureTime" type="time" defaultValue={selectedTour.departureTime} />
+              <div className="space-y-2 col-span-1">
+                <Label htmlFor="editDepartureTime" className="text-sm font-medium">{t('tours.departureTime')}</Label>
+                <Input id="editDepartureTime" type="time" defaultValue={selectedTour.departureTime} className="h-10" />
               </div>
-              <div className="space-y-2 sm:col-span-1">
-                <Label htmlFor="editAdultPrice">{t('tours.adultPrice')}</Label>
-                <Input id="editAdultPrice" type="number" defaultValue={selectedTour.adultPrice} />
+              <div className="space-y-2 col-span-1">
+                <Label htmlFor="editAdultPrice" className="text-sm font-medium">{t('tours.adultPrice')}</Label>
+                <Input id="editAdultPrice" type="number" defaultValue={selectedTour.adultPrice} className="h-10" />
               </div>
-              <div className="space-y-2 sm:col-span-1">
-                <Label htmlFor="editChildPrice">{t('tours.childPrice')}</Label>
-                <Input id="editChildPrice" type="number" defaultValue={selectedTour.childPrice} />
+              <div className="space-y-2 col-span-1">
+                <Label htmlFor="editChildPrice" className="text-sm font-medium">{t('tours.childPrice')}</Label>
+                <Input id="editChildPrice" type="number" defaultValue={selectedTour.childPrice} className="h-10" />
               </div>
-              <div className="col-span-1 sm:col-span-2 space-y-2">
-                <Label htmlFor="editStartingPoint">{t('tours.startingPoint')}</Label>
-                <Input id="editStartingPoint" defaultValue={selectedTour.startingPoint} />
+              <div className="col-span-full space-y-2">
+                <Label htmlFor="editStartingPoint" className="text-sm font-medium">{t('tours.startingPoint')}</Label>
+                <Input id="editStartingPoint" defaultValue={selectedTour.startingPoint} className="h-10" />
               </div>
-              <div className="col-span-1 sm:col-span-2 space-y-2">
-                <Label htmlFor="editDescription">{t('tours.description')}</Label>
-                <Textarea id="editDescription" defaultValue={selectedTour.description} />
+              <div className="col-span-full space-y-2">
+                <Label htmlFor="editDescription" className="text-sm font-medium">{t('tours.description')}</Label>
+                <Textarea id="editDescription" defaultValue={selectedTour.description} className="min-h-[80px] resize-none" />
               </div>
-              <div className="col-span-1 sm:col-span-2 flex items-center space-x-2">
+              <div className="col-span-full flex items-center space-x-3 py-2">
                 <Switch id="editActive" defaultChecked={selectedTour.status === 'active'} />
-                <Label htmlFor="editActive">{t('tours.activeTour')}</Label>
+                <Label htmlFor="editActive" className="text-sm font-medium">{t('tours.activeTour')}</Label>
               </div>
             </div>
           )}
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 pt-4">
             <Button variant="outline" onClick={() => setShowEditDialog(false)} className="w-full sm:w-auto">
               {t('common.cancel')}
             </Button>
@@ -517,41 +517,41 @@ const ToursPage = () => {
             </DialogDescription>
           </DialogHeader>
           {selectedDate && (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {selectedDate.tours?.map((tour: any) => (
-                <div key={tour.id} className="border rounded-lg p-4">
-                  <h4 className="font-medium mb-3 text-sm sm:text-base">{tour.name}</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="space-y-2">
-                      <Label className="text-sm">{t('tours.totalCapacity')}</Label>
-                      <Input type="number" defaultValue={tour.totalCapacity} />
+                <div key={tour.id} className="border rounded-lg p-3 sm:p-4">
+                  <h4 className="font-medium mb-2 sm:mb-3 text-sm sm:text-base truncate">{tour.name}</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+                    <div className="space-y-1 sm:space-y-2">
+                      <Label className="text-xs sm:text-sm font-medium">{t('tours.totalCapacity')}</Label>
+                      <Input type="number" defaultValue={tour.totalCapacity} className="h-9 sm:h-10" />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm">{t('tours.bookedSpots')}</Label>
-                      <Input type="number" defaultValue={tour.bookedSpots} />
+                    <div className="space-y-1 sm:space-y-2">
+                      <Label className="text-xs sm:text-sm font-medium">{t('tours.bookedSpots')}</Label>
+                      <Input type="number" defaultValue={tour.bookedSpots} className="h-9 sm:h-10" />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm">{t('tours.availableSpots')}</Label>
-                      <Input type="number" defaultValue={tour.availableSpots} readOnly className="bg-muted" />
+                    <div className="space-y-1 sm:space-y-2">
+                      <Label className="text-xs sm:text-sm font-medium">{t('tours.availableSpots')}</Label>
+                      <Input type="number" defaultValue={tour.availableSpots} readOnly className="bg-muted h-9 sm:h-10" />
                     </div>
                   </div>
                 </div>
               )) || (
                 selectedDate.tour && (
-                  <div className="border rounded-lg p-4">
-                    <h4 className="font-medium mb-3 text-sm sm:text-base">{selectedDate.tour.name}</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div className="space-y-2">
-                        <Label className="text-sm">{t('tours.totalCapacity')}</Label>
-                        <Input type="number" defaultValue={selectedDate.tour.totalCapacity} />
+                  <div className="border rounded-lg p-3 sm:p-4">
+                    <h4 className="font-medium mb-2 sm:mb-3 text-sm sm:text-base truncate">{selectedDate.tour.name}</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+                      <div className="space-y-1 sm:space-y-2">
+                        <Label className="text-xs sm:text-sm font-medium">{t('tours.totalCapacity')}</Label>
+                        <Input type="number" defaultValue={selectedDate.tour.totalCapacity} className="h-9 sm:h-10" />
                       </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm">{t('tours.bookedSpots')}</Label>
-                        <Input type="number" defaultValue={selectedDate.tour.bookedSpots} />
+                      <div className="space-y-1 sm:space-y-2">
+                        <Label className="text-xs sm:text-sm font-medium">{t('tours.bookedSpots')}</Label>
+                        <Input type="number" defaultValue={selectedDate.tour.bookedSpots} className="h-9 sm:h-10" />
                       </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm">{t('tours.availableSpots')}</Label>
-                        <Input type="number" defaultValue={selectedDate.tour.availableSpots} readOnly className="bg-muted" />
+                      <div className="space-y-1 sm:space-y-2">
+                        <Label className="text-xs sm:text-sm font-medium">{t('tours.availableSpots')}</Label>
+                        <Input type="number" defaultValue={selectedDate.tour.availableSpots} readOnly className="bg-muted h-9 sm:h-10" />
                       </div>
                     </div>
                   </div>
@@ -559,7 +559,7 @@ const ToursPage = () => {
               )}
             </div>
           )}
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 pt-4">
             <Button variant="outline" onClick={() => setShowAvailabilityDialog(false)} className="w-full sm:w-auto">
               {t('common.cancel')}
             </Button>
