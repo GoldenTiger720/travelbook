@@ -12,22 +12,27 @@ export interface CreateDestinationData {
 export interface UpdateDestinationData extends Partial<CreateDestinationData> {}
 
 export interface Destination {
-  id: string | number;
+  id: string;
   name: string;
   country: string;
   region: string;
-  cities: string[];
-  toursCount: number;
-  status: 'active' | 'inactive';
-  description: string;
-  coordinates: string;
-  timezone: string;
   language: string;
+  status: 'active' | 'inactive';
+  created_by: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface DestinationResponse {
   destination: Destination;
   message?: string;
+}
+
+export interface DestinationListResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Destination[];
 }
 
 export interface DestinationError {
@@ -56,8 +61,8 @@ class DestinationService {
         throw new Error('Failed to fetch destinations');
       }
 
-      const data = await response.json();
-      return data.destinations || data;
+      const data: DestinationListResponse = await response.json();
+      return data.results || [];
     } catch (error) {
       console.error('Error fetching destinations:', error);
       throw error;

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { toast } from 'sonner'
+import Swal from 'sweetalert2'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,91 +34,22 @@ import {
   Edit,
   Trash2,
   Map,
-  Users,
 } from 'lucide-react'
 import { destinationService, CreateDestinationData, UpdateDestinationData, Destination } from '@/services/destinationService'
 
-// Mock data for destinations
-const destinationsData = [
-  {
-    id: 1,
-    name: "Buenos Aires",
-    country: "Argentina",
-    region: "South America",
-    cities: ["Buenos Aires", "La Plata", "Tigre"],
-    toursCount: 15,
-    status: "active" as const,
-    description: "Capital and largest city of Argentina",
-    coordinates: "-34.6118, -58.3960",
-    timezone: "America/Buenos_Aires",
-    language: "Spanish"
-  },
-  {
-    id: 2,
-    name: "Patagonia",
-    country: "Argentina/Chile",
-    region: "South America",
-    cities: ["Bariloche", "El Calafate", "Ushuaia", "Puerto Natales"],
-    toursCount: 8,
-    status: "active" as const,
-    description: "Stunning natural landscapes and glaciers",
-    coordinates: "-50.0000, -73.0000",
-    timezone: "America/Buenos_Aires",
-    language: "Spanish"
-  },
-  {
-    id: 3,
-    name: "Iguazu Falls",
-    country: "Argentina/Brazil",
-    region: "South America",
-    cities: ["Puerto Iguazu", "Foz do Iguaçu"],
-    toursCount: 12,
-    status: "active" as const,
-    description: "One of the largest waterfalls systems in the world",
-    coordinates: "-25.6953, -54.4367",
-    timezone: "America/Buenos_Aires",
-    language: "Spanish/Portuguese"
-  },
-  {
-    id: 4,
-    name: "Mendoza",
-    country: "Argentina",
-    region: "South America",
-    cities: ["Mendoza", "San Rafael", "Malargüe"],
-    toursCount: 10,
-    status: "active" as const,
-    description: "Famous wine region in the foothills of the Andes",
-    coordinates: "-32.8908, -68.8272",
-    timezone: "America/Mendoza",
-    language: "Spanish"
-  },
-  {
-    id: 5,
-    name: "Cusco",
-    country: "Peru",
-    region: "South America",
-    cities: ["Cusco", "Machu Picchu", "Sacred Valley"],
-    toursCount: 6,
-    status: "inactive" as const,
-    description: "Historic capital of the Inca Empire",
-    coordinates: "-13.5319, -71.9675",
-    timezone: "America/Lima",
-    language: "Spanish/Quechua"
-  },
-  {
-    id: 6,
-    name: "Rio de Janeiro",
-    country: "Brazil",
-    region: "South America",
-    cities: ["Rio de Janeiro", "Niterói", "Petrópolis"],
-    toursCount: 7,
-    status: "active" as const,
-    description: "Marvelous city with iconic landmarks",
-    coordinates: "-22.9068, -43.1729",
-    timezone: "America/Sao_Paulo",
-    language: "Portuguese"
+
+// Helper function to format date
+const formatDate = (dateString: string): string => {
+  try {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  } catch (error) {
+    return 'Invalid date'
   }
-]
+}
 
 const DestinationsTab: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("")
@@ -126,7 +58,7 @@ const DestinationsTab: React.FC = () => {
   const [showNewDestinationDialog, setShowNewDestinationDialog] = useState(false)
   const [selectedDestination, setSelectedDestination] = useState<Destination | null>(null)
   const [showEditDialog, setShowEditDialog] = useState(false)
-  const [destinations, setDestinations] = useState<Destination[]>(destinationsData as Destination[])
+  const [destinations, setDestinations] = useState<Destination[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingDestinations, setIsLoadingDestinations] = useState(true)
 
@@ -149,8 +81,7 @@ const DestinationsTab: React.FC = () => {
         setDestinations(Array.isArray(fetchedDestinations) ? fetchedDestinations : [])
       } catch (error) {
         console.error('Error loading destinations:', error)
-        // Fallback to mock data if API fails
-        setDestinations(Array.isArray(destinationsData) ? destinationsData as Destination[] : [])
+        setDestinations([])
       } finally {
         setIsLoadingDestinations(false)
       }
@@ -162,11 +93,10 @@ const DestinationsTab: React.FC = () => {
   // Filter destinations based on search and filters
   const filteredDestinations = (destinations || []).filter(destination => {
     const matchesSearch = destination.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         destination.country.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         destination.cities.some(city => city.toLowerCase().includes(searchTerm.toLowerCase()))
+                         destination.country.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === "all" || destination.status === statusFilter
     const matchesRegion = regionFilter === "all" || destination.region === regionFilter
-    
+
     return matchesSearch && matchesStatus && matchesRegion
   })
 
@@ -198,7 +128,7 @@ const DestinationsTab: React.FC = () => {
   // Handle update destination
   const handleUpdateDestination = async () => {
     if (!selectedDestination || !editFormData) {
-      alert('No destination data to update')
+      toast.warning('No destination data to update')
       return
     }
 
@@ -211,10 +141,10 @@ const DestinationsTab: React.FC = () => {
       // Refresh destinations list
       const updatedDestinations = await destinationService.getDestinations()
       setDestinations(Array.isArray(updatedDestinations) ? updatedDestinations : [])
-      alert('Destination updated successfully!')
+      toast.success('Destination updated successfully!')
     } catch (error) {
       console.error('Error updating destination:', error)
-      alert('Error updating destination. Please try again.')
+      toast.error('Error updating destination. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -222,7 +152,18 @@ const DestinationsTab: React.FC = () => {
 
   // Handle delete destination
   const handleDeleteDestination = async (destination: Destination) => {
-    if (!confirm(`Are you sure you want to delete "${destination.name}"?`)) {
+    const result = await Swal.fire({
+      title: 'Delete Destination',
+      text: `Are you sure you want to delete "${destination.name}"? This action cannot be undone.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, Delete',
+      cancelButtonText: 'Cancel'
+    })
+
+    if (!result.isConfirmed) {
       return
     }
 
@@ -232,10 +173,10 @@ const DestinationsTab: React.FC = () => {
       // Refresh destinations list
       const updatedDestinations = await destinationService.getDestinations()
       setDestinations(Array.isArray(updatedDestinations) ? updatedDestinations : [])
-      alert('Destination deleted successfully!')
+      toast.success('Destination deleted successfully!')
     } catch (error) {
       console.error('Error deleting destination:', error)
-      alert('Error deleting destination. Please try again.')
+      toast.error('Error deleting destination. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -413,6 +354,7 @@ const DestinationsTab: React.FC = () => {
                   <TableHead className="min-w-[200px]">Destination</TableHead>
                   <TableHead className="min-w-[150px]">Country/Region</TableHead>
                   <TableHead className="min-w-[100px]">Language</TableHead>
+                  <TableHead className="min-w-[120px]">Created Date</TableHead>
                   <TableHead className="text-center min-w-[80px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -426,7 +368,11 @@ const DestinationsTab: React.FC = () => {
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="font-medium truncate max-w-[180px]" title={destination.name}>{destination.name}</div>
-                          <div className="text-sm text-muted-foreground truncate max-w-[180px]" title={destination.description}>{destination.description}</div>
+                          <div className="text-sm text-muted-foreground">
+                            <Badge variant={destination.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                              {destination.status}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
                     </TableCell>
@@ -441,6 +387,10 @@ const DestinationsTab: React.FC = () => {
                         {destination.language}
                       </Badge>
                     </TableCell>
+                    <TableCell className="min-w-0">
+                      <div className="text-sm font-medium">{formatDate(destination.created_at)}</div>
+                      <div className="text-xs text-muted-foreground">ID: {destination.id.substring(0, 8)}...</div>
+                    </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -450,7 +400,7 @@ const DestinationsTab: React.FC = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => {
                               setSelectedDestination(destination)
                               setShowEditDialog(true)
@@ -458,10 +408,6 @@ const DestinationsTab: React.FC = () => {
                           >
                             <Edit className="w-4 h-4 mr-2" />
                             Edit Destination
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Users className="w-4 h-4 mr-2" />
-                            View Tours
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -492,7 +438,12 @@ const DestinationsTab: React.FC = () => {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="font-medium text-sm sm:text-base truncate max-w-[200px]" title={destination.name}>{destination.name}</div>
-                      <div className="text-xs text-muted-foreground truncate line-clamp-1 max-w-[200px]" title={destination.description}>{destination.description}</div>
+                      <div className="text-xs text-muted-foreground">
+                        <Badge variant={destination.status === 'active' ? 'default' : 'secondary'} className="text-xs mr-2">
+                          {destination.status}
+                        </Badge>
+                        ID: {destination.id.substring(0, 8)}...
+                      </div>
                     </div>
                   </div>
                   <DropdownMenu>
@@ -503,7 +454,7 @@ const DestinationsTab: React.FC = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={() => {
                           setSelectedDestination(destination)
                           setShowEditDialog(true)
@@ -511,10 +462,6 @@ const DestinationsTab: React.FC = () => {
                       >
                         <Edit className="w-4 h-4 mr-2" />
                         Edit Destination
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Users className="w-4 h-4 mr-2" />
-                        View Tours
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
@@ -529,7 +476,7 @@ const DestinationsTab: React.FC = () => {
                 </div>
 
                 {/* Content grid */}
-                <div className="grid grid-cols-1 gap-2 sm:gap-3 text-xs w-full max-w-full min-w-0 overflow-hidden">
+                <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 sm:gap-3 text-xs w-full max-w-full min-w-0 overflow-hidden">
                   <div className="min-w-0">
                     <div className="text-muted-foreground mb-1">Country/Region</div>
                     <div className="font-medium text-sm truncate">{destination.country}</div>
@@ -540,6 +487,10 @@ const DestinationsTab: React.FC = () => {
                     <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
                       {destination.language}
                     </Badge>
+                  </div>
+                  <div className="col-span-1 xs:col-span-2">
+                    <div className="text-muted-foreground mb-1">Created Date</div>
+                    <div className="text-sm font-medium">{formatDate(destination.created_at)}</div>
                   </div>
                 </div>
               </div>
