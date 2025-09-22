@@ -124,6 +124,13 @@ export const API_ENDPOINTS = {
     UPDATE: '/api/settings',
     PREFERENCES: '/api/settings/preferences',
     NOTIFICATIONS: '/api/settings/notifications',
+    DESTINATIONS: {
+      LIST: '/api/settings/destinations',
+      CREATE: '/api/settings/destinations',
+      GET: (id: string) => `/api/settings/destinations/${id}`,
+      UPDATE: (id: string) => `/api/settings/destinations/${id}`,
+      DELETE: (id: string) => `/api/settings/destinations/${id}`,
+    },
   },
   
   // Support endpoints
