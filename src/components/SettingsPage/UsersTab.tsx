@@ -36,7 +36,6 @@ import {
   Trash2,
   Mail,
   Phone,
-  Shield,
   Check,
 } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -183,6 +182,7 @@ const UsersTab: React.FC = () => {
     const roleConfig = {
       administrator: { color: "bg-red-500", label: "Admin" },
       salesperson: { color: "bg-blue-500", label: "Sales" },
+      agency: { color: "bg-purple-600", label: "Agency" },
       supersalesperson: { color: "bg-blue-600", label: "SuperSales" },
       "external agency": { color: "bg-purple-500", label: "External" },
       "post-sale": { color: "bg-teal-500", label: "Post-Sale" },
@@ -200,19 +200,6 @@ const UsersTab: React.FC = () => {
     )
   }
 
-  const getAgencyBadge = (agency: string) => {
-    const displayName = agency === "Internal" ? "Internal" : 
-                       agency.length > 10 ? agency.substring(0, 10) + "..." : agency;
-    return agency === "Internal" ? (
-      <Badge className="bg-green-100 text-green-800 hover:bg-green-200 text-xs px-1.5 py-0">
-        {displayName}
-      </Badge>
-    ) : (
-      <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200 text-xs px-1.5 py-0" title={agency}>
-        {displayName}
-      </Badge>
-    )
-  }
 
 
   return (
@@ -268,6 +255,7 @@ const UsersTab: React.FC = () => {
                         <SelectItem value="all">All Roles</SelectItem>
                         <SelectItem value="administrator">Administrator</SelectItem>
                         <SelectItem value="salesperson">Salesperson</SelectItem>
+                        <SelectItem value="agency">Agency</SelectItem>
                         <SelectItem value="supersalesperson">SuperSalesperson</SelectItem>
                         <SelectItem value="external agency">External agency</SelectItem>
                         <SelectItem value="post-sale">Post-Sale</SelectItem>
@@ -335,16 +323,14 @@ const UsersTab: React.FC = () => {
       <Card>
         <CardContent className="p-0">
           {/* Desktop Table View */}
-          <div className="hidden lg:block w-full">
+          <div className="hidden lg:block w-full overflow-hidden">
             <Table className="w-full table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[20%]">User</TableHead>
-                  <TableHead className="w-[22%]">Contact</TableHead>
-                  <TableHead className="w-[12%]">Role</TableHead>
-                  <TableHead className="w-[15%]">Agency</TableHead>
-                  <TableHead className="w-[15%]">Supervisor</TableHead>
-                  <TableHead className="w-[8%] text-right">Comm</TableHead>
+                  <TableHead className="w-[28%]">User</TableHead>
+                  <TableHead className="w-[32%]">Contact</TableHead>
+                  <TableHead className="w-[20%]">Role</TableHead>
+                  <TableHead className="w-[12%] text-right">Commission</TableHead>
                   <TableHead className="w-[8%] text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -362,29 +348,24 @@ const UsersTab: React.FC = () => {
                         </div>
                         <div className="min-w-0">
                           <div className="font-medium text-sm truncate">{user.name}</div>
-                          <div className="text-xs text-muted-foreground truncate">@{user.login}</div>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-1 text-xs">
+                    <TableCell className="max-w-0">
+                      <div className="space-y-0.5 min-w-0">
+                        <div className="flex items-center gap-1 text-xs min-w-0">
                           <Mail className="w-3 h-3 shrink-0" />
-                          <span className="truncate">{user.email}</span>
+                          <span className="truncate block min-w-0" title={user.email}>{user.email}</span>
                         </div>
-                        <div className="flex items-center gap-1 text-xs">
+                        <div className="flex items-center gap-1 text-xs min-w-0">
                           <Phone className="w-3 h-3 shrink-0" />
-                          <span className="truncate">{user.phone}</span>
+                          <span className="truncate block min-w-0" title={user.phone}>{user.phone}</span>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       {getRoleBadge(user.role)}
                     </TableCell>
-                    <TableCell>
-                      {getAgencyBadge(user.agency)}
-                    </TableCell>
-                    <TableCell className="text-sm truncate">{user.supervisor}</TableCell>
                     <TableCell className="text-right font-medium text-sm">{user.commission}%</TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -395,7 +376,7 @@ const UsersTab: React.FC = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => {
                               setSelectedUser(user)
                               setShowEditDialog(true)
@@ -403,10 +384,6 @@ const UsersTab: React.FC = () => {
                           >
                             <Edit className="w-4 h-4 mr-2" />
                             Edit User
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Shield className="w-4 h-4 mr-2" />
-                            Reset Password
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem className="text-red-600">
@@ -437,7 +414,6 @@ const UsersTab: React.FC = () => {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="font-medium text-sm truncate">{user.name}</div>
-                      <div className="text-xs text-muted-foreground truncate">@{user.login}</div>
                     </div>
                   </div>
                   <DropdownMenu>
@@ -448,7 +424,7 @@ const UsersTab: React.FC = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={() => {
                           setSelectedUser(user)
                           setShowEditDialog(true)
@@ -456,10 +432,6 @@ const UsersTab: React.FC = () => {
                       >
                         <Edit className="w-4 h-4 mr-2" />
                         Edit User
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Shield className="w-4 h-4 mr-2" />
-                        Reset Password
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem className="text-red-600">
@@ -472,26 +444,22 @@ const UsersTab: React.FC = () => {
 
                 <div className="space-y-3">
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
                       <Mail className="w-4 h-4 shrink-0" />
-                      <span className="truncate">{user.email}</span>
+                      <span className="truncate min-w-0" title={user.email}>{user.email}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
                       <Phone className="w-4 h-4 shrink-0" />
-                      <span>{user.phone}</span>
+                      <span className="truncate min-w-0" title={user.phone}>{user.phone}</span>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {getRoleBadge(user.role)}
-                    {getAgencyBadge(user.agency)}
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-2 text-sm">
-                  <span className="text-muted-foreground">
-                    Supervisor: <span className="font-medium text-foreground">{user.supervisor}</span>
-                  </span>
-                  <span className="font-medium text-foreground">
+                <div className="flex justify-end">
+                  <span className="font-medium text-foreground text-sm">
                     Commission: {user.commission}%
                   </span>
                 </div>
@@ -512,10 +480,6 @@ const UsersTab: React.FC = () => {
           </DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="newLogin">Login Username</Label>
-              <Input id="newLogin" placeholder="username" />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="newName">Full Name</Label>
               <Input id="newName" placeholder="Full Name" />
             </div>
@@ -528,6 +492,10 @@ const UsersTab: React.FC = () => {
               <Input id="newPhone" placeholder="+1 (555) 123-4567" />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="newPassword">Password</Label>
+              <Input id="newPassword" type="text" placeholder="Enter password" />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="newRole">Role</Label>
               <Select>
                 <SelectTrigger>
@@ -536,35 +504,9 @@ const UsersTab: React.FC = () => {
                 <SelectContent>
                   <SelectItem value="administrator">Administrator</SelectItem>
                   <SelectItem value="salesperson">Salesperson</SelectItem>
+                  <SelectItem value="agency">Agency</SelectItem>
                   <SelectItem value="guide">Guide</SelectItem>
                   <SelectItem value="driver">Driver</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="newAgency">Agency</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select agency" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Internal">Internal</SelectItem>
-                  <SelectItem value="Travel Plus">Travel Plus</SelectItem>
-                  <SelectItem value="World Tours">World Tours</SelectItem>
-                  <SelectItem value="Adventure Agency">Adventure Agency</SelectItem>
-                  <SelectItem value="Sunset Travel">Sunset Travel</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="newSupervisor">Supervisor</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select supervisor" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="maría garcía">María García</SelectItem>
-                  <SelectItem value="carlos rodriguez">Carlos Rodriguez</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -607,10 +549,6 @@ const UsersTab: React.FC = () => {
           {selectedUser && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="editLogin">Login Username</Label>
-                <Input id="editLogin" defaultValue={selectedUser.login} />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="editName">Full Name</Label>
                 <Input id="editName" defaultValue={selectedUser.name} />
               </div>
@@ -623,6 +561,10 @@ const UsersTab: React.FC = () => {
                 <Input id="editPhone" defaultValue={selectedUser.phone} />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="editPassword">Password</Label>
+                <Input id="editPassword" type="text" placeholder="Enter new password" />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="editRole">Role</Label>
                 <Select defaultValue={selectedUser.role}>
                   <SelectTrigger>
@@ -631,35 +573,9 @@ const UsersTab: React.FC = () => {
                   <SelectContent>
                     <SelectItem value="administrator">Administrator</SelectItem>
                     <SelectItem value="salesperson">Salesperson</SelectItem>
+                    <SelectItem value="agency">Agency</SelectItem>
                     <SelectItem value="guide">Guide</SelectItem>
                     <SelectItem value="driver">Driver</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="editAgency">Agency</Label>
-                <Select defaultValue={selectedUser.agency}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Internal">Internal</SelectItem>
-                    <SelectItem value="Travel Plus">Travel Plus</SelectItem>
-                    <SelectItem value="World Tours">World Tours</SelectItem>
-                    <SelectItem value="Adventure Agency">Adventure Agency</SelectItem>
-                    <SelectItem value="Sunset Travel">Sunset Travel</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="editSupervisor">Supervisor</Label>
-                <Select defaultValue={selectedUser.supervisor}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="maría garcía">María García</SelectItem>
-                    <SelectItem value="carlos rodriguez">Carlos Rodriguez</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
