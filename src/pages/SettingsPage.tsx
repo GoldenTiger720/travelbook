@@ -1,5 +1,3 @@
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import SystemTab from "@/components/SettingsPage/SystemTab"
 import UsersTab from "@/components/SettingsPage/UsersTab"
@@ -10,34 +8,18 @@ import {
   Users,
   MapPin,
   Car,
-  Save,
 } from "lucide-react"
 
 const SettingsPage = () => {
-  const handleSave = () => {
-    // Handle save logic for administrative settings
-    console.log('Administrative settings saved')
-  }
 
   return (
     <div className="space-y-4 sm:space-y-6 p-2 sm:p-4 lg:p-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">Administrative Settings</h1>
-          <p className="text-sm sm:text-base text-muted-foreground mt-1">
-            Centralized administrative functions for system management
-          </p>
-        </div>
-        <Button 
-          onClick={handleSave}
-          className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto shrink-0"
-          size="sm"
-        >
-          <Save className="w-4 h-4 sm:mr-2" />
-          <span className="hidden sm:inline">Save Changes</span>
-          <span className="sm:hidden">Save</span>
-        </Button>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Administrative Settings</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
+          Centralized administrative functions for system management
+        </p>
       </div>
 
       <Tabs defaultValue="system" className="space-y-4">
