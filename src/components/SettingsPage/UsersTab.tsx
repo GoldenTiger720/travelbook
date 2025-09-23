@@ -39,122 +39,26 @@ import {
   Check,
 } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
+import {
+  useUsers,
+  useCreateUser,
+  useUpdateUser,
+  useDeleteUser,
+  User,
+  CreateUserData,
+  UpdateUserData
+} from '@/lib/hooks/useUsers'
 
-// Mock data for users
-const usersData = [
-  {
-    id: 1,
-    login: "mgarcía",
-    name: "María García",
-    email: "maria.garcia@zenithtravel.com",
-    phone: "+1 (555) 123-4567",
-    role: "administrator",
-    supervisor: "Admin",
-    agency: "Internal",
-    commission: 15.0,
-    status: "active",
-    lastLogin: "2024-01-15 14:30",
-    avatar: null
-  },
-  {
-    id: 2,
-    login: "crodriguez",
-    name: "Carlos Rodriguez",
-    email: "carlos.rodriguez@zenithtravel.com",
-    phone: "+1 (555) 234-5678",
-    role: "salesperson",
-    supervisor: "María García",
-    agency: "Travel Plus",
-    commission: 12.5,
-    status: "active",
-    lastLogin: "2024-01-15 16:45",
-    avatar: null
-  },
-  {
-    id: 3,
-    login: "asilva",
-    name: "Ana Silva",
-    email: "ana.silva@zenithtravel.com",
-    phone: "+1 (555) 345-6789",
-    role: "salesperson",
-    supervisor: "Carlos Rodriguez",
-    agency: "World Tours",
-    commission: 10.0,
-    status: "active",
-    lastLogin: "2024-01-15 09:15",
-    avatar: null
-  },
-  {
-    id: 4,
-    login: "lmartinez",
-    name: "Luis Martinez",
-    email: "luis.martinez@zenithtravel.com",
-    phone: "+1 (555) 456-7890",
-    role: "driver",
-    supervisor: "Carlos Rodriguez",
-    agency: "Internal",
-    commission: 8.0,
-    status: "inactive",
-    lastLogin: "2024-01-10 11:20",
-    avatar: null
-  },
-  {
-    id: 5,
-    login: "sgonzalez",
-    name: "Sofia Gonzalez",
-    email: "sofia.gonzalez@zenithtravel.com",
-    phone: "+1 (555) 567-8901",
-    role: "salesperson",
-    supervisor: "María García",
-    agency: "Adventure Agency",
-    commission: 11.0,
-    status: "active",
-    lastLogin: "2024-01-15 13:10",
-    avatar: null
-  },
-  {
-    id: 6,
-    login: "tandrade",
-    name: "Thiago Andrade",
-    email: "thiago.andrade@zenithtravel.com",
-    phone: "+1 (555) 678-9012",
-    role: "salesperson",
-    supervisor: "María García",
-    agency: "Internal",
-    commission: 14.0,
-    status: "active",
-    lastLogin: "2024-01-15 18:20",
-    avatar: null
-  },
-  {
-    id: 7,
-    login: "jrodriguez",
-    name: "Juan Rodriguez",
-    email: "juan.rodriguez@zenithtravel.com",
-    phone: "+1 (555) 789-0123",
-    role: "salesperson",
-    supervisor: "María García",
-    agency: "Sunset Travel",
-    commission: 13.0,
-    status: "active",
-    lastLogin: "2024-01-15 17:45",
-    avatar: null
-  },
-  {
-    id: 8,
-    login: "amartinez",
-    name: "Ana Martinez",
-    email: "ana.martinez@zenithtravel.com",
-    phone: "+1 (555) 890-1234",
-    role: "salesperson",
-    supervisor: "María García",
-    agency: "Internal",
-    commission: 15.5,
-    status: "active",
-    lastLogin: "2024-01-15 16:30",
-    avatar: null
-  }
-]
+// Form data interfaces
+interface NewUserFormData {
+  full_name: string  // Updated to match API
+  email: string
+  phone: string
+  password: string
+  role: string
+  commission: number
+  status: boolean
+}
 
 const UsersTab: React.FC = () => {
   const { t } = useLanguage()
@@ -162,19 +66,104 @@ const UsersTab: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
   const [showNewUserDialog, setShowNewUserDialog] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<any>(null)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [showEditDialog, setShowEditDialog] = useState(false)
 
+  // ReactQuery hooks
+  const { data: users = [], isLoading, isError } = useUsers()
+  const createUserMutation = useCreateUser()
+  const updateUserMutation = useUpdateUser()
+  const deleteUserMutation = useDeleteUser()
+
+  // Form state for new user
+  const [newUserData, setNewUserData] = useState<NewUserFormData>({
+    full_name: '',
+    email: '',
+    phone: '',
+    password: '',
+    role: '',
+    commission: 0,
+    status: true
+  })
+
+  // Form state for edit user
+  const [editUserData, setEditUserData] = useState<Partial<User & { password: string }>>({
+    full_name: '',
+    email: '',
+    phone: '',
+    password: '',
+    role: '',
+    commission: 0,
+    status: 'Active'
+  })
+
   // Filter users based on search and filters
-  const filteredUsers = usersData.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.login.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesRole = roleFilter === "all" || user.role === roleFilter
-    const matchesStatus = statusFilter === "all" || user.status === statusFilter
+                         user.login?.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesRole = roleFilter === "all" || user.role === roleFilter || !user.role // Include users without role when "all" is selected
+    const matchesStatus = statusFilter === "all" || user.status === statusFilter || !user.status // Include users without status when "all" is selected
 
     return matchesSearch && matchesRole && matchesStatus
   })
+
+  // Handle create user
+  const handleCreateUser = () => {
+    const createData: CreateUserData = {
+      full_name: newUserData.full_name,
+      email: newUserData.email,
+      phone: newUserData.phone,
+      password: newUserData.password,
+      role: newUserData.role,
+      commission: newUserData.commission,
+      status: newUserData.status ? 'Active' : 'Inactive'
+    }
+
+    createUserMutation.mutate(createData, {
+      onSuccess: () => {
+        // Reset form and close dialog
+        setNewUserData({
+          full_name: '',
+          email: '',
+          phone: '',
+          password: '',
+          role: '',
+          commission: 0,
+          status: true
+        })
+        setShowNewUserDialog(false)
+      }
+    })
+  }
+
+  // Handle update user
+  const handleUpdateUser = () => {
+    if (!selectedUser || !editUserData.full_name) return
+
+    const updateData: UpdateUserData & { id: string } = {
+      id: selectedUser.id,
+      full_name: editUserData.full_name,
+      email: editUserData.email || '',
+      phone: editUserData.phone || '',
+      password: editUserData.password,
+      role: editUserData.role || '',
+      commission: editUserData.commission || 0,
+      status: editUserData.status || 'Active'
+    }
+
+    updateUserMutation.mutate(updateData, {
+      onSuccess: () => {
+        setShowEditDialog(false)
+        setSelectedUser(null)
+      }
+    })
+  }
+
+  // Handle delete user
+  const handleDeleteUser = (userId: string) => {
+    deleteUserMutation.mutate(userId)
+  }
 
   const getRoleBadge = (role: string) => {
     const roleConfig = {
@@ -199,6 +188,34 @@ const UsersTab: React.FC = () => {
   }
 
 
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4 sm:space-y-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-center py-8">
+              <div className="text-muted-foreground">Loading users...</div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-4 sm:space-y-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-center py-8">
+              <div className="text-red-600">Error loading users. Please try again.</div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -271,8 +288,8 @@ const UsersTab: React.FC = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
+                        <SelectItem value="Active">Active</SelectItem>
+                        <SelectItem value="Inactive">Inactive</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -322,14 +339,14 @@ const UsersTab: React.FC = () => {
                     <TableCell>
                       <div className="flex items-center gap-2 min-w-0">
                         <div className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center ${
-                          user.status === 'active' ? 'bg-green-100' : 'bg-red-100'
+                          user.status === 'Active' ? 'bg-green-100' : 'bg-red-100'
                         }`}>
                           <Check className={`h-4 w-4 ${
-                            user.status === 'active' ? 'text-green-600' : 'text-red-600'
+                            user.status === 'Active' ? 'text-green-600' : 'text-red-600'
                           }`} />
                         </div>
                         <div className="min-w-0">
-                          <div className="font-medium text-sm truncate">{user.name}</div>
+                          <div className="font-medium text-sm truncate">{user.full_name}</div>
                         </div>
                       </div>
                     </TableCell>
@@ -341,14 +358,14 @@ const UsersTab: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-1 text-xs min-w-0">
                           <Phone className="w-3 h-3 shrink-0" />
-                          <span className="truncate block min-w-0" title={user.phone}>{user.phone}</span>
+                          <span className="truncate block min-w-0" title={user.phone || 'No phone'}>{user.phone || 'No phone'}</span>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      {getRoleBadge(user.role)}
+                      {user.role ? getRoleBadge(user.role) : <Badge className="bg-gray-500 text-white text-xs px-1.5 py-0">No Role</Badge>}
                     </TableCell>
-                    <TableCell className="text-right font-medium text-sm">{user.commission}%</TableCell>
+                    <TableCell className="text-right font-medium text-sm">{user.commission ? `${user.commission}%` : 'N/A'}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -361,6 +378,15 @@ const UsersTab: React.FC = () => {
                           <DropdownMenuItem
                             onClick={() => {
                               setSelectedUser(user)
+                              setEditUserData({
+                                full_name: user.full_name,
+                                email: user.email,
+                                phone: user.phone || '',
+                                password: '',
+                                role: user.role || '',
+                                commission: user.commission || 0,
+                                status: user.status || 'Active'
+                              })
                               setShowEditDialog(true)
                             }}
                           >
@@ -368,7 +394,10 @@ const UsersTab: React.FC = () => {
                             Edit User
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600">
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() => handleDeleteUser(user.id)}
+                          >
                             <Trash2 className="w-4 h-4 mr-2" />
                             Delete User
                           </DropdownMenuItem>
@@ -388,14 +417,14 @@ const UsersTab: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className={`h-10 w-10 shrink-0 rounded-full flex items-center justify-center ${
-                      user.status === 'active' ? 'bg-green-100' : 'bg-red-100'
+                      user.status === 'Active' ? 'bg-green-100' : 'bg-red-100'
                     }`}>
                       <Check className={`h-5 w-5 ${
-                        user.status === 'active' ? 'text-green-600' : 'text-red-600'
+                        user.status === 'Active' ? 'text-green-600' : 'text-red-600'
                       }`} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="font-medium text-sm truncate">{user.name}</div>
+                      <div className="font-medium text-sm truncate">{user.full_name}</div>
                     </div>
                   </div>
                   <DropdownMenu>
@@ -409,6 +438,15 @@ const UsersTab: React.FC = () => {
                       <DropdownMenuItem
                         onClick={() => {
                           setSelectedUser(user)
+                          setEditUserData({
+                            full_name: user.full_name,
+                            email: user.email,
+                            phone: user.phone || '',
+                            password: '',
+                            role: user.role || '',
+                            commission: user.commission || 0,
+                            status: user.status || 'Active'
+                          })
                           setShowEditDialog(true)
                         }}
                       >
@@ -416,7 +454,10 @@ const UsersTab: React.FC = () => {
                         Edit User
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-red-600">
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDeleteUser(user.id)}
+                      >
                         <Trash2 className="w-4 h-4 mr-2" />
                         Delete User
                       </DropdownMenuItem>
@@ -432,17 +473,17 @@ const UsersTab: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
                       <Phone className="w-4 h-4 shrink-0" />
-                      <span className="truncate min-w-0" title={user.phone}>{user.phone}</span>
+                      <span className="truncate min-w-0" title={user.phone || 'No phone'}>{user.phone || 'No phone'}</span>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {getRoleBadge(user.role)}
+                    {user.role ? getRoleBadge(user.role) : <Badge className="bg-gray-500 text-white text-xs px-1.5 py-0">No Role</Badge>}
                   </div>
                 </div>
 
                 <div className="flex justify-end">
                   <span className="font-medium text-foreground text-sm">
-                    Commission: {user.commission}%
+                    Commission: {user.commission ? `${user.commission}%` : 'N/A'}
                   </span>
                 </div>
               </div>
@@ -463,23 +504,48 @@ const UsersTab: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="newName">Full Name</Label>
-              <Input id="newName" placeholder="Full Name" />
+              <Input
+                id="newName"
+                placeholder="Full Name"
+                value={newUserData.full_name}
+                onChange={(e) => setNewUserData({...newUserData, full_name: e.target.value})}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="newEmail">Email</Label>
-              <Input id="newEmail" type="email" placeholder="user@zenithtravel.com" />
+              <Input
+                id="newEmail"
+                type="email"
+                placeholder="user@zenithtravel.com"
+                value={newUserData.email}
+                onChange={(e) => setNewUserData({...newUserData, email: e.target.value})}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="newPhone">Phone</Label>
-              <Input id="newPhone" placeholder="+1 (555) 123-4567" />
+              <Input
+                id="newPhone"
+                placeholder="+1 (555) 123-4567"
+                value={newUserData.phone}
+                onChange={(e) => setNewUserData({...newUserData, phone: e.target.value})}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="newPassword">Password</Label>
-              <Input id="newPassword" type="text" placeholder="Enter password" />
+              <Input
+                id="newPassword"
+                type="text"
+                placeholder="Enter password"
+                value={newUserData.password}
+                onChange={(e) => setNewUserData({...newUserData, password: e.target.value})}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="newRole">Role</Label>
-              <Select>
+              <Select
+                value={newUserData.role}
+                onValueChange={(value) => setNewUserData({...newUserData, role: value})}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
@@ -494,11 +560,22 @@ const UsersTab: React.FC = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="newCommission">Commission (%)</Label>
-              <Input id="newCommission" type="number" placeholder="10.0" step="0.1" />
+              <Input
+                id="newCommission"
+                type="number"
+                placeholder="10.0"
+                step="0.1"
+                value={newUserData.commission}
+                onChange={(e) => setNewUserData({...newUserData, commission: parseFloat(e.target.value) || 0})}
+              />
             </div>
             <div className="space-y-2 sm:col-span-2 flex items-center justify-between pt-6">
               <Label htmlFor="newStatus">Active User</Label>
-              <Switch id="newStatus" defaultChecked />
+              <Switch
+                id="newStatus"
+                checked={newUserData.status}
+                onCheckedChange={(checked) => setNewUserData({...newUserData, status: checked})}
+              />
             </div>
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
@@ -509,11 +586,12 @@ const UsersTab: React.FC = () => {
             >
               Cancel
             </Button>
-            <Button 
-              onClick={() => setShowNewUserDialog(false)}
+            <Button
+              onClick={handleCreateUser}
+              disabled={createUserMutation.isPending}
               className="w-full sm:w-auto"
             >
-              Create User
+              {createUserMutation.isPending ? 'Creating...' : 'Create User'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -532,23 +610,45 @@ const UsersTab: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="editName">Full Name</Label>
-                <Input id="editName" defaultValue={selectedUser.name} />
+                <Input
+                  id="editName"
+                  value={editUserData.full_name || ''}
+                  onChange={(e) => setEditUserData({...editUserData, full_name: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="editEmail">Email</Label>
-                <Input id="editEmail" type="email" defaultValue={selectedUser.email} />
+                <Input
+                  id="editEmail"
+                  type="email"
+                  value={editUserData.email || ''}
+                  onChange={(e) => setEditUserData({...editUserData, email: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="editPhone">Phone</Label>
-                <Input id="editPhone" defaultValue={selectedUser.phone} />
+                <Input
+                  id="editPhone"
+                  value={editUserData.phone || ''}
+                  onChange={(e) => setEditUserData({...editUserData, phone: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="editPassword">Password</Label>
-                <Input id="editPassword" type="text" placeholder="Enter new password" />
+                <Input
+                  id="editPassword"
+                  type="text"
+                  placeholder="Enter new password"
+                  value={editUserData.password || ''}
+                  onChange={(e) => setEditUserData({...editUserData, password: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="editRole">Role</Label>
-                <Select defaultValue={selectedUser.role}>
+                <Select
+                  value={editUserData.role || ''}
+                  onValueChange={(value) => setEditUserData({...editUserData, role: value})}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -563,11 +663,21 @@ const UsersTab: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="editCommission">Commission (%)</Label>
-                <Input id="editCommission" type="number" defaultValue={selectedUser.commission} step="0.1" />
+                <Input
+                  id="editCommission"
+                  type="number"
+                  step="0.1"
+                  value={editUserData.commission || 0}
+                  onChange={(e) => setEditUserData({...editUserData, commission: parseFloat(e.target.value) || 0})}
+                />
               </div>
               <div className="space-y-2 sm:col-span-2 flex items-center justify-between pt-6">
                 <Label htmlFor="editStatus">Active User</Label>
-                <Switch id="editStatus" defaultChecked={selectedUser.status === 'active'} />
+                <Switch
+                  id="editStatus"
+                  checked={editUserData.status === 'Active'}
+                  onCheckedChange={(checked) => setEditUserData({...editUserData, status: checked ? 'Active' : 'Inactive'})}
+                />
               </div>
             </div>
           )}
@@ -579,11 +689,12 @@ const UsersTab: React.FC = () => {
             >
               Cancel
             </Button>
-            <Button 
-              onClick={() => setShowEditDialog(false)}
+            <Button
+              onClick={handleUpdateUser}
+              disabled={updateUserMutation.isPending}
               className="w-full sm:w-auto"
             >
-              Save Changes
+              {updateUserMutation.isPending ? 'Saving...' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>
