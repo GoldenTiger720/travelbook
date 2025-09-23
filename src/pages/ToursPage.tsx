@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import { toast } from "sonner"
 import Swal from "sweetalert2"
+import html2pdf from "html2pdf.js"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import TourCatalogTab from "@/components/ToursPage/TourCatalogTab"
@@ -18,6 +19,7 @@ import {
 import { useLanguage } from "@/contexts/LanguageContext"
 import { tourService, CreateTourData, Tour } from "@/services/tourService"
 import { destinationService, Destination } from "@/services/destinationService"
+import { format } from "date-fns"
 
 // Mock data for tours
 const toursData = [
@@ -390,6 +392,120 @@ const ToursPage = () => {
     }))
   }
 
+  // Handle tours export (CSV/Excel)
+  const handleExportTours = () => {
+    const headers = [
+      "Tour Name",
+      "Destination",
+      "Capacity",
+      "Starting Point",
+      "Departure Time",
+      "Adult Price",
+      "Child Price",
+      "Currency",
+      "Created Date"
+    ]
+
+    const rows = tours.map(tour => [
+      tour.name,
+      tour.destination,
+      tour.capacity,
+      tour.startingPoint,
+      tour.departureTime,
+      tour.adultPrice,
+      tour.childPrice,
+      tour.currency,
+      format(new Date(tour.created_at), "yyyy-MM-dd")
+    ])
+
+    // Convert to CSV format
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+    ].join("\n")
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const link = document.createElement("a")
+    const url = URL.createObjectURL(blob)
+
+    link.setAttribute("href", url)
+    link.setAttribute("download", `tours_export_${format(new Date(), "yyyy-MM-dd")}.csv`)
+    link.style.visibility = "hidden"
+
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    toast.success("Tours exported successfully!")
+  }
+
+  // Handle tours print (PDF)
+  const handlePrintTours = () => {
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; margin: 20px; color: #333;">
+        <h1 style="color: #2563eb; margin-bottom: 20px; text-align: center;">TravelBook - Tours Report</h1>
+        <div style="margin-bottom: 20px; padding: 15px; background-color: #f3f4f6; border-radius: 8px; text-align: center;">
+          <p><strong>Export Date:</strong> ${format(new Date(), "MMMM d, yyyy")}</p>
+          <p><strong>Total Tours:</strong> ${tours.length}</p>
+          <p><strong>Total Capacity:</strong> ${tours.reduce((sum, tour) => sum + tour.capacity, 0)} passengers</p>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+          <thead>
+            <tr>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; background-color: #f3f4f6; font-weight: bold;">Tour Name</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; background-color: #f3f4f6; font-weight: bold;">Destination</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; background-color: #f3f4f6; font-weight: bold;">Capacity</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; background-color: #f3f4f6; font-weight: bold;">Starting Point</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; background-color: #f3f4f6; font-weight: bold;">Departure Time</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; background-color: #f3f4f6; font-weight: bold;">Adult Price</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; background-color: #f3f4f6; font-weight: bold;">Child Price</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; background-color: #f3f4f6; font-weight: bold;">Currency</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; background-color: #f3f4f6; font-weight: bold;">Created Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tours.map((tour, index) => `
+              <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px;">${tour.name}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px;">${tour.destination}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px;">${tour.capacity}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px;">${tour.startingPoint}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px;">${tour.departureTime}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px;">${tour.currency || '$'} ${tour.adultPrice}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px;">${tour.currency || '$'} ${tour.childPrice}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px;">${tour.currency || '$'}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px;">${tour.created_at ? format(new Date(tour.created_at), "MMM d, yyyy") : 'N/A'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `
+
+    // Create a temporary div element
+    const element = document.createElement('div')
+    element.innerHTML = htmlContent
+
+    // PDF options
+    const options = {
+      margin: 1,
+      filename: `tours_report_${format(new Date(), "yyyy-MM-dd")}.pdf`,
+      image: { type: 'jpeg' as const, quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' as const }
+    }
+
+    // Generate and download PDF
+    html2pdf().from(element).set(options).save().then(() => {
+      toast.success("PDF downloaded successfully!")
+    }).catch((error) => {
+      console.error('Error generating PDF:', error)
+      toast.error("Error generating PDF. Please try again.")
+    })
+  }
+
   // Initialize edit form when tour is selected
   React.useEffect(() => {
     if (selectedTour && showEditDialog) {
@@ -470,6 +586,8 @@ const ToursPage = () => {
             toursData={tours}
             destinations={destinationOptions}
             filteredTours={filteredTours}
+            onPrintTours={handlePrintTours}
+            onExportTours={handleExportTours}
           />
           )}
         </TabsContent>

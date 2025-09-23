@@ -34,6 +34,8 @@ interface TourCatalogTabProps {
   toursData: any[]
   destinations: string[]
   filteredTours: any[]
+  onPrintTours: () => void
+  onExportTours: () => void
 }
 
 const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
@@ -50,6 +52,8 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
   toursData,
   destinations,
   filteredTours,
+  onPrintTours,
+  onExportTours,
 }) => {
   const { t } = useLanguage()
 
@@ -110,12 +114,12 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
             {t('tours.newTour')}
           </Button>
           <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3">
-            <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={onPrintTours}>
               <Printer className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">{t('tours.print')}</span>
               <span className="sm:hidden">{t('tours.print')}</span>
             </Button>
-            <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={onExportTours}>
               <Download className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">{t('tours.export')}</span>
               <span className="sm:hidden">{t('tours.export')}</span>
