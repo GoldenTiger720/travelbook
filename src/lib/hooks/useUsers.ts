@@ -32,7 +32,6 @@ export interface CreateUserData {
   full_name: string  // Updated to match API
   email: string
   phone?: string     // Made optional since it can be null
-  password: string
   // Optional fields that may not be supported by API yet
   role?: string
   commission?: number

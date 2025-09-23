@@ -59,7 +59,6 @@ interface NewUserFormData {
   full_name: string  // Updated to match API
   email: string
   phone: string
-  password: string
   role: string
   commission: number
   status: boolean
@@ -85,7 +84,6 @@ const UsersTab: React.FC = () => {
     full_name: '',
     email: '',
     phone: '',
-    password: '',
     role: '',
     commission: 0,
     status: true
@@ -119,7 +117,6 @@ const UsersTab: React.FC = () => {
       full_name: newUserData.full_name,
       email: newUserData.email,
       phone: newUserData.phone,
-      password: newUserData.password,
       role: newUserData.role,
       commission: newUserData.commission,
       status: newUserData.status ? 'Active' : 'Inactive'
@@ -132,7 +129,6 @@ const UsersTab: React.FC = () => {
           full_name: '',
           email: '',
           phone: '',
-          password: '',
           role: '',
           commission: 0,
           status: true
@@ -573,16 +569,6 @@ const UsersTab: React.FC = () => {
                 placeholder="+1 (555) 123-4567"
                 value={newUserData.phone}
                 onChange={(e) => setNewUserData({...newUserData, phone: e.target.value})}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">Password</Label>
-              <Input
-                id="newPassword"
-                type="text"
-                placeholder="Enter password"
-                value={newUserData.password}
-                onChange={(e) => setNewUserData({...newUserData, password: e.target.value})}
               />
             </div>
             <div className="space-y-2">
