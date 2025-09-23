@@ -48,6 +48,11 @@ import {
   CreateUserData,
   UpdateUserData
 } from '@/lib/hooks/useUsers'
+import {
+  exportUsersToExcel,
+  exportUsersToPDF,
+  printUsers
+} from '@/lib/utils/exportUtils'
 
 // Form data interfaces
 interface NewUserFormData {
@@ -163,6 +168,31 @@ const UsersTab: React.FC = () => {
   // Handle delete user
   const handleDeleteUser = (userId: string) => {
     deleteUserMutation.mutate(userId)
+  }
+
+  // Export handlers
+  const handleExportToExcel = () => {
+    try {
+      exportUsersToExcel(filteredUsers)
+    } catch (error) {
+      console.error('Excel export failed:', error)
+    }
+  }
+
+  const handleExportToPDF = async () => {
+    try {
+      await exportUsersToPDF(filteredUsers)
+    } catch (error) {
+      console.error('PDF export failed:', error)
+    }
+  }
+
+  const handlePrint = () => {
+    try {
+      printUsers(filteredUsers)
+    } catch (error) {
+      console.error('Print failed:', error)
+    }
   }
 
   const getRoleBadge = (role: string) => {
@@ -299,15 +329,30 @@ const UsersTab: React.FC = () => {
               {/* Export Buttons Section */}
               <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
                 <div className="grid grid-cols-3 sm:flex gap-2">
-                  <Button variant="outline" size="sm" className="bg-green-50 hover:text-black text-green-700 border-green-200 text-xs px-3 py-2 h-9">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-green-50 hover:text-black text-green-700 border-green-200 text-xs px-3 py-2 h-9"
+                    onClick={handleExportToExcel}
+                  >
                     <Download className="w-3 h-3 mr-1" />
                     <span className="truncate">Excel</span>
                   </Button>
-                  <Button variant="outline" size="sm" className="bg-red-50 hover:text-black text-red-700 border-red-200 text-xs px-3 py-2 h-9">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-red-50 hover:text-black text-red-700 border-red-200 text-xs px-3 py-2 h-9"
+                    onClick={handleExportToPDF}
+                  >
                     <FileDown className="w-3 h-3 mr-1" />
                     <span className="truncate">PDF</span>
                   </Button>
-                  <Button variant="outline" size="sm" className="bg-blue-50 hover:text-black text-blue-700 border-blue-200 text-xs px-3 py-2 h-9">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-blue-50 hover:text-black text-blue-700 border-blue-200 text-xs px-3 py-2 h-9"
+                    onClick={handlePrint}
+                  >
                     <Printer className="w-3 h-3 mr-1" />
                     <span className="truncate">Print</span>
                   </Button>
