@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import TourCatalogTab from "@/components/ToursPage/TourCatalogTab"
@@ -14,7 +15,8 @@ import {
   MapPin
 } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
-import { tourService, CreateTourData } from "@/services/tourService"
+import { tourService, CreateTourData, Tour, TourDestination } from "@/services/tourService"
+import { destinationService, Destination } from "@/services/destinationService"
 
 // Mock data for tours
 const toursData = [
@@ -134,9 +136,32 @@ const ToursPage = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [calendarData] = useState(generateCalendarData())
   const [isLoading, setIsLoading] = useState(false)
-  const [tours, setTours] = useState<any[]>(toursData || [])
+  const [tours, setTours] = useState<any[]>([]) // Display format tours
   const [isLoadingTours, setIsLoadingTours] = useState(false)
   const [editFormData, setEditFormData] = useState<any>(null)
+  const [destinations, setDestinations] = useState<Destination[]>([])
+  const [isLoadingDestinations, setIsLoadingDestinations] = useState(false)
+
+  // Map backend tour data to frontend display format
+  const mapBackendToursToDisplayFormat = (backendTours: Tour[]) => {
+    return backendTours.map(tour => ({
+      id: tour.id,
+      name: tour.name,
+      destination: tour.destination.name, // Extract name from destination object
+      status: tour.active ? 'active' : 'inactive',
+      capacity: tour.capacity,
+      startingPoint: tour.starting_point,
+      departureTime: tour.departure_time,
+      adultPrice: parseFloat(tour.adult_price),
+      childPrice: parseFloat(tour.child_price),
+      currency: tour.currency,
+      description: tour.description,
+      created_at: tour.created_at,
+      updated_at: tour.updated_at,
+      // Additional destination info for reference
+      destinationObj: tour.destination
+    }))
+  }
 
   // Form data state for new tour
   const [formData, setFormData] = useState<CreateTourData>({
@@ -148,30 +173,43 @@ const ToursPage = () => {
     childPrice: 0,
     startingPoint: '',
     description: '',
+    currency: 'CLP',
     active: true
   })
 
-  // Load tours from API on component mount
+  // Load tours and destinations from API on component mount
   React.useEffect(() => {
-    const loadTours = async () => {
+    const loadData = async () => {
       setIsLoadingTours(true)
+      setIsLoadingDestinations(true)
+
       try {
-        const fetchedTours = await tourService.getTours()
-        setTours(Array.isArray(fetchedTours) ? fetchedTours : [])
+        // Load tours and destinations in parallel
+        const [fetchedTours, fetchedDestinations] = await Promise.all([
+          tourService.getTours(),
+          destinationService.getDestinations()
+        ])
+
+        setTours(mapBackendToursToDisplayFormat(Array.isArray(fetchedTours) ? fetchedTours : []))
+        setDestinations(Array.isArray(fetchedDestinations) ? fetchedDestinations : [])
       } catch (error) {
-        console.error('Error loading tours:', error)
+        console.error('Error loading data:', error)
         // Fallback to mock data if API fails
         setTours(Array.isArray(toursData) ? toursData : [])
+        setDestinations([])
       } finally {
         setIsLoadingTours(false)
+        setIsLoadingDestinations(false)
       }
     }
 
-    loadTours()
+    loadData()
   }, [])
 
-  // Get unique destinations for filter
-  const destinations = [...new Set((tours || []).map(tour => tour.destination))]
+  // Get destination names for filter (from tours if destinations not loaded yet)
+  const destinationOptions = destinations.length > 0
+    ? destinations.map(dest => dest.name)
+    : [...new Set((tours || []).map(tour => tour.destination))]
 
   // Filter tours based on search and filters
   const filteredTours = (tours || []).filter(tour => {
@@ -236,6 +274,7 @@ const ToursPage = () => {
       childPrice: 0,
       startingPoint: '',
       description: '',
+      currency: 'CLP',
       active: true
     })
   }
@@ -243,7 +282,7 @@ const ToursPage = () => {
   // Handle form submission
   const handleCreateTour = async () => {
     if (!formData.name || !formData.destination || formData.capacity <= 0) {
-      alert(t('tours.fillRequiredFields') || 'Please fill in all required fields')
+      toast.warning(t('tours.fillRequiredFields') || 'Please fill in all required fields')
       return
     }
 
@@ -254,11 +293,11 @@ const ToursPage = () => {
       resetFormData()
       // Refresh tours list
       const updatedTours = await tourService.getTours()
-      setTours(Array.isArray(updatedTours) ? updatedTours : [])
-      alert(t('tours.tourCreatedSuccessfully') || 'Tour created successfully!')
+      setTours(mapBackendToursToDisplayFormat(Array.isArray(updatedTours) ? updatedTours : []))
+      toast.success(t('tours.tourCreatedSuccessfully') || 'Tour created successfully!')
     } catch (error) {
       console.error('Error creating tour:', error)
-      alert(t('tours.errorCreatingTour') || 'Error creating tour. Please try again.')
+      toast.error(t('tours.errorCreatingTour') || 'Error creating tour. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -279,7 +318,7 @@ const ToursPage = () => {
       setEditFormData(null)
       // Refresh tours list
       const updatedTours = await tourService.getTours()
-      setTours(Array.isArray(updatedTours) ? updatedTours : [])
+      setTours(mapBackendToursToDisplayFormat(Array.isArray(updatedTours) ? updatedTours : []))
       alert(t('tours.tourUpdatedSuccessfully') || 'Tour updated successfully!')
     } catch (error) {
       console.error('Error updating tour:', error)
@@ -300,7 +339,7 @@ const ToursPage = () => {
       await tourService.deleteTour(tour.id.toString())
       // Refresh tours list
       const updatedTours = await tourService.getTours()
-      setTours(Array.isArray(updatedTours) ? updatedTours : [])
+      setTours(mapBackendToursToDisplayFormat(Array.isArray(updatedTours) ? updatedTours : []))
       alert(t('tours.tourDeletedSuccessfully') || 'Tour deleted successfully!')
     } catch (error) {
       console.error('Error deleting tour:', error)
@@ -321,19 +360,24 @@ const ToursPage = () => {
   // Initialize edit form when tour is selected
   React.useEffect(() => {
     if (selectedTour && showEditDialog) {
+      // Find destination ID from destination name
+      const destinationObj = destinations.find(dest => dest.name === selectedTour.destination)
+      const destinationId = destinationObj ? destinationObj.id : selectedTour.destination
+
       setEditFormData({
         name: selectedTour.name,
-        destination: selectedTour.destination,
+        destination: destinationId,
         capacity: selectedTour.capacity,
         departureTime: selectedTour.departureTime,
         adultPrice: selectedTour.adultPrice,
         childPrice: selectedTour.childPrice,
         startingPoint: selectedTour.startingPoint,
         description: selectedTour.description,
+        currency: selectedTour.currency || 'CLP',
         active: selectedTour.status === 'active'
       })
     }
-  }, [selectedTour, showEditDialog])
+  }, [selectedTour, showEditDialog, destinations])
 
   // Handle form field changes
   const handleFormChange = (field: keyof CreateTourData, value: any) => {
@@ -391,7 +435,7 @@ const ToursPage = () => {
             setShowEditDialog={setShowEditDialog}
             onDeleteTour={handleDeleteTour}
             toursData={tours}
-            destinations={destinations}
+            destinations={destinationOptions}
             filteredTours={filteredTours}
           />
           )}
@@ -420,7 +464,7 @@ const ToursPage = () => {
               {t('tours.createTourDescription')}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
             <div className="space-y-2 col-span-1">
               <Label htmlFor="tourName" className="text-sm font-medium">{t('tours.tourName')}</Label>
               <Input
@@ -438,9 +482,15 @@ const ToursPage = () => {
                   <SelectValue placeholder={t('tours.selectDestination')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {destinations.map(dest => (
-                    <SelectItem key={dest} value={dest}>{dest}</SelectItem>
-                  ))}
+                  {isLoadingDestinations ? (
+                    <SelectItem value="" disabled>Loading destinations...</SelectItem>
+                  ) : destinations.length > 0 ? (
+                    destinations.map(dest => (
+                      <SelectItem key={dest.id} value={dest.id}>{dest.name}</SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled>No destinations available</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -487,7 +537,22 @@ const ToursPage = () => {
                 className="h-10"
               />
             </div>
-            <div className="col-span-full space-y-2">
+            <div className="space-y-2 col-span-1">
+              <Label htmlFor="currency" className="text-sm font-medium">Currency</Label>
+              <Select value={formData.currency} onValueChange={(value) => handleFormChange('currency', value)}>
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Select currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CLP">{t('quotes.chileanPesos')}</SelectItem>
+                  <SelectItem value="USD">{t('quotes.usDollars')}</SelectItem>
+                  <SelectItem value="EUR">{t('quotes.euros')}</SelectItem>
+                  <SelectItem value="BRL">{t('quotes.brazilianReais')}</SelectItem>
+                  <SelectItem value="ARS">{t('quotes.argentinePesos')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2 col-span-1">
               <Label htmlFor="startingPoint" className="text-sm font-medium">{t('tours.startingPoint')}</Label>
               <Input
                 id="startingPoint"
@@ -548,7 +613,7 @@ const ToursPage = () => {
             </DialogDescription>
           </DialogHeader>
           {selectedTour && editFormData && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
               <div className="space-y-2 col-span-1">
                 <Label htmlFor="editTourName" className="text-sm font-medium">{t('tours.tourName')}</Label>
                 <Input
@@ -565,9 +630,15 @@ const ToursPage = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {destinations.map(dest => (
-                      <SelectItem key={dest} value={dest}>{dest}</SelectItem>
-                    ))}
+                    {isLoadingDestinations ? (
+                      <SelectItem value="" disabled>Loading destinations...</SelectItem>
+                    ) : destinations.length > 0 ? (
+                      destinations.map(dest => (
+                        <SelectItem key={dest.id} value={dest.id}>{dest.name}</SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="" disabled>No destinations available</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -611,7 +682,22 @@ const ToursPage = () => {
                   className="h-10"
                 />
               </div>
-              <div className="col-span-full space-y-2">
+              <div className="space-y-2 col-span-1">
+                <Label htmlFor="editCurrency" className="text-sm font-medium">Currency</Label>
+                <Select value={editFormData.currency} onValueChange={(value) => handleEditFormChange('currency', value)}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CLP">{t('quotes.chileanPesos')}</SelectItem>
+                    <SelectItem value="USD">{t('quotes.usDollars')}</SelectItem>
+                    <SelectItem value="EUR">{t('quotes.euros')}</SelectItem>
+                    <SelectItem value="BRL">{t('quotes.brazilianReais')}</SelectItem>
+                    <SelectItem value="ARS">{t('quotes.argentinePesos')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2 col-span-1">
                 <Label htmlFor="editStartingPoint" className="text-sm font-medium">{t('tours.startingPoint')}</Label>
                 <Input
                   id="editStartingPoint"

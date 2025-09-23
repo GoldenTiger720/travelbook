@@ -142,13 +142,12 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
                 <TableRow>
                   <TableHead>{t('tours.tour')}</TableHead>
                   <TableHead>{t('tours.destination')}</TableHead>
-                  <TableHead>{t('tours.status')}</TableHead>
                   <TableHead className="text-center">{t('tours.capacity')}</TableHead>
                   <TableHead>{t('tours.startingPoint')}</TableHead>
                   <TableHead>{t('tours.departureTime')}</TableHead>
                   <TableHead className="text-right">{t('tours.adultPrice')}</TableHead>
                   <TableHead className="text-right">{t('tours.childPrice')}</TableHead>
-                  <TableHead className="text-right">{t('tours.costs')}</TableHead>
+                  <TableHead>{t('tours.status')}</TableHead>
                   <TableHead className="text-center">{t('tours.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -158,7 +157,11 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
                     <TableCell>
                       <div>
                         <div className="font-medium">{tour.name}</div>
-                        <div className="text-sm text-muted-foreground">{tour.category}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {tour.code && <span className="mr-2 font-mono">{tour.code}</span>}
+                          {tour.category}
+                          {tour.duration && <span className="ml-2">• {tour.duration}</span>}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -166,9 +169,6 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
                         <MapPin className="w-4 h-4 text-muted-foreground" />
                         {tour.destination}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      {getStatusBadge(tour.status)}
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center gap-1">
@@ -183,9 +183,16 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
                         {tour.departureTime}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-medium">${tour.adultPrice}</TableCell>
-                    <TableCell className="text-right font-medium">${tour.childPrice}</TableCell>
-                    <TableCell className="text-right">${tour.costs}</TableCell>
+                    <TableCell className="text-right font-medium">
+                      {tour.currency || '$'}{tour.adultPrice}
+                      {tour.infant_price && tour.infant_price > 0 && (
+                        <div className="text-xs text-muted-foreground">Infant: {tour.currency || '$'}{tour.infant_price}</div>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">{tour.currency || '$'}{tour.childPrice}</TableCell>
+                    <TableCell>
+                      {getStatusBadge(tour.status)}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <Button
@@ -224,9 +231,9 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
                     <TableRow>
                       <TableHead className="min-w-[150px]">{t('tours.tour')}</TableHead>
                       <TableHead className="min-w-[120px]">{t('tours.destination')}</TableHead>
-                      <TableHead className="min-w-[100px]">{t('tours.status')}</TableHead>
                       <TableHead className="min-w-[80px] text-center">{t('tours.capacity')}</TableHead>
                       <TableHead className="min-w-[100px] text-right">{t('tours.adultPrice')}</TableHead>
+                      <TableHead className="min-w-[100px]">{t('tours.status')}</TableHead>
                       <TableHead className="min-w-[120px] text-center">{t('tours.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -236,7 +243,10 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
                         <TableCell className="min-w-[150px]">
                           <div>
                             <div className="font-medium truncate">{tour.name}</div>
-                            <div className="text-sm text-muted-foreground truncate">{tour.category}</div>
+                            <div className="text-sm text-muted-foreground truncate">
+                              {tour.code && <span className="mr-1 font-mono">{tour.code}</span>}
+                              {tour.category}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell className="min-w-[120px]">
@@ -245,16 +255,16 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
                             <span className="truncate">{tour.destination}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="min-w-[100px]">
-                          {getStatusBadge(tour.status)}
-                        </TableCell>
                         <TableCell className="min-w-[80px] text-center">
                           <div className="flex items-center justify-center gap-1">
                             <Users className="w-4 h-4 text-muted-foreground" />
                             <span className="font-medium">{tour.capacity}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="min-w-[100px] text-right font-medium">${tour.adultPrice}</TableCell>
+                        <TableCell className="min-w-[100px] text-right font-medium">{tour.currency || '$'}{tour.adultPrice}</TableCell>
+                        <TableCell className="min-w-[100px]">
+                          {getStatusBadge(tour.status)}
+                        </TableCell>
                         <TableCell className="min-w-[120px]">
                           <div className="flex items-center justify-center gap-1">
                             <Button
@@ -298,7 +308,11 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
                         <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
                         <span className="text-xs sm:text-sm text-muted-foreground truncate">{tour.destination}</span>
                         <Badge className="text-xs flex-shrink-0">{tour.category}</Badge>
+                        {tour.duration && <Badge variant="outline" className="text-xs flex-shrink-0">{tour.duration}</Badge>}
                       </div>
+                      {tour.code && (
+                        <div className="text-xs text-muted-foreground font-mono mt-1">Code: {tour.code}</div>
+                      )}
                     </div>
                     <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
                       <Button
@@ -345,7 +359,7 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
                     </div>
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-muted-foreground truncate">{t('tours.adultPrice')}</span>
-                      <span className="font-medium flex-shrink-0">${tour.adultPrice}</span>
+                      <span className="font-medium flex-shrink-0">{tour.currency || '$'}{tour.adultPrice}</span>
                     </div>
                   </div>
 
@@ -356,14 +370,10 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
                   </div>
 
                   {/* Prices Row */}
-                  <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm border-t pt-2 sm:pt-3">
+                  <div className="text-xs sm:text-sm border-t pt-2 sm:pt-3">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-muted-foreground truncate">{t('tours.childPrice')}</span>
-                      <span className="font-medium flex-shrink-0">${tour.childPrice}</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-muted-foreground truncate">{t('tours.costs')}</span>
-                      <span className="flex-shrink-0">${tour.costs}</span>
+                      <span className="font-medium flex-shrink-0">{tour.currency || '$'}{tour.childPrice}</span>
                     </div>
                   </div>
                 </div>

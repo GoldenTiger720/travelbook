@@ -1,6 +1,45 @@
 import { API_ENDPOINTS, apiCall } from '@/config/api';
 
-// Types for tour creation
+// Destination object structure
+export interface TourDestination {
+  id: string;
+  name: string;
+  country: string;
+  region: string;
+  language: string;
+  status: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Backend tour data structure
+export interface Tour {
+  id: string;
+  name: string;
+  destination: TourDestination;
+  description: string;
+  adult_price: string;
+  child_price: string;
+  currency: string;
+  starting_point: string;
+  departure_time: string;
+  capacity: number;
+  active: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Tour list response from backend
+export interface TourListResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Tour[];
+}
+
+// Types for tour creation (frontend form data)
 export interface CreateTourData {
   name: string;
   destination: string;
@@ -10,11 +49,12 @@ export interface CreateTourData {
   childPrice: number;
   startingPoint: string;
   description: string;
+  currency: string;
   active: boolean;
 }
 
 export interface TourResponse {
-  tour: any;
+  tour: Tour;
   message?: string;
 }
 
@@ -55,7 +95,7 @@ class TourService {
   }
 
   // Get all tours
-  async getTours(): Promise<any[]> {
+  async getTours(): Promise<Tour[]> {
     try {
       const response = await apiCall(API_ENDPOINTS.TOURS.LIST, {
         method: 'GET',
@@ -65,8 +105,8 @@ class TourService {
         throw new Error('Failed to fetch tours');
       }
 
-      const data = await response.json();
-      return data.tours || data;
+      const data: TourListResponse = await response.json();
+      return data.results || [];
     } catch (error) {
       console.error('Error fetching tours:', error);
       throw error;
