@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import { toast } from "sonner"
+import Swal from "sweetalert2"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import TourCatalogTab from "@/components/ToursPage/TourCatalogTab"
@@ -330,9 +331,38 @@ const ToursPage = () => {
 
   // Handle delete tour
   const handleDeleteTour = async (tour: any) => {
-    if (!confirm(t('tours.confirmDeleteTour') || `Are you sure you want to delete "${tour.name}"?`)) {
+    const result = await Swal.fire({
+      title: t('tours.confirmDeleteTour') || 'Are you sure?',
+      text: `Do you want to delete "${tour.name}"? This action cannot be undone.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it!',
+      cancelButtonText: 'Cancel'
+    })
+
+    if (!result.isConfirmed) {
       return
     }
+
+    // Show loading state with progress bar
+    Swal.fire({
+      title: 'Deleting Tour...',
+      text: 'Please wait while we delete the tour.',
+      icon: 'info',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      backdrop: `
+        rgba(0,0,0,0.6)
+        center
+        no-repeat
+      `,
+      didOpen: () => {
+        Swal.showLoading()
+      }
+    })
 
     setIsLoading(true)
     try {
@@ -340,10 +370,13 @@ const ToursPage = () => {
       // Refresh tours list
       const updatedTours = await tourService.getTours()
       setTours(mapBackendToursToDisplayFormat(Array.isArray(updatedTours) ? updatedTours : []))
-      alert(t('tours.tourDeletedSuccessfully') || 'Tour deleted successfully!')
+
+      Swal.close()
+      toast.success(t('tours.tourDeletedSuccessfully') || 'Tour deleted successfully!')
     } catch (error) {
       console.error('Error deleting tour:', error)
-      alert(t('tours.errorDeletingTour') || 'Error deleting tour. Please try again.')
+      Swal.close()
+      toast.error(t('tours.errorDeletingTour') || 'Error deleting tour. Please try again.')
     } finally {
       setIsLoading(false)
     }
