@@ -160,7 +160,6 @@ const UsersTab: React.FC = () => {
   const { t } = useLanguage()
   const [searchTerm, setSearchTerm] = useState("")
   const [roleFilter, setRoleFilter] = useState("all")
-  const [agencyFilter, setAgencyFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
   const [showNewUserDialog, setShowNewUserDialog] = useState(false)
   const [selectedUser, setSelectedUser] = useState<any>(null)
@@ -172,10 +171,9 @@ const UsersTab: React.FC = () => {
                          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.login.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesRole = roleFilter === "all" || user.role === roleFilter
-    const matchesAgency = agencyFilter === "all" || user.agency === agencyFilter
     const matchesStatus = statusFilter === "all" || user.status === statusFilter
-    
-    return matchesSearch && matchesRole && matchesAgency && matchesStatus
+
+    return matchesSearch && matchesRole && matchesStatus
   })
 
   const getRoleBadge = (role: string) => {
@@ -244,7 +242,7 @@ const UsersTab: React.FC = () => {
             <div className="space-y-4">
               {/* Filters Section */}
               <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label className="text-xs font-medium text-muted-foreground">Role</Label>
                     <Select value={roleFilter} onValueChange={setRoleFilter}>
@@ -262,22 +260,6 @@ const UsersTab: React.FC = () => {
                         <SelectItem value="supervision">Supervision</SelectItem>
                         <SelectItem value="guide">Guide</SelectItem>
                         <SelectItem value="driver">Driver</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium text-muted-foreground">Agency</Label>
-                    <Select value={agencyFilter} onValueChange={setAgencyFilter}>
-                      <SelectTrigger className="text-sm h-9">
-                        <SelectValue placeholder="Select agency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Agencies</SelectItem>
-                        <SelectItem value="Internal">Internal</SelectItem>
-                        <SelectItem value="Travel Plus">Travel Plus</SelectItem>
-                        <SelectItem value="World Tours">World Tours</SelectItem>
-                        <SelectItem value="Adventure Agency">Adventure Agency</SelectItem>
-                        <SelectItem value="Sunset Travel">Sunset Travel</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
