@@ -16,7 +16,7 @@ import {
   MapPin
 } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
-import { tourService, CreateTourData, Tour, TourDestination } from "@/services/tourService"
+import { tourService, CreateTourData, Tour } from "@/services/tourService"
 import { destinationService, Destination } from "@/services/destinationService"
 
 // Mock data for tours
@@ -307,7 +307,7 @@ const ToursPage = () => {
   // Handle update tour
   const handleUpdateTour = async () => {
     if (!selectedTour || !editFormData) {
-      alert('No tour data to update')
+      toast.warning('No tour data to update')
       return
     }
 
@@ -320,10 +320,10 @@ const ToursPage = () => {
       // Refresh tours list
       const updatedTours = await tourService.getTours()
       setTours(mapBackendToursToDisplayFormat(Array.isArray(updatedTours) ? updatedTours : []))
-      alert(t('tours.tourUpdatedSuccessfully') || 'Tour updated successfully!')
+      toast.success(t('tours.tourUpdatedSuccessfully') || 'Tour updated successfully!')
     } catch (error) {
       console.error('Error updating tour:', error)
-      alert(t('tours.errorUpdatingTour') || 'Error updating tour. Please try again.')
+      toast.error(t('tours.errorUpdatingTour') || 'Error updating tour. Please try again.')
     } finally {
       setIsLoading(false)
     }
