@@ -90,11 +90,10 @@ const UsersTab: React.FC = () => {
   })
 
   // Form state for edit user
-  const [editUserData, setEditUserData] = useState<Partial<User & { password: string }>>({
+  const [editUserData, setEditUserData] = useState<Partial<User>>({
     full_name: '',
     email: '',
     phone: '',
-    password: '',
     role: '',
     commission: 0,
     status: 'Active'
@@ -147,7 +146,6 @@ const UsersTab: React.FC = () => {
       full_name: editUserData.full_name,
       email: editUserData.email || '',
       phone: editUserData.phone || '',
-      password: editUserData.password,
       role: editUserData.role || '',
       commission: editUserData.commission || 0,
       status: editUserData.status || 'Active'
@@ -423,7 +421,6 @@ const UsersTab: React.FC = () => {
                                 full_name: user.full_name,
                                 email: user.email,
                                 phone: user.phone || '',
-                                password: '',
                                 role: user.role || '',
                                 commission: user.commission || 0,
                                 status: user.status || 'Active'
@@ -483,7 +480,6 @@ const UsersTab: React.FC = () => {
                             full_name: user.full_name,
                             email: user.email,
                             phone: user.phone || '',
-                            password: '',
                             role: user.role || '',
                             commission: user.commission || 0,
                             status: user.status || 'Active'
@@ -662,16 +658,6 @@ const UsersTab: React.FC = () => {
                   id="editPhone"
                   value={editUserData.phone || ''}
                   onChange={(e) => setEditUserData({...editUserData, phone: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="editPassword">Password</Label>
-                <Input
-                  id="editPassword"
-                  type="text"
-                  placeholder="Enter new password"
-                  value={editUserData.password || ''}
-                  onChange={(e) => setEditUserData({...editUserData, password: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
