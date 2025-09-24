@@ -162,7 +162,6 @@ const BookQuotePage = () => {
     if (selectedDest) {
       setAvailableTours(selectedDest.tours.filter(tour => tour.active))
     } else {
-      // No fallback to mock data - only use real backend data
       console.warn(`Destination "${destinationName}" not found in API data. No tours available.`)
       setAvailableTours([])
     }
