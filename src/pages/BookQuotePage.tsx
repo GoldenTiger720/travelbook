@@ -83,7 +83,7 @@ const BookQuotePage = () => {
   const queryClient = useQueryClient()
   const createBookingMutation = useCreateBooking()
   const createBookingPaymentMutation = useCreateBookingPayment()
-  const [availableTours, setAvailableTours] = useState<DestinationTour[]>([])
+  const [availableTours, setAvailableTours] = useState<(DestinationTour | Tour)[]>([])
   const [selectedDestination, setSelectedDestination] = useState("")
   const [destinations, setDestinations] = useState<Destination[]>([])
   const [apiDestinations, setApiDestinations] = useState<Destination[]>([])
@@ -156,9 +156,8 @@ const BookQuotePage = () => {
 
   const loadTourData = async () => {
     const tours = await tourCatalogService.getAllTours()
-    const dests = await tourCatalogService.getDestinations()
     setAvailableTours(tours)
-    setDestinations(dests)
+    // Note: destinations are loaded separately via loadDestinationsSettings() from the new API
   }
 
   const loadToursByDestination = async (destination: string) => {
@@ -197,11 +196,10 @@ const BookQuotePage = () => {
         // Store the full destination data from API
         setApiDestinations(apiResponse.data)
 
-        // Keep compatibility with existing destination strings
-        const destinationNames = apiResponse.data.map(dest => dest.name)
+        // Set destinations to the API data (Destination[] objects)
         setDestinations(apiResponse.data)
 
-        console.log('Available destinations:', destinationNames)
+        console.log('Available destinations:', apiResponse.data.map(dest => dest.name))
       }
     } catch (error) {
       console.error('Error loading destinations:', error)
@@ -223,40 +221,78 @@ const BookQuotePage = () => {
   }
 
   const handleTourSelection = async (tourId: string) => {
-    // First try to find tour in the API destinations data
-    const apiTour = availableTours.find(tour => tour.id === tourId)
+    // First try to find tour in the available tours data
+    const foundTour = availableTours.find(tour => tour.id === tourId)
 
-    if (apiTour) {
-      // Use API tour data
-      const currency = formData.currency || apiTour.currency
-      let adultPrice = parseFloat(apiTour.adult_price)
-      let childPrice = parseFloat(apiTour.child_price)
-      let infantPrice = 0 // API doesn't seem to have infant price, default to 0
+    if (foundTour) {
+      // Check if it's a DestinationTour (has adult_price property) or a Tour (has basePricing property)
+      const isDestinationTour = 'adult_price' in foundTour
 
-      // Convert prices if currencies don't match
-      if (currency !== apiTour.currency) {
-        const conversionRates: { [key: string]: { [key: string]: number } } = {
-          'CLP': { 'ARS': 0.35, 'USD': 0.0012, 'EUR': 0.0011, 'BRL': 0.006 },
-          'ARS': { 'CLP': 2.85, 'USD': 0.0034, 'EUR': 0.0031, 'BRL': 0.017 },
-          'USD': { 'CLP': 850, 'ARS': 295, 'EUR': 0.92, 'BRL': 5.1 },
-          'EUR': { 'CLP': 920, 'ARS': 320, 'USD': 1.09, 'BRL': 5.5 },
-          'BRL': { 'CLP': 170, 'ARS': 59, 'USD': 0.20, 'EUR': 0.18 }
+      if (isDestinationTour) {
+        // Handle DestinationTour type
+        const apiTour = foundTour as DestinationTour
+        const currency = formData.currency || apiTour.currency
+        let adultPrice = parseFloat(apiTour.adult_price)
+        let childPrice = parseFloat(apiTour.child_price)
+        let infantPrice = 0 // API doesn't seem to have infant price, default to 0
+
+        // Convert prices if currencies don't match
+        if (currency !== apiTour.currency) {
+          const conversionRates: { [key: string]: { [key: string]: number } } = {
+            'CLP': { 'ARS': 0.35, 'USD': 0.0012, 'EUR': 0.0011, 'BRL': 0.006 },
+            'ARS': { 'CLP': 2.85, 'USD': 0.0034, 'EUR': 0.0031, 'BRL': 0.017 },
+            'USD': { 'CLP': 850, 'ARS': 295, 'EUR': 0.92, 'BRL': 5.1 },
+            'EUR': { 'CLP': 920, 'ARS': 320, 'USD': 1.09, 'BRL': 5.5 },
+            'BRL': { 'CLP': 170, 'ARS': 59, 'USD': 0.20, 'EUR': 0.18 }
+          }
+
+          const rate = conversionRates[apiTour.currency]?.[currency] || 1
+          adultPrice = Math.round(adultPrice * rate)
+          childPrice = Math.round(childPrice * rate)
+          infantPrice = Math.round(infantPrice * rate)
         }
 
-        const rate = conversionRates[apiTour.currency]?.[currency] || 1
-        adultPrice = Math.round(adultPrice * rate)
-        childPrice = Math.round(childPrice * rate)
-        infantPrice = Math.round(infantPrice * rate)
-      }
+        setCurrentTour(prev => ({
+          ...prev,
+          tourId,
+          adultPrice,
+          childPrice,
+          infantPrice,
+          pickupTime: prev.pickupTime || apiTour.departure_time || ""
+        }))
+      } else {
+        // Handle Tour type
+        const tour = foundTour as Tour
+        const currency = formData.currency || tour.basePricing.currency
+        let adultPrice = tour.basePricing.adultPrice
+        let childPrice = tour.basePricing.childPrice
+        let infantPrice = tour.basePricing.infantPrice
 
-      setCurrentTour(prev => ({
-        ...prev,
-        tourId,
-        adultPrice,
-        childPrice,
-        infantPrice,
-        pickupTime: prev.pickupTime || apiTour.departure_time || ""
-      }))
+        // Convert prices if currencies don't match
+        if (currency !== tour.basePricing.currency) {
+          const conversionRates: { [key: string]: { [key: string]: number } } = {
+            'CLP': { 'ARS': 0.35, 'USD': 0.0012, 'EUR': 0.0011, 'BRL': 0.006 },
+            'ARS': { 'CLP': 2.85, 'USD': 0.0034, 'EUR': 0.0031, 'BRL': 0.017 },
+            'USD': { 'CLP': 850, 'ARS': 295, 'EUR': 0.92, 'BRL': 5.1 },
+            'EUR': { 'CLP': 920, 'ARS': 320, 'USD': 1.09, 'BRL': 5.5 },
+            'BRL': { 'CLP': 170, 'ARS': 59, 'USD': 0.20, 'EUR': 0.18 }
+          }
+
+          const rate = conversionRates[tour.basePricing.currency]?.[currency] || 1
+          adultPrice = Math.round(adultPrice * rate)
+          childPrice = Math.round(childPrice * rate)
+          infantPrice = Math.round(infantPrice * rate)
+        }
+
+        setCurrentTour(prev => ({
+          ...prev,
+          tourId,
+          adultPrice,
+          childPrice,
+          infantPrice,
+          pickupTime: prev.pickupTime || tour.defaultPickupTime || ""
+        }))
+      }
     } else {
       // Fallback to original service method
       const tour = await tourCatalogService.getTourById(tourId)
@@ -930,9 +966,9 @@ const BookQuotePage = () => {
                     <SelectValue placeholder={t('quotes.selectDestination')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {destinations.map(dest => (
-                      <SelectItem key={dest.id} value={dest.name}>{dest.name}</SelectItem>
-                    ))}
+                    {destinations && destinations.length > 0 ? destinations.map((dest, index) => (
+                      <SelectItem key={`dest-${dest.id}-${index}`} value={dest.name}>{dest.name}</SelectItem>
+                    )) : null}
                   </SelectContent>
                 </Select>
               </div>
@@ -948,11 +984,11 @@ const BookQuotePage = () => {
                     <SelectValue placeholder={t('quotes.selectTour')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableTours.map(tour => (
-                      <SelectItem key={tour.id} value={tour.id}>
+                    {availableTours && availableTours.length > 0 ? availableTours.map((tour, index) => (
+                      <SelectItem key={`tour-${tour.id}-${index}`} value={tour.id}>
                         {tour.name}
                       </SelectItem>
-                    ))}
+                    )) : null}
                   </SelectContent>
                 </Select>
               </div>
