@@ -144,8 +144,8 @@ const BookQuotePage = () => {
   const [tourBookings, setTourBookings] = useState<TourBooking[]>([])
 
   useEffect(() => {
-    loadTourData()
     loadDestinationsSettings()
+    // Note: Tours are loaded when a destination is selected via loadToursForSelectedDestination()
   }, [])
 
   useEffect(() => {
@@ -154,16 +154,6 @@ const BookQuotePage = () => {
     }
   }, [selectedDestination])
 
-  const loadTourData = async () => {
-    const tours = await tourCatalogService.getAllTours()
-    setAvailableTours(tours)
-    // Note: destinations are loaded separately via loadDestinationsSettings() from the new API
-  }
-
-  const loadToursByDestination = async (destination: string) => {
-    const tours = await tourCatalogService.getToursByDestination(destination)
-    setAvailableTours(tours)
-  }
 
   const loadToursForSelectedDestination = (destinationName: string) => {
     // Find the destination object by name in API data
@@ -172,10 +162,10 @@ const BookQuotePage = () => {
     if (selectedDest) {
       // Set available tours from the destination's tours array
       setAvailableTours(selectedDest.tours.filter(tour => tour.active))
-      console.log(`Tours for ${destinationName}:`, selectedDest.tours)
     } else {
-      // Fallback to existing service if destination not found in API data
-      loadToursByDestination(destinationName)
+      // No fallback to mock data - only use real backend data
+      console.warn(`Destination "${destinationName}" not found in API data. No tours available.`)
+      setAvailableTours([])
     }
   }
 
@@ -450,14 +440,39 @@ const BookQuotePage = () => {
       return
     }
 
-    const tour = await tourCatalogService.getTourById(currentTour.tourId)
-    if (!tour) return
+    // First try to find tour in availableTours array
+    const foundTour = availableTours.find(tour => tour.id === currentTour.tourId)
+    let tourName = ''
+    let tourCode = ''
+
+    if (foundTour) {
+      // Check if it's a DestinationTour or Tour
+      const isDestinationTour = 'adult_price' in foundTour
+
+      if (isDestinationTour) {
+        const destTour = foundTour as DestinationTour
+        tourName = destTour.name
+        tourCode = destTour.id // DestinationTour doesn't have a separate code, use id
+      } else {
+        const tour = foundTour as Tour
+        tourName = tour.name
+        tourCode = tour.code
+      }
+    } else {
+      // Fallback to catalog service for backward compatibility
+      const tour = await tourCatalogService.getTourById(currentTour.tourId)
+      if (!tour) {
+        return
+      }
+      tourName = tour.name
+      tourCode = tour.code
+    }
 
     const newTourBooking: TourBooking = {
       id: editingTourId || Date.now().toString(),
       tourId: currentTour.tourId,
-      tourName: tour.name,
-      tourCode: tour.code,
+      tourName,
+      tourCode,
       date: currentTour.date,
       pickupAddress: currentTour.pickupAddress || formData.defaultHotel,
       pickupTime: currentTour.pickupTime,
