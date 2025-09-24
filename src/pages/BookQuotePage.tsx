@@ -160,7 +160,6 @@ const BookQuotePage = () => {
     const selectedDest = apiDestinations.find(dest => dest.name === destinationName)
 
     if (selectedDest) {
-      // Set available tours from the destination's tours array
       setAvailableTours(selectedDest.tours.filter(tour => tour.active))
     } else {
       // No fallback to mock data - only use real backend data
