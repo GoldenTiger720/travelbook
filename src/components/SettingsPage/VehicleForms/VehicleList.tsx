@@ -23,14 +23,13 @@ import {
   Edit,
   Trash2,
   Users,
-  Calendar,
-  MapPin,
   CheckCircle,
   XCircle,
   ExternalLink,
 } from 'lucide-react'
 import type { Vehicle } from '@/types/vehicle'
 import { useDeleteVehicle } from '@/lib/hooks/useVehicles'
+import Swal from 'sweetalert2'
 
 interface VehicleListProps {
   vehicles: Vehicle[]
@@ -69,9 +68,84 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onEditVehicle, isLo
     )
   }
 
-  const handleDeleteVehicle = (vehicleId: string) => {
-    if (window.confirm('Are you sure you want to delete this vehicle?')) {
-      deleteVehicleMutation.mutate(vehicleId)
+  const handleDeleteVehicle = async (vehicle: Vehicle) => {
+    const result = await Swal.fire({
+      title: 'Delete Vehicle',
+      html: `
+        <div class="text-left">
+          <p class="mb-2">Are you sure you want to delete this vehicle?</p>
+          <div class="bg-gray-50 p-3 rounded-lg">
+            <p class="font-semibold">${vehicle.vehicle_name}</p>
+            <p class="text-sm text-gray-600">License: ${vehicle.license_plate}</p>
+            <p class="text-sm text-gray-600">Brand: ${vehicle.brand} ${vehicle.model}</p>
+          </div>
+          <p class="mt-2 text-sm text-red-600">This action cannot be undone.</p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, Delete',
+      cancelButtonText: 'Cancel',
+      customClass: {
+        popup: 'swal-wide'
+      }
+    })
+
+    if (result.isConfirmed) {
+      // Show progress modal
+      Swal.fire({
+        title: 'Deleting Vehicle...',
+        html: `
+          <div class="text-center">
+            <p class="mb-4">Please wait while we delete "${vehicle.vehicle_name}"</p>
+            <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+              <div class="bg-red-500 h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+            </div>
+            <p class="text-sm text-gray-600">Do not close this window...</p>
+          </div>
+        `,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          const progressBar = document.querySelector('.progress-bar') as HTMLElement
+          let progress = 0
+          const interval = setInterval(() => {
+            progress += 10
+            if (progressBar) {
+              progressBar.style.width = `${progress}%`
+            }
+            if (progress >= 90) {
+              clearInterval(interval)
+            }
+          }, 100)
+        }
+      })
+
+      // Perform the deletion
+      deleteVehicleMutation.mutate(vehicle.id, {
+        onSuccess: () => {
+          Swal.fire({
+            title: 'Vehicle Deleted',
+            text: `${vehicle.vehicle_name} has been successfully deleted from your fleet.`,
+            icon: 'success',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#10b981'
+          })
+        },
+        onError: (error) => {
+          console.error('Delete error:', error)
+          Swal.fire({
+            title: 'Delete Failed',
+            text: 'An error occurred while deleting the vehicle. Please try again.',
+            icon: 'error',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#ef4444'
+          })
+        }
+      })
     }
   }
 
@@ -178,18 +252,10 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onEditVehicle, isLo
                         <Edit className="w-4 h-4 mr-2" />
                         Edit Vehicle
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Schedule Maintenance
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <MapPin className="w-4 h-4 mr-2" />
-                        View Location
-                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         className="text-red-600"
-                        onClick={() => handleDeleteVehicle(vehicle.id)}
+                        onClick={() => handleDeleteVehicle(vehicle)}
                       >
                         <Trash2 className="w-4 h-4 mr-2" />
                         Delete Vehicle
@@ -232,18 +298,10 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onEditVehicle, isLo
                     <Edit className="w-4 h-4 mr-2" />
                     Edit Vehicle
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Schedule Maintenance
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <MapPin className="w-4 h-4 mr-2" />
-                    View Location
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="text-red-600"
-                    onClick={() => handleDeleteVehicle(vehicle.id)}
+                    onClick={() => handleDeleteVehicle(vehicle)}
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
                     Delete Vehicle

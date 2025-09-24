@@ -5,8 +5,10 @@ import { Car, Plus } from 'lucide-react'
 import { useVehicles } from '@/lib/hooks/useVehicles'
 import { useToast } from '@/hooks/use-toast'
 import NewVehicleForm from './VehicleForms/NewVehicleForm'
+import EditVehicleForm from './VehicleForms/EditVehicleForm'
 import VehicleList from './VehicleForms/VehicleList'
 import VehicleFiltersComponent from './VehicleForms/VehicleFilters'
+import { exportFilteredVehiclesToExcel } from '@/utils/excelExport'
 import type { Vehicle, VehicleFilters } from '@/types/vehicle'
 
 const VehiclesTab: React.FC = () => {
@@ -66,8 +68,20 @@ const VehiclesTab: React.FC = () => {
   }
 
   const handleExport = () => {
-    // TODO: Implement export functionality
-    console.log('Export vehicles:', filteredVehicles)
+    try {
+      exportFilteredVehiclesToExcel(vehicles, filteredVehicles, filters)
+      toast({
+        title: "Export Successful",
+        description: `Successfully exported ${filteredVehicles.length} vehicles to Excel.`,
+      })
+    } catch (error) {
+      console.error('Export failed:', error)
+      toast({
+        variant: "destructive",
+        title: "Export Failed",
+        description: "An error occurred while exporting vehicles. Please try again.",
+      })
+    }
   }
 
   return (
@@ -123,13 +137,12 @@ const VehiclesTab: React.FC = () => {
         onOpenChange={setShowNewVehicleDialog}
       />
 
-      {/* Edit Vehicle Dialog - TODO: Create EditVehicleForm component */}
-      {showEditDialog && selectedVehicle && (
-        <div>
-          {/* TODO: Implement EditVehicleForm component */}
-          <p>Edit form for vehicle: {selectedVehicle.vehicle_name}</p>
-        </div>
-      )}
+      {/* Edit Vehicle Dialog */}
+      <EditVehicleForm
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        vehicle={selectedVehicle}
+      />
     </div>
   )
 }
