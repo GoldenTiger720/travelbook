@@ -43,6 +43,24 @@ interface DestinationTour {
   updated_at: string
 }
 
+// Interface for users API
+interface User {
+  id: string
+  email: string
+  full_name: string
+  phone: string
+  role: string
+  commission: string
+  status: string
+}
+
+interface UsersApiResponse {
+  count: number
+  next: string | null
+  previous: string | null
+  results: User[]
+}
+
 interface Destination {
   id: string
   name: string
@@ -87,6 +105,7 @@ const BookQuotePage = () => {
   const [selectedDestination, setSelectedDestination] = useState("")
   const [destinations, setDestinations] = useState<Destination[]>([])
   const [apiDestinations, setApiDestinations] = useState<Destination[]>([])
+  const [users, setUsers] = useState<User[]>([])
   const [editingTourId, setEditingTourId] = useState<string | null>(null)
   
   // Booking options state
@@ -143,8 +162,12 @@ const BookQuotePage = () => {
   // List of added tours
   const [tourBookings, setTourBookings] = useState<TourBooking[]>([])
 
+  // Filter users with salesperson role
+  const salesPersons = users.filter(user => user.role === 'salesperson' && user.status === 'Active')
+
   useEffect(() => {
     loadDestinationsSettings()
+    loadUsersData()
     // Note: Tours are loaded when a destination is selected via loadToursForSelectedDestination()
   }, [])
 
@@ -191,6 +214,28 @@ const BookQuotePage = () => {
       }
     } catch (error) {
       console.error('Error loading destinations:', error)
+    }
+  }
+
+  const loadUsersData = async () => {
+    try {
+      const response = await apiCall('/api/users/', {
+        method: 'GET'
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const apiResponse: UsersApiResponse = await response.json()
+      console.log('Users loaded:', apiResponse)
+
+      if (apiResponse.results) {
+        setUsers(apiResponse.results)
+        console.log('Available users:', apiResponse.results.length)
+      }
+    } catch (error) {
+      console.error('Error loading users:', error)
     }
   }
 
@@ -398,7 +443,9 @@ const BookQuotePage = () => {
         }).flat()
       },
       leadSource: formData.origin || "website",
-      assignedTo: formData.salesperson || "Thiago Andrade",
+      assignedTo: formData.salesperson ?
+        (salesPersons.find(sp => sp.id === formData.salesperson)?.full_name || formData.salesperson) :
+        (salesPersons.length > 0 ? salesPersons[0].full_name : ""),
       agency: undefined,
       status: "confirmed",
       validUntil: validUntilDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
@@ -780,21 +827,15 @@ const BookQuotePage = () => {
                     <SelectValue placeholder={t('quotes.selectSalesperson')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">{t('quotes.internalTeam')}</div>
-                    <SelectItem value="thiago">Thiago Andrade</SelectItem>
-                    <SelectItem value="ana">Ana Martinez</SelectItem>
-                    <div className="h-px bg-border my-1" />
-                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Travel Plus</div>
-                    <SelectItem value="carlos">Carlos Rodriguez</SelectItem>
-                    <div className="h-px bg-border my-1" />
-                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">World Tours</div>
-                    <SelectItem value="ana-silva">Ana Silva</SelectItem>
-                    <div className="h-px bg-border my-1" />
-                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Adventure Agency</div>
-                    <SelectItem value="sofia">Sofia Gonzalez</SelectItem>
-                    <div className="h-px bg-border my-1" />
-                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Sunset Travel</div>
-                    <SelectItem value="juan">Juan Rodriguez</SelectItem>
+                    {salesPersons.length > 0 ? (
+                      salesPersons.map((salesperson) => (
+                        <SelectItem key={salesperson.id} value={salesperson.id}>
+                          {salesperson.full_name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="px-2 py-1 text-sm text-muted-foreground">No salespersons available</div>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
