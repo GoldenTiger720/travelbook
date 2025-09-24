@@ -24,6 +24,7 @@ import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { tourCatalogService } from "@/services/tourCatalogService"
 import { useCreateBooking, useCreateBookingPayment } from "@/hooks/useBookings"
+import { apiCall } from "@/config/api"
 import { Tour, TourBooking } from "@/types/tour"
 import {
   Table,
@@ -102,6 +103,7 @@ const BookQuotePage = () => {
 
   useEffect(() => {
     loadTourData()
+    loadDestinationsSettings()
   }, [])
 
   useEffect(() => {
@@ -120,6 +122,23 @@ const BookQuotePage = () => {
   const loadToursByDestination = async (destination: string) => {
     const tours = await tourCatalogService.getToursByDestination(destination)
     setAvailableTours(tours)
+  }
+
+  const loadDestinationsSettings = async () => {
+    try {
+      const response = await apiCall('/api/settings/destinations/', {
+        method: 'GET'
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log('Destinations settings loaded:', data)
+    } catch (error) {
+      console.error('Error loading destinations settings:', error)
+    }
   }
 
   const handleInputChange = (field: string, value: any) => {
