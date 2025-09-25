@@ -93,7 +93,10 @@ const CustomersPage = () => {
     language: "",
     country: "",
     cpf: "",
-    address: ""
+    address: "",
+    hotel: "",
+    room: "",
+    comments: ""
   })
 
   const [editCustomer, setEditCustomer] = useState({
@@ -104,7 +107,10 @@ const CustomersPage = () => {
     language: "",
     country: "",
     cpf: "",
-    address: ""
+    address: "",
+    hotel: "",
+    room: "",
+    comments: ""
   })
 
   // Handle backend field errors
@@ -185,7 +191,10 @@ const CustomersPage = () => {
         language: "",
         country: "",
         cpf: "",
-        address: ""
+        address: "",
+        hotel: "",
+        room: "",
+        comments: ""
       })
       setValidationErrors({})
       setIsAddCustomerOpen(false)
@@ -218,7 +227,10 @@ const CustomersPage = () => {
         language: originalCustomer.language,
         country: originalCustomer.country,
         cpf: originalCustomer.cpf,
-        address: originalCustomer.address
+        address: originalCustomer.address,
+        hotel: originalCustomer.hotel || "",
+        room: originalCustomer.room || "",
+        comments: originalCustomer.comments || ""
       })
       setSelectedCustomer(originalCustomer)
       setEditValidationErrors({})
@@ -317,7 +329,10 @@ const CustomersPage = () => {
         language: "",
         country: "",
         cpf: "",
-        address: ""
+        address: "",
+        hotel: "",
+        room: "",
+        comments: ""
       })
       setEditValidationErrors({})
       setIsEditCustomerOpen(false)
@@ -623,6 +638,85 @@ const CustomersPage = () => {
                     <p className="text-xs text-destructive mt-1">{validationErrors.address}</p>
                   )}
                   {backendErrors.address && backendErrors.address.map((error, idx) => (
+                    <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
+                  ))}
+                </div>
+
+                <div>
+                  <Label htmlFor="hotel">Default Hotel/Accommodation</Label>
+                  <Input
+                    id="hotel"
+                    placeholder="Enter hotel or accommodation name"
+                    value={newCustomer.hotel}
+                    onChange={(e) => {
+                      setNewCustomer({...newCustomer, hotel: e.target.value})
+                      if (validationErrors.hotel) {
+                        setValidationErrors(prev => ({ ...prev, hotel: '' }))
+                      }
+                      if (backendErrors.hotel) {
+                        setBackendErrors(prev => ({ ...prev, hotel: [] }))
+                      }
+                    }}
+                    disabled={createCustomerMutation.isPending}
+                    className={validationErrors.hotel || backendErrors.hotel ? 'border-destructive' : ''}
+                  />
+                  {validationErrors.hotel && (
+                    <p className="text-xs text-destructive mt-1">{validationErrors.hotel}</p>
+                  )}
+                  {backendErrors.hotel && backendErrors.hotel.map((error, idx) => (
+                    <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
+                  ))}
+                </div>
+
+                <div>
+                  <Label htmlFor="room">Room/Unit Number</Label>
+                  <Input
+                    id="room"
+                    placeholder="Enter room or unit number"
+                    value={newCustomer.room}
+                    onChange={(e) => {
+                      setNewCustomer({...newCustomer, room: e.target.value})
+                      if (validationErrors.room) {
+                        setValidationErrors(prev => ({ ...prev, room: '' }))
+                      }
+                      if (backendErrors.room) {
+                        setBackendErrors(prev => ({ ...prev, room: [] }))
+                      }
+                    }}
+                    disabled={createCustomerMutation.isPending}
+                    className={validationErrors.room || backendErrors.room ? 'border-destructive' : ''}
+                  />
+                  {validationErrors.room && (
+                    <p className="text-xs text-destructive mt-1">{validationErrors.room}</p>
+                  )}
+                  {backendErrors.room && backendErrors.room.map((error, idx) => (
+                    <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
+                  ))}
+                </div>
+
+                <div>
+                  <Label htmlFor="comments">Accommodation Comments</Label>
+                  <Textarea
+                    id="comments"
+                    placeholder="Enter accommodation comments or special requirements"
+                    value={newCustomer.comments}
+                    onChange={(e) => {
+                      setNewCustomer({...newCustomer, comments: e.target.value})
+                      if (validationErrors.comments) {
+                        setValidationErrors(prev => ({ ...prev, comments: '' }))
+                      }
+                      if (backendErrors.comments) {
+                        setBackendErrors(prev => ({ ...prev, comments: [] }))
+                      }
+                    }}
+                    disabled={createCustomerMutation.isPending}
+                    className={validationErrors.comments || backendErrors.comments ? 'border-destructive' : ''}
+                    rows={3}
+                  />
+                  {validationErrors.comments && (
+                    <p className="text-xs text-destructive mt-1">{validationErrors.comments}</p>
+                  )}
+                  {backendErrors.comments && backendErrors.comments.map((error, idx) => (
                     <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
                   ))}
                 </div>
@@ -979,6 +1073,27 @@ const CustomersPage = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
+                  <Label>Default Hotel/Accommodation</Label>
+                  <Input value={selectedCustomer.hotel || 'Not specified'} readOnly className="bg-muted" />
+                </div>
+                <div>
+                  <Label>Room/Unit Number</Label>
+                  <Input value={selectedCustomer.room || 'Not specified'} readOnly className="bg-muted" />
+                </div>
+              </div>
+
+              <div>
+                <Label>Accommodation Comments</Label>
+                <Textarea
+                  value={selectedCustomer.comments || 'No comments'}
+                  readOnly
+                  className="bg-muted"
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
                   <Label>Status</Label>
                   <Input value={selectedCustomer.status} readOnly className="bg-muted" />
                 </div>
@@ -1229,6 +1344,85 @@ const CustomersPage = () => {
                 <p className="text-xs text-destructive mt-1">{editValidationErrors.address}</p>
               )}
               {editBackendErrors.address && editBackendErrors.address.map((error, idx) => (
+                <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
+              ))}
+            </div>
+
+            <div>
+              <Label htmlFor="edit-hotel">Default Hotel/Accommodation</Label>
+              <Input
+                id="edit-hotel"
+                placeholder="Enter hotel or accommodation name"
+                value={editCustomer.hotel}
+                onChange={(e) => {
+                  setEditCustomer({...editCustomer, hotel: e.target.value})
+                  if (editValidationErrors.hotel) {
+                    setEditValidationErrors(prev => ({ ...prev, hotel: '' }))
+                  }
+                  if (editBackendErrors.hotel) {
+                    setEditBackendErrors(prev => ({ ...prev, hotel: [] }))
+                  }
+                }}
+                disabled={updateCustomerMutation.isPending}
+                className={editValidationErrors.hotel || editBackendErrors.hotel ? 'border-destructive' : ''}
+              />
+              {editValidationErrors.hotel && (
+                <p className="text-xs text-destructive mt-1">{editValidationErrors.hotel}</p>
+              )}
+              {editBackendErrors.hotel && editBackendErrors.hotel.map((error, idx) => (
+                <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
+              ))}
+            </div>
+
+            <div>
+              <Label htmlFor="edit-room">Room/Unit Number</Label>
+              <Input
+                id="edit-room"
+                placeholder="Enter room or unit number"
+                value={editCustomer.room}
+                onChange={(e) => {
+                  setEditCustomer({...editCustomer, room: e.target.value})
+                  if (editValidationErrors.room) {
+                    setEditValidationErrors(prev => ({ ...prev, room: '' }))
+                  }
+                  if (editBackendErrors.room) {
+                    setEditBackendErrors(prev => ({ ...prev, room: [] }))
+                  }
+                }}
+                disabled={updateCustomerMutation.isPending}
+                className={editValidationErrors.room || editBackendErrors.room ? 'border-destructive' : ''}
+              />
+              {editValidationErrors.room && (
+                <p className="text-xs text-destructive mt-1">{editValidationErrors.room}</p>
+              )}
+              {editBackendErrors.room && editBackendErrors.room.map((error, idx) => (
+                <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
+              ))}
+            </div>
+
+            <div>
+              <Label htmlFor="edit-comments">Accommodation Comments</Label>
+              <Textarea
+                id="edit-comments"
+                placeholder="Enter accommodation comments or special requirements"
+                value={editCustomer.comments}
+                onChange={(e) => {
+                  setEditCustomer({...editCustomer, comments: e.target.value})
+                  if (editValidationErrors.comments) {
+                    setEditValidationErrors(prev => ({ ...prev, comments: '' }))
+                  }
+                  if (editBackendErrors.comments) {
+                    setEditBackendErrors(prev => ({ ...prev, comments: [] }))
+                  }
+                }}
+                disabled={updateCustomerMutation.isPending}
+                className={editValidationErrors.comments || editBackendErrors.comments ? 'border-destructive' : ''}
+                rows={3}
+              />
+              {editValidationErrors.comments && (
+                <p className="text-xs text-destructive mt-1">{editValidationErrors.comments}</p>
+              )}
+              {editBackendErrors.comments && editBackendErrors.comments.map((error, idx) => (
                 <p key={idx} className="text-xs text-destructive mt-1">{error}</p>
               ))}
             </div>

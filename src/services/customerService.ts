@@ -10,6 +10,9 @@ export interface CreateCustomerData {
   country: string;
   cpf: string;
   address: string;
+  hotel?: string;
+  room?: string;
+  comments?: string;
 }
 
 export interface Customer {
@@ -35,6 +38,9 @@ export interface Customer {
   updated_at: string;
   bookings: any[];
   reservations: any[];
+  hotel?: string;
+  room?: string;
+  comments?: string;
 }
 
 export interface CustomerResponse {
