@@ -36,6 +36,7 @@ export interface TourBooking {
   tourId: string
   tourName: string
   tourCode: string
+  destination: string
   date: Date
   pickupAddress?: string
   pickupTime?: string

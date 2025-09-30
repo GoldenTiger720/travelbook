@@ -165,7 +165,7 @@ export const createBookingData = (
       childPrice: tour.childPrice,
       infantPrice: tour.infantPrice,
       subtotal: tour.subtotal,
-      destination: tour.tourName || "",
+      destination: tour.destination || "",
       passengers: tour.adultPax + tour.childPax + tour.infantPax,
       pricing: {
         amount: tour.subtotal,

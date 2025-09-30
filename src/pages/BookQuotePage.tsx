@@ -430,6 +430,7 @@ const BookQuotePage = () => {
       tourId: currentTour.tourId,
       tourName,
       tourCode,
+      destination: selectedDestination,
       date: currentTour.date,
       pickupAddress: currentTour.pickupAddress || formData.defaultHotel,
       pickupTime: currentTour.pickupTime,
