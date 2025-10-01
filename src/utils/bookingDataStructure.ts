@@ -372,6 +372,7 @@ export const convertToBookingData = (
     copyComments: config.copyComments,
     sendPurchaseOrder: config.sendPurchaseOrder,
     sendQuotationAccess: config.sendQuotationAccess,
+    shareableLink: config.shareableLink,
     paymentDetails: payment ? {
       date: payment.date,
       method: payment.method,

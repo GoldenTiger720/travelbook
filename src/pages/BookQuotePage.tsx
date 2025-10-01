@@ -526,14 +526,14 @@ const BookQuotePage = () => {
     // Convert to the format expected by the booking service
     const bookingData = convertToBookingData(structuredBookingData)
 
-    // Store the generated shareableLink for fallback
-    const generatedShareableLink = generateShareableLink()
+    // Store the shareableLink that was included in the booking data
+    const generatedShareableLink = bookingData.shareableLink || generateShareableLink()
 
     // Send data to booking API endpoint using React Query
     createBookingMutation.mutate(bookingData, {
       onSuccess: (newBooking) => {
-        // Use the shareable link from the booking response, or fallback to the one we generated
-        const shareableLink = newBooking.shareableLink || generatedShareableLink || generateShareableLink();
+        // Use the shareable link from the booking response, or fallback to the one we sent in the request
+        const shareableLink = newBooking.shareableLink || generatedShareableLink;
 
         console.log('ShareableLink debug:', {
           fromResponse: newBooking.shareableLink,

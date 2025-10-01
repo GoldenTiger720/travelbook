@@ -51,6 +51,7 @@ interface BookingData {
   copyComments?: boolean
   sendPurchaseOrder?: boolean
   sendQuotationAccess?: boolean
+  shareableLink?: string
   paymentDetails?: {
     date?: Date
     method?: string
@@ -184,6 +185,7 @@ class BookingService {
             endDate: bookingData.tourDetails.endDate.toISOString(),
           },
           validUntil: bookingData.validUntil.toISOString(),
+          shareableLink: bookingData.shareableLink,
           paymentDetails: bookingData.paymentDetails ? {
             ...bookingData.paymentDetails,
             date: bookingData.paymentDetails.date?.toISOString(),
