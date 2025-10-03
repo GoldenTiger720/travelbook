@@ -22,27 +22,32 @@ import { QuotesHeader } from "@/components/quotes/QuotesHeader";
 import { QuotesFilter } from "@/components/quotes/QuotesFilter";
 
 // Helper function to map backend status to display status
-const getDisplayStatus = (status: string, validUntil?: Date): string => {
+const getDisplayStatus = (status: string, validUntil?: Date): Quote['status'] => {
   // Check if expired first
   if (validUntil && new Date(validUntil) < new Date()) {
-    return "Expired";
+    return "expired";
   }
 
   // Map status values
   switch (status?.toLowerCase()) {
     case "pending":
+      return "pending";
     case "draft":
-      return "Draft";
+      return "draft";
+    case "sent":
+      return "sent";
     case "confirmed":
     case "approved":
-      return "Approved";
+      return "approved";
+    case "converted":
+      return "converted";
     case "cancelled":
     case "canceled":
-      return "Cancelled";
+      return "cancelled";
     case "expired":
-      return "Expired";
+      return "expired";
     default:
-      return "Draft";
+      return "draft";
   }
 };
 
@@ -353,17 +358,17 @@ const QuotesPage = () => {
                           <Badge
                             className={cn(
                               "text-[10px] px-1 py-0.5",
-                              quote.status === "Approved" &&
+                              quote.status === "approved" &&
                                 "bg-green-100 text-green-800",
-                              quote.status === "Draft" &&
+                              quote.status === "draft" &&
                                 "bg-yellow-100 text-yellow-800",
-                              quote.status === "Cancelled" &&
+                              quote.status === "cancelled" &&
                                 "bg-red-100 text-red-800",
-                              quote.status === "Expired" &&
+                              quote.status === "expired" &&
                                 "bg-gray-100 text-gray-800"
                             )}
                           >
-                            {quote.status}
+                            {quote.status.charAt(0).toUpperCase() + quote.status.slice(1)}
                           </Badge>
                         </td>
                         <td className="p-1">
@@ -465,17 +470,17 @@ const QuotesPage = () => {
                           <Badge
                             className={cn(
                               "text-[10px] px-1 py-0.5",
-                              quote.status === "Approved" &&
+                              quote.status === "approved" &&
                                 "bg-green-100 text-green-800",
-                              quote.status === "Draft" &&
+                              quote.status === "draft" &&
                                 "bg-yellow-100 text-yellow-800",
-                              quote.status === "Cancelled" &&
+                              quote.status === "cancelled" &&
                                 "bg-red-100 text-red-800",
-                              quote.status === "Expired" &&
+                              quote.status === "expired" &&
                                 "bg-gray-100 text-gray-800"
                             )}
                           >
-                            {quote.status}
+                            {quote.status.charAt(0).toUpperCase() + quote.status.slice(1)}
                           </Badge>
                         </td>
                         <td className="p-1">
@@ -525,17 +530,17 @@ const QuotesPage = () => {
                     <Badge
                       className={cn(
                         "text-xs",
-                        quote.status === "Approved" &&
+                        quote.status === "approved" &&
                           "bg-green-100 text-green-800",
-                        quote.status === "Draft" &&
+                        quote.status === "draft" &&
                           "bg-yellow-100 text-yellow-800",
-                        quote.status === "Cancelled" &&
+                        quote.status === "cancelled" &&
                           "bg-red-100 text-red-800",
-                        quote.status === "Expired" &&
+                        quote.status === "expired" &&
                           "bg-gray-100 text-gray-800"
                       )}
                     >
-                      {quote.status}
+                      {quote.status.charAt(0).toUpperCase() + quote.status.slice(1)}
                     </Badge>
                   </div>
 
