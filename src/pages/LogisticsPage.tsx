@@ -29,7 +29,6 @@ import {
   Clock,
   Users,
   CalendarIcon,
-  Navigation,
   DollarSign,
   CheckCircle,
   Settings,
@@ -581,9 +580,9 @@ const LogisticsPage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="px-2 sm:px-6">
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {/* Vehicle Summary */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 w-full">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 w-full">
                       {vehicles
                         .filter((v) => v.id === selectedOperation.vehicleId)
                         .map((vehicle) => (
@@ -626,38 +625,6 @@ const LogisticsPage = () => {
                             </CardContent>
                           </Card>
                         ))}
-
-                      <Card className="overflow-hidden">
-                        <CardContent className="p-2 sm:p-3">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <Navigation className="w-4 h-4 text-purple-500 flex-shrink-0" />
-                              <p className="font-semibold text-sm truncate">
-                                Route Info
-                              </p>
-                            </div>
-                            <div className="text-xs space-y-1">
-                              <p>
-                                Departure:{" "}
-                                {selectedOperation.departureTime || "Not set"}
-                              </p>
-                              <p>
-                                Wait: {selectedOperation.expectedWaitingTime}min
-                              </p>
-                              <p>
-                                Locations:{" "}
-                                {
-                                  new Set(
-                                    selectedOperation.reservations.map(
-                                      (r) => r.hotelName
-                                    )
-                                  ).size
-                                }
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
 
                       <Card className="overflow-hidden">
                         <CardContent className="p-2 sm:p-3">
