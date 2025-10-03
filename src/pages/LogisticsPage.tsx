@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -19,14 +18,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -35,22 +26,15 @@ import {
 } from "@/components/ui/dialog";
 import {
   Car,
-  MapPin,
   Clock,
   Users,
-  Plus,
   CalendarIcon,
-  Phone,
-  Mail,
   Navigation,
   DollarSign,
-  AlertCircle,
   CheckCircle,
   Settings,
   Send,
   FileText,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -63,122 +47,118 @@ import {
   VehicleDistribution,
 } from "@/types/logistics";
 import { useToast } from "@/components/ui/use-toast";
-import ReservationDetailsTable from "@/components/ReservationDetailsTable";
 
 const LogisticsPage = () => {
   const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedTour, setSelectedTour] = useState<string>("");
   const [selectedOperator, setSelectedOperator] = useState<string>("all");
-  const [tourOperations, setTourOperations] = useState<TourOperation[]>([]);
-  const [filteredTourOperations, setFilteredTourOperations] = useState<
-    TourOperation[]
-  >([]);
+  const [tours, setTours] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [guides, setGuides] = useState<Guide[]>([]);
   const [selectedOperation, setSelectedOperation] =
     useState<TourOperation | null>(null);
-  const [expandedReservations, setExpandedReservations] = useState<Set<string>>(
-    new Set()
-  );
-  const [selectedReservations, setSelectedReservations] = useState<Set<string>>(
-    new Set()
-  );
   const [assignedOperator, setAssignedOperator] =
     useState<string>("own-operation");
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadInitialData();
+    loadBasicData();
   }, []);
 
-  useEffect(() => {
-    if (selectedDate) {
-      loadTourOperations();
-    }
-  }, [selectedDate]);
-
-  useEffect(() => {
-    filterTourOperations();
-  }, [tourOperations, selectedOperator]);
-
-  const loadInitialData = async () => {
-    setLoading(true);
+  const loadBasicData = async () => {
     try {
-      const [vehiclesData, driversData, guidesData] = await Promise.all([
-        logisticsService.getVehicles(),
-        logisticsService.getDrivers(),
-        logisticsService.getGuides(),
-      ]);
+      const data = await logisticsService.getBasicData();
+      console.log('Basic logistics data loaded:', data);
 
-      setVehicles(vehiclesData);
-      setDrivers(driversData);
-      setGuides(guidesData);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load logistics data",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadTourOperations = async () => {
-    try {
-      const operations = await logisticsService.getTourOperations(selectedDate);
-      setTourOperations(operations);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load tour operations",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const filterTourOperations = () => {
-    let filtered = [...tourOperations];
-
-    if (selectedOperator !== "all") {
-      filtered = filtered.filter((operation) => {
-        const operator = operation.operator || "own-operation";
-        if (selectedOperator === "own-operation") {
-          return operator === "own-operation";
-        } else {
-          return operator !== "own-operation";
+      // Set data from API response if available
+      if (data) {
+        // Set tours
+        if (data.tours) {
+          setTours(data.tours);
         }
-      });
-    }
 
-    setFilteredTourOperations(filtered);
+        // Set vehicles - map API structure to local Vehicle type
+        if (data.vehicles) {
+          const vehiclesList = data.vehicles.map((vehicle: any) => ({
+            id: vehicle.id,
+            name: vehicle.vehicle_name,
+            type: 'van' as const, // Default type, could be enhanced based on model
+            capacity: vehicle.capacity,
+            licensePlate: vehicle.license_plate,
+            status: vehicle.status ? 'available' : 'maintenance',
+            currentLocation: undefined,
+            assignedTourId: undefined
+          }));
+          setVehicles(vehiclesList);
+        }
 
-    // Auto-select first tour if none selected or if current selection is filtered out
-    if (!selectedTour && filtered.length > 0) {
-      setSelectedTour(filtered[0].id);
-      setSelectedOperation(filtered[0]);
-    } else if (selectedTour) {
-      const operation = filtered.find((op) => op.id === selectedTour);
-      if (operation) {
-        setSelectedOperation(operation);
-      } else if (filtered.length > 0) {
-        // Current selection filtered out, select first available
-        setSelectedTour(filtered[0].id);
-        setSelectedOperation(filtered[0]);
-      } else {
-        // No tours available after filtering
-        setSelectedOperation(null);
-        setSelectedTour("");
+        // Filter users by role
+        if (data.users) {
+          const driversList = data.users
+            .filter((user: any) => user.role === 'driver')
+            .map((user: any) => ({
+              id: user.id,
+              name: user.full_name,
+              phone: user.phone,
+              licenseNumber: user.email, // Using email as placeholder
+              status: user.is_active ? 'available' : 'off-duty',
+              role: user.role
+            }));
+
+          const guidesList = data.users
+            .filter((user: any) => user.role === 'guide' || user.role === 'assistant_guide')
+            .map((user: any) => ({
+              id: user.id,
+              name: user.full_name,
+              phone: user.phone,
+              languages: [], // No language data in API
+              specialties: [], // No specialty data in API
+              status: user.is_active ? 'available' : 'assigned',
+              role: user.role
+            }));
+
+          setDrivers(driversList);
+          setGuides(guidesList);
+        }
       }
+    } catch (error) {
+      console.error('Failed to load basic logistics data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load basic logistics data",
+        variant: "destructive",
+      });
     }
   };
 
   const handleTourSelect = (tourId: string) => {
     setSelectedTour(tourId);
-    const operation = filteredTourOperations.find((op) => op.id === tourId);
-    setSelectedOperation(operation || null);
+    const selectedTourData = tours.find((tour) => tour.id === tourId);
+
+    if (selectedTourData) {
+      // Create a TourOperation object from the selected tour
+      const operation: TourOperation = {
+        id: selectedTourData.id,
+        date: selectedDate,
+        tourId: selectedTourData.id,
+        tourName: selectedTourData.name,
+        tourCode: selectedTourData.name, // Using name as code for now
+        mainDriver: undefined,
+        mainGuide: undefined,
+        assistantGuide: undefined,
+        departureTime: selectedTourData.departure_time,
+        expectedWaitingTime: 15,
+        vehicleId: undefined,
+        reservations: [],
+        totalPassengers: 0,
+        status: 'planning',
+        operator: 'own-operation'
+      };
+      setSelectedOperation(operation);
+    } else {
+      setSelectedOperation(null);
+    }
   };
 
   const handleAssignmentUpdate = async (field: string, value: string) => {
@@ -192,11 +172,6 @@ const LogisticsPage = () => {
       // Update local state
       setSelectedOperation((prev) =>
         prev ? { ...prev, [field]: value } : null
-      );
-      setTourOperations((prev) =>
-        prev.map((op) =>
-          op.id === selectedOperation.id ? { ...op, [field]: value } : op
-        )
       );
 
       toast({
@@ -230,89 +205,6 @@ const LogisticsPage = () => {
     }
   };
 
-  const toggleReservationExpansion = (reservationId: string) => {
-    setExpandedReservations((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(reservationId)) {
-        newSet.delete(reservationId);
-      } else {
-        newSet.add(reservationId);
-      }
-      return newSet;
-    });
-  };
-
-  const toggleReservationSelection = (reservationId: string) => {
-    setSelectedReservations((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(reservationId)) {
-        newSet.delete(reservationId);
-      } else {
-        newSet.add(reservationId);
-      }
-      return newSet;
-    });
-  };
-
-  const selectAllReservations = () => {
-    if (!selectedOperation) return;
-    const allIds = selectedOperation.reservations.map((r) => r.id);
-    setSelectedReservations(new Set(allIds));
-  };
-
-  const clearReservationSelection = () => {
-    setSelectedReservations(new Set());
-  };
-
-  const confirmAssignments = async () => {
-    if (!selectedOperation || selectedReservations.size === 0) {
-      toast({
-        title: "No Selection",
-        description: "Please select reservations to assign",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      // Apply assignments to selected reservations
-      await logisticsService.updateReservationAssignments(
-        Array.from(selectedReservations),
-        {
-          operator: assignedOperator,
-          driver:
-            assignedOperator === "own-operation"
-              ? selectedOperation.mainDriver
-              : undefined,
-          guide:
-            assignedOperator === "own-operation"
-              ? selectedOperation.mainGuide
-              : undefined,
-          vehicle:
-            assignedOperator === "own-operation"
-              ? selectedOperation.vehicleId
-              : undefined,
-        }
-      );
-
-      toast({
-        title: "Success",
-        description: `Assignments confirmed for ${selectedReservations.size} reservations`,
-      });
-
-      // Clear selection after successful assignment
-      setSelectedReservations(new Set());
-
-      // Reload tour operations to reflect changes
-      await loadTourOperations();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to confirm assignments",
-        variant: "destructive",
-      });
-    }
-  };
 
   const sendWhatsAppList = (operation: TourOperation) => {
     if (!operation.vehicleId) return;
@@ -442,12 +334,12 @@ const LogisticsPage = () => {
                     <SelectValue placeholder="Select a tour" />
                   </SelectTrigger>
                   <SelectContent>
-                    {filteredTourOperations.map((operation) => (
-                      <SelectItem key={operation.id} value={operation.id}>
+                    {tours.map((tour) => (
+                      <SelectItem key={tour.id} value={tour.id}>
                         <div className="flex items-center justify-between gap-2 w-full">
-                          <span className="truncate flex-1 min-w-0">{operation.tourName}</span>
+                          <span className="truncate flex-1 min-w-0">{tour.name}</span>
                           <Badge variant="outline" className="text-xs flex-shrink-0">
-                            {operation.totalPassengers} PAX
+                            {tour.destination__name}
                           </Badge>
                         </div>
                       </SelectItem>
@@ -591,7 +483,7 @@ const LogisticsPage = () => {
                           </SelectTrigger>
                           <SelectContent>
                             {guides
-                              .filter((g) => g.status === "available")
+                              .filter((g) => g.status === "available" && g.role === "guide")
                               .map((guide) => (
                                 <SelectItem key={guide.id} value={guide.name}>
                                   {guide.name}
@@ -617,6 +509,7 @@ const LogisticsPage = () => {
                               .filter(
                                 (g) =>
                                   g.status === "available" &&
+                                  g.role === "assistant_guide" &&
                                   g.name !== selectedOperation.mainGuide
                               )
                               .map((guide) => (
@@ -630,55 +523,6 @@ const LogisticsPage = () => {
                     </div>
                   )}
                 </div>
-
-                {/* Confirmation Button */}
-                <div className="flex justify-center sm:justify-end pt-2 sm:pt-4">
-                  <Button
-                    onClick={confirmAssignments}
-                    disabled={selectedReservations.size === 0}
-                    className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto text-sm sm:text-base"
-                  >
-                    <CheckCircle className="w-4 h-4 mr-1 sm:mr-2" />
-                    <span className="hidden sm:inline">Confirm Assignments </span>
-                    <span className="sm:hidden">Confirm </span>
-                    ({selectedReservations.size})
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Reservation Details Table */}
-            <Card className="overflow-hidden w-full max-w-full">
-              <CardHeader className="pb-2 sm:pb-3 px-2 sm:px-6">
-                <CardTitle className="text-sm sm:text-base font-medium">
-                  <span className="block truncate">Reservation Details</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="overflow-x-hidden p-1 sm:p-6">
-                <ReservationDetailsTable
-                  reservations={selectedOperation.reservations.map((reservation) => ({
-                    id: reservation.id,
-                    reservationNumber: reservation.reservationNumber,
-                    operationDate: selectedOperation.date,
-                    pickupTime: reservation.pickupTime || selectedOperation.departureTime || "08:00",
-                    passengerName: reservation.clientName,
-                    product: selectedOperation.tourName,
-                    operator: selectedOperation.operator === "own-operation" ? undefined : selectedOperation.operator,
-                    pickupAddress: reservation.pickupLocation,
-                    paxAdl: reservation.passengers.adults,
-                    paxChd: reservation.passengers.children,
-                    paxInf: reservation.passengers.infants,
-                    contactPhone: reservation.contactPhone || "",
-                    salesperson: reservation.salesperson || "",
-                    driver: selectedOperation.mainDriver,
-                    guideCoordinator: selectedOperation.mainGuide,
-                  }))}
-                  rowsPerPage={5}
-                  selectedReservations={selectedReservations}
-                  onSelectionChange={toggleReservationSelection}
-                  onSelectAll={selectAllReservations}
-                  onClearSelection={clearReservationSelection}
-                />
               </CardContent>
             </Card>
 

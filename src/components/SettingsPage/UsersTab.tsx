@@ -191,14 +191,11 @@ const UsersTab: React.FC = () => {
 
   const getRoleBadge = (role: string) => {
     const roleConfig = {
-      administrator: { color: "bg-red-500", label: "Admin" },
-      salesperson: { color: "bg-blue-500", label: "Sales" },
+      administrator: { color: "bg-red-500", label: "Administrator" },
+      salesperson: { color: "bg-blue-500", label: "Sales person" },
       agency: { color: "bg-purple-600", label: "Agency" },
-      supersalesperson: { color: "bg-blue-600", label: "SuperSales" },
-      "external agency": { color: "bg-purple-500", label: "External" },
-      "post-sale": { color: "bg-teal-500", label: "Post-Sale" },
-      supervision: { color: "bg-indigo-500", label: "Supervision" },
-      guide: { color: "bg-green-500", label: "Guide" },
+      assistant_guide: { color: "bg-blue-600", label: "Assistant guide" },
+      guide: { color: "bg-green-500", label: "Main guide" },
       driver: { color: "bg-orange-500", label: "Driver" }
     }
     
@@ -259,6 +256,7 @@ const UsersTab: React.FC = () => {
               </div>
               <Button 
                 onClick={() => setShowNewUserDialog(true)}
+                
                 className="w-full sm:w-auto shrink-0"
                 size="sm"
               >
@@ -293,13 +291,10 @@ const UsersTab: React.FC = () => {
                       <SelectContent>
                         <SelectItem value="all">All Roles</SelectItem>
                         <SelectItem value="administrator">Administrator</SelectItem>
-                        <SelectItem value="salesperson">Salesperson</SelectItem>
+                        <SelectItem value="salesperson">Sales person</SelectItem>
                         <SelectItem value="agency">Agency</SelectItem>
-                        <SelectItem value="supersalesperson">SuperSalesperson</SelectItem>
-                        <SelectItem value="external agency">External agency</SelectItem>
-                        <SelectItem value="post-sale">Post-Sale</SelectItem>
-                        <SelectItem value="supervision">Supervision</SelectItem>
-                        <SelectItem value="guide">Guide</SelectItem>
+                        <SelectItem value="assistant_guide">Assistant guide</SelectItem>
+                        <SelectItem value="guide">Main guide</SelectItem>
                         <SelectItem value="driver">Driver</SelectItem>
                       </SelectContent>
                     </Select>
@@ -578,9 +573,10 @@ const UsersTab: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="administrator">Administrator</SelectItem>
-                  <SelectItem value="salesperson">Salesperson</SelectItem>
+                  <SelectItem value="salesperson">Sales person</SelectItem>
                   <SelectItem value="agency">Agency</SelectItem>
-                  <SelectItem value="guide">Guide</SelectItem>
+                  <SelectItem value="assistant_guide">Assistant guide</SelectItem>
+                  <SelectItem value="guide">Main guide</SelectItem>
                   <SelectItem value="driver">Driver</SelectItem>
                 </SelectContent>
               </Select>
@@ -671,9 +667,10 @@ const UsersTab: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="administrator">Administrator</SelectItem>
-                    <SelectItem value="salesperson">Salesperson</SelectItem>
+                    <SelectItem value="salesperson">Sales person</SelectItem>
                     <SelectItem value="agency">Agency</SelectItem>
-                    <SelectItem value="guide">Guide</SelectItem>
+                    <SelectItem value="assistant_guide">Assistant guide</SelectItem>
+                    <SelectItem value="guide">Main guide</SelectItem>
                     <SelectItem value="driver">Driver</SelectItem>
                   </SelectContent>
                 </Select>

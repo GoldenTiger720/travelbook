@@ -63,6 +63,7 @@ export interface Driver {
   licenseNumber: string
   status: 'available' | 'assigned' | 'off-duty'
   currentTourId?: string
+  role?: string
 }
 
 export interface Guide {
@@ -73,6 +74,7 @@ export interface Guide {
   specialties: string[]
   status: 'available' | 'assigned' | 'off-duty'
   currentTourId?: string
+  role?: string
 }
 
 export interface PassengerListItem {

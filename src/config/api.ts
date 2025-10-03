@@ -103,6 +103,7 @@ export const API_ENDPOINTS = {
   
   // Logistics endpoints
   LOGISTICS: {
+    BASIC: '/api/logistics/basic/',
     SHIPMENTS: '/api/logistics/shipments',
     SHIPMENT: (id: string) => `/api/logistics/shipments/${id}`,
     TRACKING: (trackingId: string) => `/api/logistics/tracking/${trackingId}`,

@@ -206,9 +206,6 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onEditVehicle, isLo
                     </div>
                     <div>
                       <div className="font-medium">{vehicle.vehicle_name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        ID: {vehicle.id.slice(0, 8)}...
-                      </div>
                     </div>
                   </div>
                 </TableCell>
