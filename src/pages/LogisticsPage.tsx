@@ -161,48 +161,20 @@ const LogisticsPage = () => {
     }
   };
 
-  const handleAssignmentUpdate = async (field: string, value: string) => {
+  const handleAssignmentUpdate = (field: string, value: string) => {
     if (!selectedOperation) return;
 
-    try {
-      await logisticsService.updateTourOperation(selectedOperation.id, {
-        [field]: value,
-      });
-
-      // Update local state
-      setSelectedOperation((prev) =>
-        prev ? { ...prev, [field]: value } : null
-      );
-
-      toast({
-        title: "Updated",
-        description: `Assignment updated successfully`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update assignment",
-        variant: "destructive",
-      });
-    }
+    // Update local state only (no API call)
+    setSelectedOperation((prev) =>
+      prev ? { ...prev, [field]: value } : null
+    );
   };
 
-  const handleVehicleAssign = async (vehicleId: string) => {
+  const handleVehicleAssign = (vehicleId: string) => {
     if (!selectedOperation) return;
 
-    try {
-      await logisticsService.assignVehicleToOperation(
-        selectedOperation.id,
-        vehicleId
-      );
-      await handleAssignmentUpdate("vehicleId", vehicleId);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to assign vehicle",
-        variant: "destructive",
-      });
-    }
+    // Update local state only (no API call)
+    handleAssignmentUpdate("vehicleId", vehicleId);
   };
 
 
