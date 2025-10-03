@@ -508,7 +508,6 @@ const QuotesPage = () => {
             </CardContent>
           </Card>
 
-          {/* Mobile Card View (visible on small screens) */}
           <div className="md:hidden space-y-3">
             {sortedQuotes.map((quote) => (
               <Card key={quote.id} className="overflow-hidden">
