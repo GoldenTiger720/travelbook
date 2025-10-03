@@ -4,7 +4,7 @@ import Swal from "sweetalert2";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, FileText, X, Eye, Edit, Trash2 } from "lucide-react";
+import { FileText, X, Edit, Trash2 } from "lucide-react";
 import { Quote, QuoteFilters } from "@/types/quote";
 import { exportToExcel, exportToPDF } from "@/utils/exportUtils";
 import { format } from "date-fns";
@@ -132,7 +132,6 @@ const QuotesPage = () => {
 
   // React Query hooks - fetch bookings and convert to quotes for UI
   const { data: bookings = [], isLoading } = useBookings();
-  const updateBookingMutation = useUpdateBooking();
   const deleteBookingMutation = useDeleteBooking();
 
   // Convert bookings to quotes format for the UI
@@ -241,6 +240,8 @@ const QuotesPage = () => {
     if (key === "minAmount" || key === "maxAmount") return value !== undefined;
     return value !== "all";
   }).length;
+
+  console.log("sorted quotes: ", sortedQuotes);
 
   return (
     <div className="space-y-4 sm:space-y-6 p-3 sm:p-4 md:p-6 lg:p-8">
