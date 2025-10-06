@@ -80,16 +80,61 @@ class ReservationService {
       }
 
       const data = await response.json()
-      
-      // Map the backend data structure to frontend format
+
+      // Store the raw data for filter options
       if (data.success && data.data) {
-        return data.data.map((reservation: any) => this.mapBackendDataToReservation(reservation))
+        // Store users and tours data in sessionStorage for filter options
+        sessionStorage.setItem('reservationFilterData', JSON.stringify({
+          users: data.data.users || [],
+          tours: data.data.tours || []
+        }))
       }
-      
+
+      // For now, return empty array as we don't have reservation data in this endpoint
+      // This endpoint only provides users and tours for filters
       return []
     } catch (error) {
       console.error('Error fetching reservations from backend:', error)
       throw error
+    }
+  }
+
+  getFilterOptions() {
+    try {
+      const filterDataString = sessionStorage.getItem('reservationFilterData')
+      if (!filterDataString) {
+        return {
+          users: [],
+          tours: [],
+          salespersons: [],
+          guides: [],
+          drivers: [],
+          agencies: []
+        }
+      }
+
+      const filterData = JSON.parse(filterDataString)
+      const users = filterData.users || []
+      const tours = filterData.tours || []
+
+      return {
+        users,
+        tours,
+        salespersons: users.filter((u: any) => u.role === 'salesperson'),
+        guides: users.filter((u: any) => u.role === 'guide' || u.role === 'assistant_guide'),
+        drivers: users.filter((u: any) => u.role === 'driver'),
+        agencies: users.filter((u: any) => u.role === 'agency')
+      }
+    } catch (error) {
+      console.error('Error getting filter options:', error)
+      return {
+        users: [],
+        tours: [],
+        salespersons: [],
+        guides: [],
+        drivers: [],
+        agencies: []
+      }
     }
   }
   

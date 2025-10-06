@@ -120,6 +120,8 @@
     "operator": "Operador",
     "guide": "Guia",
     "driver": "Motorista",
+    "externalAgency": "Agência Externa",
+    "agency": "Agência",
     "clearFilters": "Limpar Filtros",
     "select": "Selecionar",
     "allStatuses": "Todos os Status",

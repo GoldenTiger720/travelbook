@@ -78,43 +78,33 @@ const AllReservationsPage = () => {
   
   // Single React Query hook - only makes one API call
   const { data: allReservations = [], isLoading: reservationsLoading, error: reservationsError } = useReservations()
-  
-  // Compute filter options from all reservations (client-side)
-  const filterOptions = useMemo(() => {
-    if (allReservations.length === 0) {
-      return {
-        salespersons: [],
-        operators: [],
-        guides: [],
-        drivers: [],
-        agencies: [],
-        tours: []
-      }
-    }
 
-    const salespersons = new Set<string>()
-    const operators = new Set<string>()
-    const guides = new Set<string>()
-    const drivers = new Set<string>()
-    const agencies = new Set<string>()
-    const tours = new Map<string, string>()
-    
-    allReservations.forEach(r => {
-      salespersons.add(r.salesperson)
-      if (r.operator) operators.add(r.operator)
-      if (r.guide) guides.add(r.guide)
-      if (r.driver) drivers.add(r.driver)
-      if (r.externalAgency) agencies.add(r.externalAgency)
-      tours.set(r.tour.id, r.tour.name)
-    })
-    
+  // Compute filter options from API response (users and tours)
+  const filterOptions = useMemo(() => {
+    const options = reservationService.getFilterOptions()
+
     return {
-      salespersons: Array.from(salespersons).sort(),
-      operators: Array.from(operators).sort(),
-      guides: Array.from(guides).sort(),
-      drivers: Array.from(drivers).sort(),
-      agencies: Array.from(agencies).sort(),
-      tours: Array.from(tours.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
+      salespersons: options.salespersons.map((u: any) => ({
+        id: u.id,
+        name: u.fullName
+      })),
+      operators: [], // Not available in current API
+      guides: options.guides.map((u: any) => ({
+        id: u.id,
+        name: u.fullName
+      })),
+      drivers: options.drivers.map((u: any) => ({
+        id: u.id,
+        name: u.fullName
+      })),
+      agencies: options.agencies.map((u: any) => ({
+        id: u.id,
+        name: u.fullName
+      })),
+      tours: options.tours.map((t: any) => ({
+        id: t.id,
+        name: t.name
+      }))
     }
   }, [allReservations])
 
@@ -392,7 +382,7 @@ const AllReservationsPage = () => {
           <CollapsibleContent>
             <CardContent className="space-y-4">
               {/* Date Range and Type */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <div>
                   <Label className="text-xs">{t('allReservations.dateType')}</Label>
                   <Select value={filters.dateType} onValueChange={(value) => handleFilterChange('dateType', value)}>
@@ -405,7 +395,7 @@ const AllReservationsPage = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
                   <Label className="text-xs">{t('allReservations.startDate')}</Label>
                   <Popover>
@@ -433,7 +423,7 @@ const AllReservationsPage = () => {
                     </PopoverContent>
                   </Popover>
                 </div>
-                
+
                 <div>
                   <Label className="text-xs">{t('allReservations.endDate')}</Label>
                   <Popover>
@@ -460,19 +450,6 @@ const AllReservationsPage = () => {
                       />
                     </PopoverContent>
                   </Popover>
-                </div>
-                
-                <div>
-                  <Label className="text-xs">{t('allReservations.search')}</Label>
-                  <div className="relative">
-                    <Search className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
-                    <Input
-                      placeholder={t('allReservations.searchPlaceholder')}
-                      className="pl-7 h-9 text-sm"
-                      value={filters.searchTerm}
-                      onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
-                    />
-                  </div>
                 </div>
               </div>
               
@@ -535,8 +512,8 @@ const AllReservationsPage = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">{t('allReservations.allSalespersons')}</SelectItem>
-                      {filterOptions.salespersons.map((sp: string) => (
-                        <SelectItem key={sp} value={sp}>{sp}</SelectItem>
+                      {filterOptions.salespersons.map((sp: any) => (
+                        <SelectItem key={sp.id} value={sp.id}>{sp.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -553,13 +530,13 @@ const AllReservationsPage = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">{t('allReservations.allOperators')}</SelectItem>
-                      {filterOptions.operators.map((operator: string) => (
-                        <SelectItem key={operator} value={operator}>{operator}</SelectItem>
+                      {filterOptions.operators.map((operator: any) => (
+                        <SelectItem key={operator.id} value={operator.id}>{operator.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
                   <Label className="text-xs">{t('allReservations.guide')}</Label>
                   <Select value={filters.guide || 'all'} onValueChange={(value) => handleFilterChange('guide', value === 'all' ? undefined : value)}>
@@ -568,13 +545,13 @@ const AllReservationsPage = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">{t('allReservations.allGuides')}</SelectItem>
-                      {filterOptions.guides.map((guide: string) => (
-                        <SelectItem key={guide} value={guide}>{guide}</SelectItem>
+                      {filterOptions.guides.map((guide: any) => (
+                        <SelectItem key={guide.id} value={guide.id}>{guide.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
                   <Label className="text-xs">{t('allReservations.driver')}</Label>
                   <Select value={filters.driver || 'all'} onValueChange={(value) => handleFilterChange('driver', value === 'all' ? undefined : value)}>
@@ -583,23 +560,23 @@ const AllReservationsPage = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">{t('allReservations.allDrivers')}</SelectItem>
-                      {filterOptions.drivers.map((driver: string) => (
-                        <SelectItem key={driver} value={driver}>{driver}</SelectItem>
+                      {filterOptions.drivers.map((driver: any) => (
+                        <SelectItem key={driver.id} value={driver.id}>{driver.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
-                  <Label className="text-xs">{t('allReservations.externalAgency')}</Label>
+                  <Label className="text-xs">{t('allReservations.agency')}</Label>
                   <Select value={filters.externalAgency || 'all'} onValueChange={(value) => handleFilterChange('externalAgency', value === 'all' ? undefined : value)}>
                     <SelectTrigger className="h-9">
                       <SelectValue placeholder="All" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">{t('allReservations.allAgencies')}</SelectItem>
-                      {filterOptions.agencies.map((agency: string) => (
-                        <SelectItem key={agency} value={agency}>{agency}</SelectItem>
+                      {filterOptions.agencies.map((agency: any) => (
+                        <SelectItem key={agency.id} value={agency.id}>{agency.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

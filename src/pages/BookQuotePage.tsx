@@ -555,10 +555,16 @@ const BookQuotePage = () => {
           text: 'Quote created successfully',
           icon: 'success',
           confirmButtonText: 'View Quote',
-          confirmButtonColor: '#10b981'
-        }).then(() => {
-          // Redirect to the customer-facing quote view
-          navigate(`/quotes/share/${shareableLink}`)
+          confirmButtonColor: '#10b981',
+          showCancelButton: true,
+          cancelButtonText: 'Cancel',
+          cancelButtonColor: '#6b7280'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // Redirect to the customer-facing quote view
+            navigate(`/quotes/share/${shareableLink}`)
+          }
+          // If cancelled, stay on current page (no action needed)
         })
       },
       onError: (error: any) => {
