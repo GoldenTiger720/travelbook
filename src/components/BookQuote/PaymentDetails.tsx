@@ -31,6 +31,7 @@ interface PaymentDetailsProps {
   customerEmail: string
   tourBookings: TourBooking[]
   currency: string
+  isQuotationSaved: boolean
   createBookingMutation: { isPending: boolean }
   createBookingPaymentMutation: { isPending: boolean }
   onPaymentDateChange: (date: Date | undefined) => void
@@ -68,6 +69,7 @@ const PaymentDetails: React.FC<PaymentDetailsProps> = ({
   customerEmail,
   tourBookings,
   currency,
+  isQuotationSaved,
   createBookingMutation,
   createBookingPaymentMutation,
   onPaymentDateChange,
@@ -334,18 +336,18 @@ const PaymentDetails: React.FC<PaymentDetailsProps> = ({
                 <Button
                   type="button"
                   className="w-full bg-green-500 hover:bg-green-600 text-white py-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={tourBookings.length === 0 || createBookingPaymentMutation.isPending}
+                  disabled={tourBookings.length === 0 || !isQuotationSaved || createBookingPaymentMutation.isPending}
                   onClick={onBookReservation}
                 >
                   {createBookingPaymentMutation.isPending ? "Processing..." : t('quotes.reserve')}
                 </Button>
 
-                <div className={`flex items-center gap-2 p-3 rounded-lg ${tourBookings.length > 0 ? 'bg-green-100' : 'bg-gray-100'}`}>
-                  <div className={`w-6 h-6 rounded flex items-center justify-center ${tourBookings.length > 0 ? 'bg-green-500' : 'bg-gray-400'}`}>
+                <div className={`flex items-center gap-2 p-3 rounded-lg ${isQuotationSaved ? 'bg-green-100' : 'bg-gray-100'}`}>
+                  <div className={`w-6 h-6 rounded flex items-center justify-center ${isQuotationSaved ? 'bg-green-500' : 'bg-gray-400'}`}>
                     <span className="text-white text-xs">✓</span>
                   </div>
-                  <span className={`font-medium ${tourBookings.length > 0 ? 'text-green-700' : 'text-gray-600'}`}>
-                    {t('quotes.readyToBook')}
+                  <span className={`font-medium ${isQuotationSaved ? 'text-green-700' : 'text-gray-600'}`}>
+                    {isQuotationSaved ? t('quotes.readyToBook') : 'Save quotation first'}
                   </span>
                 </div>
               </div>

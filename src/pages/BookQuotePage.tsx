@@ -146,6 +146,9 @@ const BookQuotePage = () => {
   // List of added tours
   const [tourBookings, setTourBookings] = useState<TourBooking[]>([])
 
+  // Track if quotation has been saved successfully
+  const [isQuotationSaved, setIsQuotationSaved] = useState(false)
+
   // Filter users with salesperson role
   const salesPersons = users.filter(user => user.role === 'salesperson' && user.status === 'Active')
 
@@ -454,6 +457,9 @@ const BookQuotePage = () => {
       setTourBookings([...tourBookings, newTourBooking])
     }
 
+    // Reset quotation saved state when tours are modified
+    setIsQuotationSaved(false)
+
     // Reset form after adding/updating tour (no API call here)
     setCurrentTour({
       tourId: "",
@@ -491,6 +497,8 @@ const BookQuotePage = () => {
 
   const deleteTour = (tourId: string) => {
     setTourBookings(prev => prev.filter(t => t.id !== tourId))
+    // Reset quotation saved state when tours are deleted
+    setIsQuotationSaved(false)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -549,6 +557,9 @@ const BookQuotePage = () => {
           cacheKey: ['shared-quote', shareableLink],
           data: newBooking
         });
+
+        // Mark quotation as saved successfully
+        setIsQuotationSaved(true);
 
         Swal.fire({
           title: 'Success!',
@@ -654,7 +665,7 @@ const BookQuotePage = () => {
         }).then((result) => {
           if (result.isConfirmed) {
             // Navigate to All Reservations page
-            navigate('/reservations/all')
+            navigate('/all-reservations')
           } else {
             // Reset form for new quote
             setTourBookings([])
@@ -688,6 +699,8 @@ const BookQuotePage = () => {
               operator: "own-operation",
               comments: ""
             })
+            // Navigate to quotes page after resetting form
+            navigate('/quotes')
           }
         })
 
@@ -791,6 +804,7 @@ const BookQuotePage = () => {
           customerEmail={formData.email}
           tourBookings={tourBookings}
           currency={formData.currency}
+          isQuotationSaved={isQuotationSaved}
           createBookingMutation={createBookingMutation}
           createBookingPaymentMutation={createBookingPaymentMutation}
           onPaymentDateChange={setPaymentDate}
