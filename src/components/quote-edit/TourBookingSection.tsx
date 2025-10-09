@@ -28,6 +28,34 @@ import { format } from "date-fns";
 import { tourCatalogService } from "@/services/tourCatalogService";
 import { Tour } from "@/types/tour";
 
+interface DestinationTour {
+  id: string;
+  name: string;
+  description: string;
+  adult_price: string;
+  child_price: string;
+  currency: string;
+  starting_point: string;
+  departure_time: string;
+  capacity: number;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Destination {
+  id: string;
+  name: string;
+  country: string;
+  region: string;
+  language: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  tours: DestinationTour[];
+  tours_count: number;
+}
+
 interface TourBookingSectionProps {
   currency: string;
   getCurrencySymbol: (currency: string) => string;
@@ -47,6 +75,7 @@ interface TourBookingSectionProps {
     infantPrice: number;
     comments: string;
   };
+  destinations?: Destination[];
   onTourBookingChange?: (field: string, value: any) => void;
   onUpdateTour?: () => void;
 }
@@ -55,37 +84,59 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
   currency,
   getCurrencySymbol,
   tourBooking,
+  destinations = [],
   onTourBookingChange,
   onUpdateTour,
 }) => {
   const { t } = useLanguage();
-  const [availableTours, setAvailableTours] = useState<Tour[]>([]);
-  const [destinations, setDestinations] = useState<string[]>([]);
-  const [filteredTours, setFilteredTours] = useState<Tour[]>([]);
+  const [availableTours, setAvailableTours] = useState<(Tour | DestinationTour)[]>([]);
+  const [localDestinations, setLocalDestinations] = useState<string[]>([]);
+  const [filteredTours, setFilteredTours] = useState<(Tour | DestinationTour)[]>([]);
 
-  // Load tour data on component mount
+  // Load tour data on component mount (fallback if destinations prop is not provided)
   useEffect(() => {
-    loadTourData();
-  }, []);
+    if (destinations.length === 0) {
+      loadTourData();
+    } else {
+      // Use destinations from props
+      setLocalDestinations(destinations.map(dest => dest.name));
+    }
+  }, [destinations]);
 
   // Filter tours by selected destination
   useEffect(() => {
     if (tourBooking?.destination) {
-      const filtered = availableTours.filter(
-        tour => tour.destination === tourBooking.destination
-      );
-      setFilteredTours(filtered);
+      // First check if we have API destinations data
+      if (destinations.length > 0) {
+        const selectedDest = destinations.find(dest => dest.name === tourBooking.destination);
+        if (selectedDest) {
+          setFilteredTours(selectedDest.tours.filter(tour => tour.active));
+        } else {
+          setFilteredTours([]);
+        }
+      } else {
+        // Fallback to old catalog service filtering
+        const filtered = availableTours.filter(
+          (tour) => {
+            if ('destination' in tour) {
+              return tour.destination === tourBooking.destination;
+            }
+            return false;
+          }
+        );
+        setFilteredTours(filtered);
+      }
     } else {
       setFilteredTours(availableTours);
     }
-  }, [tourBooking?.destination, availableTours]);
+  }, [tourBooking?.destination, availableTours, destinations]);
 
   const loadTourData = async () => {
     try {
       const tours = await tourCatalogService.getAllTours();
       const dests = await tourCatalogService.getDestinations();
       setAvailableTours(tours);
-      setDestinations(dests);
+      setLocalDestinations(dests);
       setFilteredTours(tours);
     } catch (error) {
       console.error("Error loading tour data:", error);
@@ -116,7 +167,7 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
                 <SelectValue placeholder={t("quotes.selectDestination")} />
               </SelectTrigger>
               <SelectContent>
-                {destinations.map((destination) => (
+                {localDestinations.map((destination) => (
                   <SelectItem key={destination} value={destination}>
                     {destination}
                   </SelectItem>
@@ -130,18 +181,37 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
             <Select
               value={tourBooking?.tourId || ""}
               onValueChange={async (value) => {
-                const selectedTour = availableTours.find(tour => tour.id === value);
+                const selectedTour = filteredTours.find(tour => tour.id === value);
                 if (selectedTour) {
                   onTourBookingChange?.('tourId', value);
                   onTourBookingChange?.('tourName', selectedTour.name);
 
-                  // Update prices based on selected tour and currency
-                  let adultPrice = selectedTour.basePricing.adultPrice;
-                  let childPrice = selectedTour.basePricing.childPrice;
-                  let infantPrice = selectedTour.basePricing.infantPrice;
+                  // Check if it's a DestinationTour (from API) or Tour (from catalog)
+                  const isDestinationTour = 'adult_price' in selectedTour;
+
+                  let adultPrice: number;
+                  let childPrice: number;
+                  let infantPrice: number;
+                  let tourCurrency: string;
+
+                  if (isDestinationTour) {
+                    // DestinationTour from API
+                    const destTour = selectedTour as DestinationTour;
+                    adultPrice = parseFloat(destTour.adult_price);
+                    childPrice = parseFloat(destTour.child_price);
+                    infantPrice = 0; // API doesn't have infant price
+                    tourCurrency = destTour.currency;
+                  } else {
+                    // Tour from catalog
+                    const tour = selectedTour as Tour;
+                    adultPrice = tour.basePricing.adultPrice;
+                    childPrice = tour.basePricing.childPrice;
+                    infantPrice = tour.basePricing.infantPrice;
+                    tourCurrency = tour.basePricing.currency;
+                  }
 
                   // Convert prices if currencies don't match
-                  if (currency && currency !== selectedTour.basePricing.currency) {
+                  if (currency && currency !== tourCurrency) {
                     const conversionRates: { [key: string]: { [key: string]: number } } = {
                       'CLP': { 'ARS': 0.35, 'USD': 0.0012, 'EUR': 0.0011, 'BRL': 0.006 },
                       'ARS': { 'CLP': 2.85, 'USD': 0.0034, 'EUR': 0.0031, 'BRL': 0.017 },
@@ -150,7 +220,7 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
                       'BRL': { 'CLP': 170, 'ARS': 59, 'USD': 0.20, 'EUR': 0.18 }
                     };
 
-                    const rate = conversionRates[selectedTour.basePricing.currency]?.[currency] || 1;
+                    const rate = conversionRates[tourCurrency]?.[currency] || 1;
                     adultPrice = Math.round(adultPrice * rate);
                     childPrice = Math.round(childPrice * rate);
                     infantPrice = Math.round(infantPrice * rate);
@@ -161,8 +231,16 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
                   onTourBookingChange?.('infantPrice', infantPrice);
 
                   // Set default pickup time if available
-                  if (selectedTour.defaultPickupTime && !tourBooking?.pickupTime) {
-                    onTourBookingChange?.('pickupTime', selectedTour.defaultPickupTime);
+                  if (isDestinationTour) {
+                    const destTour = selectedTour as DestinationTour;
+                    if (destTour.departure_time && !tourBooking?.pickupTime) {
+                      onTourBookingChange?.('pickupTime', destTour.departure_time);
+                    }
+                  } else {
+                    const tour = selectedTour as Tour;
+                    if (tour.defaultPickupTime && !tourBooking?.pickupTime) {
+                      onTourBookingChange?.('pickupTime', tour.defaultPickupTime);
+                    }
                   }
                 }
               }}
@@ -171,11 +249,19 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
                 <SelectValue placeholder={t("quotes.selectTour")} />
               </SelectTrigger>
               <SelectContent>
-                {filteredTours.map((tour) => (
-                  <SelectItem key={tour.id} value={tour.id}>
-                    {tour.name} ({tour.code})
-                  </SelectItem>
-                ))}
+                {filteredTours.map((tour) => {
+                  // Check if it's DestinationTour or Tour to display appropriate info
+                  const isDestinationTour = 'adult_price' in tour;
+                  const displayText = isDestinationTour
+                    ? tour.name
+                    : `${tour.name} (${(tour as Tour).code})`;
+
+                  return (
+                    <SelectItem key={tour.id} value={tour.id}>
+                      {displayText}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>

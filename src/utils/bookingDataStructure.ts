@@ -119,7 +119,7 @@ export const createBookingData = (
           ? (salesPersons.find(sp => sp.id === formData.salesperson)?.full_name || formData.salesperson)
           : (salesPersons.length > 0 ? salesPersons[0].full_name : ""),
         agency: undefined, // Not implemented in current form
-        status: "confirmed",
+        status: "pending",
         validUntil: paymentData.validUntilDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         quotationComments: paymentData.quotationComments || "",
         copyComments: paymentData.copyComments || false,
@@ -346,7 +346,7 @@ export const convertToBookingData = (
     })),
     tourDetails: {
       destination: firstTour?.destination || '',
-      tourType: 'custom', // Default
+      tourType: firstTour?.tourName || 'custom',
       startDate,
       endDate,
       passengers: totalPassengers,

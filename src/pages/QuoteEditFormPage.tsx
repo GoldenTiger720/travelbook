@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useBooking, useUpdateBooking } from "@/hooks/useBookings";
 import { useToast } from "@/components/ui/use-toast";
+import { apiCall } from "@/config/api";
 import {
   QuoteConfigSection,
   CustomerInfoSection,
@@ -10,6 +11,64 @@ import {
   PaymentDetailsSection,
   BookingOptionsSection,
 } from "@/components/quote-edit";
+
+// Interfaces for API responses
+interface DestinationTour {
+  id: string;
+  name: string;
+  description: string;
+  adult_price: string;
+  child_price: string;
+  currency: string;
+  starting_point: string;
+  departure_time: string;
+  capacity: number;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Destination {
+  id: string;
+  name: string;
+  country: string;
+  region: string;
+  language: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  tours: DestinationTour[];
+  tours_count: number;
+}
+
+interface DestinationsApiResponse {
+  success: boolean;
+  message: string;
+  data: Destination[];
+  statistics: {
+    total_destinations: number;
+    active_destinations: number;
+    total_tours: number;
+  };
+  count: number;
+}
+
+interface User {
+  id: string;
+  email: string;
+  full_name: string;
+  phone: string;
+  role: string;
+  commission: string;
+  status: string;
+}
+
+interface UsersApiResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: User[];
+}
 
 const QuoteEditFormPage = () => {
   const { quoteId } = useParams();
@@ -20,6 +79,10 @@ const QuoteEditFormPage = () => {
 
   // Form state
   const [formData, setFormData] = useState<any>(null);
+
+  // API data state
+  const [destinations, setDestinations] = useState<Destination[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
 
   // Helper function to get current tour booking data
   const getCurrentTourBooking = () => {
@@ -63,12 +126,74 @@ const QuoteEditFormPage = () => {
     };
   };
 
+  // Load destinations and users data on component mount
+  useEffect(() => {
+    loadDestinationsData();
+    loadUsersData();
+  }, []);
+
   // Initialize form data when booking loads
   useEffect(() => {
     if (booking) {
       setFormData(booking);
     }
   }, [booking]);
+
+  // Load destinations from API
+  const loadDestinationsData = async () => {
+    try {
+      const response = await apiCall('/api/destinations/', {
+        method: 'GET'
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const apiResponse: DestinationsApiResponse = await response.json();
+      console.log('Destinations loaded:', apiResponse);
+
+      if (apiResponse.success && apiResponse.data) {
+        setDestinations(apiResponse.data);
+        console.log('Available destinations:', apiResponse.data.map(dest => dest.name));
+      }
+    } catch (error) {
+      console.error('Error loading destinations:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load destinations data",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Load users from API
+  const loadUsersData = async () => {
+    try {
+      const response = await apiCall('/api/users/', {
+        method: 'GET'
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const apiResponse: UsersApiResponse = await response.json();
+      console.log('Users loaded:', apiResponse);
+
+      if (apiResponse.results) {
+        setUsers(apiResponse.results);
+        console.log('Available users:', apiResponse.results.length);
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load users data",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Handle form field changes
   const handleFieldChange = (field: string, value: any) => {
@@ -294,6 +419,7 @@ const QuoteEditFormPage = () => {
           assignedTo={formData.assignedTo}
           currency={formData.pricing?.currency}
           leadSource={formData.leadSource}
+          users={users}
           onAssignedToChange={(value) => handleFieldChange('assignedTo', value)}
           onCurrencyChange={(value) => handleNestedFieldChange('pricing', 'currency', value)}
           onLeadSourceChange={(value) => handleFieldChange('leadSource', value)}
@@ -314,6 +440,7 @@ const QuoteEditFormPage = () => {
           currency={formData.pricing?.currency}
           getCurrencySymbol={getCurrencySymbol}
           tourBooking={getCurrentTourBooking()}
+          destinations={destinations}
           onTourBookingChange={handleTourBookingChange}
           onUpdateTour={handleUpdateTour}
         />

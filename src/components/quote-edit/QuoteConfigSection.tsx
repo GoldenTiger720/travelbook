@@ -10,10 +10,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+interface User {
+  id: string;
+  email: string;
+  full_name: string;
+  phone: string;
+  role: string;
+  commission: string;
+  status: string;
+}
+
 interface QuoteConfigSectionProps {
   assignedTo: string;
   currency: string;
   leadSource: string;
+  users?: User[];
   onAssignedToChange?: (value: string) => void;
   onCurrencyChange?: (value: string) => void;
   onLeadSourceChange?: (value: string) => void;
@@ -23,11 +34,15 @@ const QuoteConfigSection: React.FC<QuoteConfigSectionProps> = ({
   assignedTo,
   currency,
   leadSource,
+  users = [],
   onAssignedToChange,
   onCurrencyChange,
   onLeadSourceChange,
 }) => {
   const { t } = useLanguage();
+
+  // Filter salespersons from users list
+  const salesPersons = users.filter(user => user.role === 'salesperson' && user.status === 'Active');
 
   return (
     <Card>
@@ -45,31 +60,41 @@ const QuoteConfigSection: React.FC<QuoteConfigSectionProps> = ({
                 <SelectValue placeholder={t("quotes.selectSalesperson")} />
               </SelectTrigger>
               <SelectContent>
-                <div className="px-2 py-1 text-sm font-medium text-muted-foreground">
-                  {t("quotes.internalTeam")}
-                </div>
-                <SelectItem value="thiago">Thiago Andrade</SelectItem>
-                <SelectItem value="ana">Ana Martinez</SelectItem>
-                <div className="h-px bg-border my-1" />
-                <div className="px-2 py-1 text-sm font-medium text-muted-foreground">
-                  Travel Plus
-                </div>
-                <SelectItem value="carlos">Carlos Rodriguez</SelectItem>
-                <div className="h-px bg-border my-1" />
-                <div className="px-2 py-1 text-sm font-medium text-muted-foreground">
-                  World Tours
-                </div>
-                <SelectItem value="ana-silva">Ana Silva</SelectItem>
-                <div className="h-px bg-border my-1" />
-                <div className="px-2 py-1 text-sm font-medium text-muted-foreground">
-                  Adventure Agency
-                </div>
-                <SelectItem value="sofia">Sofia Gonzalez</SelectItem>
-                <div className="h-px bg-border my-1" />
-                <div className="px-2 py-1 text-sm font-medium text-muted-foreground">
-                  Sunset Travel
-                </div>
-                <SelectItem value="juan">Juan Rodriguez</SelectItem>
+                {salesPersons.length > 0 ? (
+                  salesPersons.map((user) => (
+                    <SelectItem key={user.id} value={user.full_name}>
+                      {user.full_name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <>
+                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">
+                      {t("quotes.internalTeam")}
+                    </div>
+                    <SelectItem value="thiago">Thiago Andrade</SelectItem>
+                    <SelectItem value="ana">Ana Martinez</SelectItem>
+                    <div className="h-px bg-border my-1" />
+                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">
+                      Travel Plus
+                    </div>
+                    <SelectItem value="carlos">Carlos Rodriguez</SelectItem>
+                    <div className="h-px bg-border my-1" />
+                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">
+                      World Tours
+                    </div>
+                    <SelectItem value="ana-silva">Ana Silva</SelectItem>
+                    <div className="h-px bg-border my-1" />
+                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">
+                      Adventure Agency
+                    </div>
+                    <SelectItem value="sofia">Sofia Gonzalez</SelectItem>
+                    <div className="h-px bg-border my-1" />
+                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">
+                      Sunset Travel
+                    </div>
+                    <SelectItem value="juan">Juan Rodriguez</SelectItem>
+                  </>
+                )}
               </SelectContent>
             </Select>
           </div>
