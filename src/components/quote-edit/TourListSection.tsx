@@ -130,6 +130,7 @@ const TourListSection: React.FC<TourListSectionProps> = ({
                 </div>
                 <div className="flex gap-2">
                   <Button
+                    type="button"
                     variant="ghost"
                     size="sm"
                     className="h-8 w-8 p-0"
@@ -139,6 +140,7 @@ const TourListSection: React.FC<TourListSectionProps> = ({
                     <Edit className="w-4 h-4" />
                   </Button>
                   <Button
+                    type="button"
                     variant="ghost"
                     size="sm"
                     className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
@@ -232,6 +234,7 @@ const TourListSection: React.FC<TourListSectionProps> = ({
                   <TableCell>
                     <div className="flex items-center justify-center gap-1">
                       <Button
+                        type="button"
                         variant="ghost"
                         size="sm"
                         className="h-7 w-7 p-0"
@@ -241,6 +244,7 @@ const TourListSection: React.FC<TourListSectionProps> = ({
                         <Edit className="w-3.5 h-3.5" />
                       </Button>
                       <Button
+                        type="button"
                         variant="ghost"
                         size="sm"
                         className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"

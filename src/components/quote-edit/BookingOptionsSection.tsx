@@ -150,6 +150,7 @@ const BookingOptionsSection: React.FC<BookingOptionsSectionProps> = ({
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
+                      type="button"
                       variant="outline"
                       className="w-full justify-start text-left font-normal mt-2"
                     >
