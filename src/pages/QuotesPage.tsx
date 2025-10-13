@@ -241,7 +241,6 @@ const QuotesPage = () => {
     return value !== "all";
   }).length;
 
-  console.log("sorted quotes: ", sortedQuotes);
 
   return (
     <div className="space-y-4 sm:space-y-6 p-3 sm:p-4 md:p-6 lg:p-8">

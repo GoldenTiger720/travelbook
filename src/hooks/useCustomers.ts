@@ -54,7 +54,6 @@ export function useCreateCustomer(onFieldErrors?: (errors: Record<string, string
       queryClient.invalidateQueries({ queryKey: customerKeys.lists() })
 
       // Debug: Log the actual response structure
-      console.log('Customer creation response:', response)
 
       // Handle different possible response structures
       const customerName = response?.customer?.name || response?.name || 'Customer'

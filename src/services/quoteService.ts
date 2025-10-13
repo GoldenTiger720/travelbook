@@ -283,7 +283,6 @@ class QuoteService {
 
   async sendQuoteByEmail(quoteId: string, recipientEmail: string): Promise<boolean> {
     await new Promise(resolve => setTimeout(resolve, 500));
-    console.log(`Sending quote ${quoteId} to ${recipientEmail}`);
     return true;
   }
 

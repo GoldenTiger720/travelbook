@@ -157,11 +157,9 @@ const QuoteEditFormPage = () => {
       }
 
       const apiResponse: DestinationsApiResponse = await response.json();
-      console.log('Destinations loaded:', apiResponse);
 
       if (apiResponse.success && apiResponse.data) {
         setDestinations(apiResponse.data);
-        console.log('Available destinations:', apiResponse.data.map(dest => dest.name));
       }
     } catch (error) {
       console.error('Error loading destinations:', error);
@@ -185,11 +183,9 @@ const QuoteEditFormPage = () => {
       }
 
       const apiResponse: UsersApiResponse = await response.json();
-      console.log('Users loaded:', apiResponse);
 
       if (apiResponse.results) {
         setUsers(apiResponse.results);
-        console.log('Available users:', apiResponse.results.length);
       }
     } catch (error) {
       console.error('Error loading users:', error);
@@ -222,10 +218,6 @@ const QuoteEditFormPage = () => {
 
   // Handle tour booking changes
   const handleTourBookingChange = (field: string, value: any) => {
-    console.log('=== handleTourBookingChange ===');
-    console.log('field:', field, 'value:', value);
-    console.log('editingTourIndex:', editingTourIndex);
-
     // If editing an existing tour (editingTourIndex >= 0)
     if (editingTourIndex >= 0 && formData?.tours?.[editingTourIndex]) {
       setFormData((prev: any) => ({
@@ -262,7 +254,6 @@ const QuoteEditFormPage = () => {
       }));
     } else {
       // Adding new tour - update newTourData state
-      console.log('Updating newTourData');
       setNewTourData((prev: any) => ({
         ...prev,
         [field]: value,
@@ -270,34 +261,95 @@ const QuoteEditFormPage = () => {
     }
   };
 
-  // Handle updating the tour
+  // Handle updating or adding the tour
   const handleUpdateTour = () => {
-    // The tour data is already being updated in real-time via handleTourBookingChange
-    // Reset editing mode
-    setEditingTourIndex(-1);
+    if (editingTourIndex >= 0) {
+      // Editing existing tour - data is already updated in real-time via handleTourBookingChange
+      setEditingTourIndex(-1);
 
-    // Reset new tour data when going back to add mode
-    setNewTourData({
-      destination: "",
-      tourId: "",
-      tourName: "",
-      date: new Date(),
-      operator: "",
-      pickupAddress: "",
-      pickupTime: "",
-      adultPax: 0,
-      adultPrice: 0,
-      childPax: 0,
-      childPrice: 0,
-      infantPax: 0,
-      infantPrice: 0,
-      comments: "",
-    });
+      toast({
+        title: "Tour Updated",
+        description: "Tour information has been updated successfully",
+      });
+    } else {
+      // Adding new tour
+      if (!newTourData.tourId || !newTourData.destination) {
+        toast({
+          title: "Validation Error",
+          description: "Please select both destination and tour",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    toast({
-      title: "Tour Updated",
-      description: "Tour information has been updated successfully",
-    });
+      // Find the selected tour to get its name
+      const selectedDest = destinations.find(dest => dest.name === newTourData.destination);
+      const selectedTour = selectedDest?.tours.find(tour => tour.id === newTourData.tourId);
+
+      if (!selectedTour) {
+        toast({
+          title: "Error",
+          description: "Selected tour not found",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Calculate subtotal
+      const adultTotal = (newTourData.adultPax || 0) * (newTourData.adultPrice || 0);
+      const childTotal = (newTourData.childPax || 0) * (newTourData.childPrice || 0);
+      const infantTotal = (newTourData.infantPax || 0) * (newTourData.infantPrice || 0);
+      const subtotal = adultTotal + childTotal + infantTotal;
+
+      // Create new tour object
+      const newTour = {
+        id: Date.now().toString(), // Temporary ID for frontend
+        tourId: newTourData.tourId,
+        tourName: selectedTour.name,
+        destination: newTourData.destination,
+        date: newTourData.date.toISOString(),
+        operator: newTourData.operator || "own-operation",
+        pickupAddress: newTourData.pickupAddress || "",
+        pickupTime: newTourData.pickupTime || "",
+        adultPax: newTourData.adultPax || 0,
+        adultPrice: newTourData.adultPrice || 0,
+        childPax: newTourData.childPax || 0,
+        childPrice: newTourData.childPrice || 0,
+        infantPax: newTourData.infantPax || 0,
+        infantPrice: newTourData.infantPrice || 0,
+        comments: newTourData.comments || "",
+        subtotal: subtotal,
+      };
+
+      // Add tour to formData.tours
+      setFormData((prev: any) => ({
+        ...prev,
+        tours: [...(prev.tours || []), newTour],
+      }));
+
+      // Reset new tour data
+      setNewTourData({
+        destination: "",
+        tourId: "",
+        tourName: "",
+        date: new Date(),
+        operator: "",
+        pickupAddress: "",
+        pickupTime: "",
+        adultPax: 0,
+        adultPrice: 0,
+        childPax: 0,
+        childPrice: 0,
+        infantPax: 0,
+        infantPrice: 0,
+        comments: "",
+      });
+
+      toast({
+        title: "Tour Added",
+        description: "New tour has been added successfully",
+      });
+    }
   };
 
   // Handle editing a tour from the list
@@ -336,6 +388,30 @@ const QuoteEditFormPage = () => {
     if (!formData || !quoteId) return;
 
     try {
+      // Format tours data - never send ID, let backend generate new UUIDs
+      // Backend deletes all existing tours and recreates them anyway
+      const formattedTours = (formData.tours || []).map((tour: any) => {
+
+        return {
+          tourId: tour.tourId,
+          tourName: tour.tourName,
+          tourCode: tour.tourCode || '',
+          date: tour.date,
+          pickupAddress: tour.pickupAddress || '',
+          pickupTime: tour.pickupTime || '',
+          adultPax: tour.adultPax || 0,
+          adultPrice: tour.adultPrice || 0,
+          childPax: tour.childPax || 0,
+          childPrice: tour.childPrice || 0,
+          infantPax: tour.infantPax || 0,
+          infantPrice: tour.infantPrice || 0,
+          subtotal: tour.subtotal || 0,
+          operator: tour.operator || 'own-operation',
+          comments: tour.comments || '',
+          // Note: ID is intentionally omitted - backend generates new UUIDs
+        };
+      });
+
       // Format the data to match the backend expectations (same as quotes page)
       // Remove agency, hasMultipleAddresses, and paymentDetails
       const bookingData = {
@@ -349,7 +425,7 @@ const QuoteEditFormPage = () => {
           cpf: formData.customer?.cpf || '',
           address: formData.customer?.address || '',
         },
-        tours: formData.tours || [],
+        tours: formattedTours,
         tourDetails: {
           destination: formData.tourDetails?.destination || '',
           tourType: formData.tourDetails?.tourType || '',
@@ -506,6 +582,7 @@ const QuoteEditFormPage = () => {
           getCurrencySymbol={getCurrencySymbol}
           tourBooking={getCurrentTourBooking()}
           destinations={destinations}
+          editingTourIndex={editingTourIndex}
           onTourBookingChange={handleTourBookingChange}
           onUpdateTour={handleUpdateTour}
         />

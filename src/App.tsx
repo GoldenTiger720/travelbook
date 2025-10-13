@@ -191,7 +191,6 @@ const MainLayout = () => {
                           <div className="p-1">
                             <button
                               onClick={() => {
-                                console.log('Navigate to profile');
                                 setIsUserMenuOpen(false);
                               }}
                               className="flex items-center gap-3 w-full px-3 py-2 text-sm hover:bg-accent transition-colors rounded-md"

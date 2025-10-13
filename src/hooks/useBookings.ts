@@ -19,7 +19,6 @@ export function useBookings(filters?: any) {
     staleTime: 0, // Force fresh data
     refetchOnMount: true,
     retry: (failureCount, error) => {
-      console.log('useBookings retry attempt:', failureCount, error)
       return failureCount < 3
     },
   })
@@ -46,7 +45,6 @@ export function useSharedBooking(shareId: string) {
     queryFn: () => bookingService.getSharedBooking(shareId),
     enabled: !!shareId,
     retry: (failureCount, error) => {
-      console.log('useSharedBooking retry attempt:', failureCount, error)
       return failureCount < 2 // Only retry once for shared bookings
     },
   })

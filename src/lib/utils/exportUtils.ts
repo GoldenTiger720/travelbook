@@ -162,7 +162,6 @@ export const exportUsersToPDF = (users: User[], filename?: string) => {
 
     // Generate and download PDF immediately
     return html2pdf().from(element).set(options).save().then(() => {
-      console.log('PDF downloaded successfully:', finalFilename)
       return true
     }).catch((error) => {
       console.error('Error generating PDF:', error)

@@ -68,7 +68,6 @@ const LogisticsPage = () => {
   const loadBasicData = async () => {
     try {
       const data = await logisticsService.getBasicData();
-      console.log('Basic logistics data loaded:', data);
 
       // Set data from API response if available
       if (data) {

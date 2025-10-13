@@ -21,7 +21,6 @@ export function useReservations() {
     staleTime: 0, // Force fresh data
     refetchOnMount: true,
     retry: (failureCount, error) => {
-      console.log('useReservations retry attempt:', failureCount, error)
       return failureCount < 3
     },
   })

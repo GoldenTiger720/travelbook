@@ -12,7 +12,6 @@ import { exportFilteredVehiclesToExcel } from '@/utils/excelExport'
 import type { Vehicle, VehicleFilters } from '@/types/vehicle'
 
 const VehiclesTab: React.FC = () => {
-  console.log('🏗️ VehiclesTab component mounted/re-rendered')
   const { data: vehicles = [], isLoading, isError, error } = useVehicles()
   const { toast } = useToast()
 

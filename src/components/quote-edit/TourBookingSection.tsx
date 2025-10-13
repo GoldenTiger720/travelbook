@@ -74,6 +74,7 @@ interface TourBookingSectionProps {
     comments: string;
   };
   destinations?: Destination[];
+  editingTourIndex?: number;
   onTourBookingChange?: (field: string, value: any) => void;
   onUpdateTour?: () => void;
 }
@@ -83,6 +84,7 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
   getCurrencySymbol,
   tourBooking,
   destinations = [],
+  editingTourIndex = -1,
   onTourBookingChange,
   onUpdateTour,
 }) => {
@@ -91,33 +93,22 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
 
   // Filter tours by selected destination
   useEffect(() => {
-    console.log('=== Tour Filtering Debug ===');
-    console.log('tourBooking?.destination:', tourBooking?.destination);
-    console.log('destinations.length:', destinations.length);
-    console.log('destinations:', destinations);
-
     if (tourBooking?.destination && destinations.length > 0) {
       const selectedDest = destinations.find(dest => dest.name === tourBooking.destination);
-      console.log('selectedDest:', selectedDest);
 
       if (selectedDest) {
         const activeTours = selectedDest.tours.filter(tour => tour.active);
-        console.log('activeTours:', activeTours);
         setFilteredTours(activeTours);
       } else {
-        console.log('No destination found matching:', tourBooking.destination);
         setFilteredTours([]);
       }
     } else {
-      console.log('Condition not met - clearing filtered tours');
       setFilteredTours([]);
     }
   }, [tourBooking?.destination, destinations]);
 
   // Handle destination change
   const handleDestinationChange = (value: string) => {
-    console.log('=== Destination Change Debug ===');
-    console.log('Selected destination:', value);
 
     // Update destination
     onTourBookingChange?.('destination', value);
@@ -375,7 +366,7 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
             onClick={onUpdateTour}
           >
             <Plus className="w-4 h-4 mr-2" />
-            {t("quotes.updateTour") || "Update Tour"}
+            {editingTourIndex >= 0 ? (t("quotes.updateTour") || "Update Tour") : (t("quotes.addTour") || "Add Tour")}
           </Button>
         </div>
       </CardContent>

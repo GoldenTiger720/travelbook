@@ -13,7 +13,6 @@ export const VEHICLE_QUERY_KEYS = {
 
 // API functions
 const fetchVehicles = async (): Promise<Vehicle[]> => {
-  console.log('🚗 Fetching vehicles from API')
   const response = await apiCall('/api/settings/vehicle/', {
     method: 'GET',
   })
@@ -72,7 +71,6 @@ const deleteVehicle = async (id: string): Promise<void> => {
 
 // React Query hooks
 export const useVehicles = () => {
-  console.log('🔄 useVehicles hook called')
   return useQuery({
     queryKey: VEHICLE_QUERY_KEYS.lists(),
     queryFn: fetchVehicles,

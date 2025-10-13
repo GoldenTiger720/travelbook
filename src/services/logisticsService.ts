@@ -13,7 +13,6 @@ class LogisticsService {
       }
 
       const data = await response.json()
-      console.log('Logistics basic data:', data)
       return data
     } catch (error) {
       console.error('Error fetching logistics basic data:', error)

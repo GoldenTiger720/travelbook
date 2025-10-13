@@ -422,21 +422,16 @@ class BookingService {
           endpoint = `${this.endpoint}?${queryString}`
         }
       }
-      
-      console.log('Making request to:', endpoint)
-      
+
       const response = await apiCall(endpoint, {
         method: 'GET',
       })
-
-      console.log('Response status:', response.status)
 
       if (!response.ok) {
         throw new Error(`Failed to list bookings: ${response.statusText}`)
       }
 
       const response_data = await response.json()
-      console.log('Received response:', response_data)
       
       // Handle the actual API response structure: { success, message, data, statistics, count, timestamp }
       let bookings = []

@@ -82,7 +82,6 @@ const SystemTab: React.FC = () => {
           }))
         }
 
-        console.log('System settings loaded:', data)
       } catch (error) {
         console.error('Error loading system settings:', error)
         toast.error('Failed to load system settings. Using default values.')
@@ -117,7 +116,6 @@ const SystemTab: React.FC = () => {
 
       const result = await response.json()
       toast.success('System settings saved successfully!')
-      console.log('System settings saved:', result)
     } catch (error) {
       console.error('Error saving system settings:', error)
       toast.error('Failed to save system settings. Please try again.')

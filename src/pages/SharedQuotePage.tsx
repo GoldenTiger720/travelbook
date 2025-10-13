@@ -38,17 +38,14 @@ export function SharedQuotePage() {
     queryFn: async () => {
       if (!shareId) throw new Error('No share ID provided')
 
-      console.log('Fetching booking data from API:', `/api/booking/${shareId}/`)
 
       // Try to get booking by share ID from the API
       const response = await bookingService.getSharedBooking(shareId)
 
-      console.log('API Response:', response)
       return response
     },
     enabled: !!shareId,
     retry: (failureCount, error) => {
-      console.log('Retry attempt:', failureCount, error)
       return failureCount < 2 // Only retry once
     },
     staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
@@ -57,23 +54,6 @@ export function SharedQuotePage() {
   // Extract booking data from the API response structure
   // The API returns: { success: true, message: "...", data: { booking data }, shareableLink: "..." }
   const booking = (apiResponse as ApiResponse)?.data || (apiResponse as BookingResponse) // Handle both nested and direct response structures
-
-  // Debug logging
-  useEffect(() => {
-    console.log('SharedQuotePage Debug:', {
-      shareId,
-      apiEndpoint: `/api/booking/${shareId}/`,
-      rawApiResponse: apiResponse,
-      extractedBookingData: booking,
-      hasBookingData: !!booking,
-      bookingId: booking?.id,
-      loading,
-      error: error?.message || error,
-      dataSource: 'Backend API',
-      apiSuccess: (apiResponse as ApiResponse)?.success,
-      apiMessage: (apiResponse as ApiResponse)?.message
-    })
-  }, [shareId, apiResponse, booking, loading, error])
 
   useEffect(() => {
     if (booking?.termsAccepted?.accepted) {

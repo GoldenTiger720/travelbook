@@ -188,7 +188,6 @@ const BookQuotePage = () => {
       }
 
       const apiResponse: DestinationsApiResponse = await response.json()
-      console.log('Destinations loaded:', apiResponse)
 
       if (apiResponse.success && apiResponse.data) {
         // Store the full destination data from API
@@ -197,7 +196,6 @@ const BookQuotePage = () => {
         // Set destinations to the API data (Destination[] objects)
         setDestinations(apiResponse.data)
 
-        console.log('Available destinations:', apiResponse.data.map(dest => dest.name))
       }
     } catch (error) {
       console.error('Error loading destinations:', error)
@@ -215,11 +213,9 @@ const BookQuotePage = () => {
       }
 
       const apiResponse: UsersApiResponse = await response.json()
-      console.log('Users loaded:', apiResponse)
 
       if (apiResponse.results) {
         setUsers(apiResponse.results)
-        console.log('Available users:', apiResponse.results.length)
       }
     } catch (error) {
       console.error('Error loading users:', error)
@@ -543,20 +539,8 @@ const BookQuotePage = () => {
         // Use the shareable link from the booking response, or fallback to the one we sent in the request
         const shareableLink = newBooking.shareableLink || generatedShareableLink;
 
-        console.log('ShareableLink debug:', {
-          fromResponse: newBooking.shareableLink,
-          generated: generatedShareableLink,
-          final: shareableLink
-        });
-
         // Store the successful API response in React Query cache for SharedQuotePage
         queryClient.setQueryData(['shared-quote', shareableLink], newBooking);
-
-        console.log('Quote data stored in cache after API success:', {
-          shareableLink,
-          cacheKey: ['shared-quote', shareableLink],
-          data: newBooking
-        });
 
         // Mark quotation as saved successfully
         setIsQuotationSaved(true);
@@ -637,7 +621,6 @@ const BookQuotePage = () => {
     // Send payment data to the backend to convert quotation to confirmed reservation
     createBookingPaymentMutation.mutate(paymentData, {
       onSuccess: (response) => {
-        console.log('Booking conversion successful:', response)
 
         // Show success message with details
         Swal.fire({
