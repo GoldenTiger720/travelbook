@@ -1,5 +1,4 @@
 import { TourBooking } from "@/types/tour"
-import { BookingData } from "@/services/bookingService"
 
 /**
  * Interface definitions for the booking data structure
@@ -55,6 +54,7 @@ export interface TourDetails {
   infantPrice: number // Price per infant
   subtotal: number // Total price for this tour
   destination: string // Destination name
+  destinationId?: string // Destination ID (for database storage)
   passengers: number // Total number of passengers
   pricing: {
     amount: number // Total amount for this tour
@@ -115,9 +115,7 @@ export const createBookingData = (
     configuration: [
       {
         leadSource: formData.origin || "website",
-        assignedTo: formData.salesperson
-          ? (salesPersons.find(sp => sp.id === formData.salesperson)?.full_name || formData.salesperson)
-          : (salesPersons.length > 0 ? salesPersons[0].full_name : ""),
+        assignedTo: formData.salesperson || (salesPersons.length > 0 ? salesPersons[0].id : ""),
         agency: undefined, // Not implemented in current form
         status: "pending",
         validUntil: paymentData.validUntilDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
@@ -166,6 +164,7 @@ export const createBookingData = (
       infantPrice: tour.infantPrice,
       subtotal: tour.subtotal,
       destination: tour.destination || "",
+      destinationId: tour.destinationId,
       passengers: tour.adultPax + tour.childPax + tour.infantPax,
       pricing: {
         amount: tour.subtotal,
@@ -269,53 +268,52 @@ export const calculateBookingTotals = (data: BookingDataStructure) => {
 
 /**
  * Convert structured booking data to the format expected by the booking service
+ * This is used when clicking "Save quotation" button
+ *
+ * Form data is organized by sections:
+ * - Section 1: Booking or quotation configuration (config object with assignedTo, leadSource, currency)
+ * - Section 2: Customer Information (includes hotel, room, additionalNotes)
+ * - Section 3: Add Tour (tours array with all tour details)
+ *
+ * Notes on requirements:
+ * - config object contains: assignedTo, leadSource, currency
+ * - tourCode is excluded from tours array
+ * - tourName is excluded from tours array
+ * - destination contains the tour ID (not the destination name)
+ * - tourDetails is removed (not sent to backend)
+ * - pricing is removed (not sent to backend)
+ * - termsAccepted is removed (not sent to backend)
+ * - includePayment is removed (only sent with "Book" button)
+ * - copyComments is removed (only sent with "Book" button)
+ * - sendPurchaseOrder is removed (only sent with "Book" button)
+ * - Customer section includes: hotel, room, additionalNotes
  */
 export const convertToBookingData = (
   structuredData: BookingDataStructure
-): BookingData => {
+): any => {
   const config = structuredData.configuration[0]
   const customer = structuredData.customer[0]
-  const firstTour = structuredData.tour_list[0]
   const payment = structuredData.payment[0]
 
-  // Calculate aggregated tour details
-  const totalPassengers = structuredData.tour_list.reduce(
-    (total, tour) => total + tour.passengers, 0
-  )
-  const totalAmount = structuredData.tour_list.reduce(
-    (total, tour) => total + tour.subtotal, 0
-  )
+  // Get currency from the first tour's pricing
+  const currency = structuredData.tour_list[0]?.pricing?.currency || 'CLP'
 
-  // Get date range from tours
-  const tourDates = structuredData.tour_list.map(tour => new Date(tour.date))
-  const startDate = new Date(Math.min(...tourDates.map(d => d.getTime())))
-  const endDate = new Date(Math.max(...tourDates.map(d => d.getTime())))
+  // Create the booking data structure organized by sections
+  const bookingData: any = {
+    // Section 1: Booking or quotation configuration (config object)
+    config: {
+      sales_person: config.assignedTo,  // Contains salesperson ID
+      leadSource: config.leadSource,
+      currency: currency
+    },
 
-  // Count passenger types
-  const passengerBreakdown = structuredData.tour_list.reduce(
-    (breakdown, tour) => ({
-      adults: breakdown.adults + tour.adultPax,
-      children: breakdown.children + tour.childPax,
-      infants: breakdown.infants + tour.infantPax
-    }),
-    { adults: 0, children: 0, infants: 0 }
-  )
+    status: config.status,
+    validUntil: config.validUntil,
+    quotationComments: config.quotationComments,
+    sendQuotationAccess: config.sendQuotationAccess,
+    shareableLink: config.shareableLink,
 
-  // Create comprehensive pricing breakdown
-  const pricingBreakdown: Array<{
-    item: string
-    quantity: number
-    unitPrice: number
-    total: number
-  }> = []
-
-  structuredData.tour_list.forEach(tour => {
-    tour.pricing.breakdown.forEach(item => {
-      pricingBreakdown.push(item)
-    })
-  })
-
-  return {
+    // Section 2: Customer Information
     customer: {
       name: customer.name,
       email: customer.email,
@@ -324,13 +322,18 @@ export const convertToBookingData = (
       country: customer.country,
       idNumber: customer.idNumber,
       cpf: customer.cpf,
-      address: customer.address
+      address: customer.address,
+      hotel: customer.defaultHotel,
+      room: customer.defaultRoom,
+      additionalNotes: customer.accommodationComments
     },
+
+    // Section 3: Add Tour - All tour information in array
+    // Note: tourCode and tourName are excluded from tours array as requested
+    // Note: destination should contain the destination ID (from tour.destinationId)
     tours: structuredData.tour_list.map(tour => ({
-      id: tour.id,
       tourId: tour.tourId,
-      tourName: tour.tourName,
-      tourCode: tour.tourCode,
+      destination: tour.destinationId || null,  // Use destinationId if available, otherwise null
       date: tour.date,
       pickupAddress: tour.pickupAddress,
       pickupTime: tour.pickupTime,
@@ -341,39 +344,14 @@ export const convertToBookingData = (
       infantPax: tour.infantPax,
       infantPrice: tour.infantPrice,
       subtotal: tour.subtotal,
-      operator: 'own-operation', // Default
+      operator: 'own-operation',
       comments: ''
-    })),
-    tourDetails: {
-      destination: firstTour?.destination || '',
-      tourType: firstTour?.tourName || 'custom',
-      startDate,
-      endDate,
-      passengers: totalPassengers,
-      passengerBreakdown,
-      hotel: customer.defaultHotel,
-      room: customer.defaultRoom
-    },
-    pricing: {
-      amount: totalAmount,
-      currency: firstTour?.pricing.currency || 'CLP',
-      breakdown: pricingBreakdown
-    },
-    leadSource: config.leadSource,
-    assignedTo: config.assignedTo,
-    agency: config.agency,
-    status: config.status,
-    validUntil: config.validUntil,
-    additionalNotes: customer.accommodationComments,
-    hasMultipleAddresses: false, // Default
-    termsAccepted: config.termsAccepted,
-    quotationComments: config.quotationComments,
-    includePayment: structuredData.payment.length > 0,
-    copyComments: config.copyComments,
-    sendPurchaseOrder: config.sendPurchaseOrder,
-    sendQuotationAccess: config.sendQuotationAccess,
-    shareableLink: config.shareableLink,
-    paymentDetails: payment ? {
+    }))
+  }
+
+  // Add payment details only if payment is included
+  if (payment) {
+    bookingData.paymentDetails = {
       date: payment.date,
       method: payment.method,
       percentage: payment.percentage,
@@ -381,8 +359,10 @@ export const convertToBookingData = (
       comments: payment.comments,
       status: payment.status,
       receiptFile: payment.receiptFile
-    } : undefined
+    }
   }
+
+  return bookingData
 }
 
 /**

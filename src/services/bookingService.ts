@@ -10,9 +10,12 @@ interface BookingData {
     idNumber?: string
     cpf?: string
     address?: string
+    hotel?: string
+    room?: string
+    additionalNotes?: string
   }
   tours: any[]
-  tourDetails: {
+  tourDetails?: {
     destination: string
     tourType: string
     startDate: Date
@@ -26,7 +29,7 @@ interface BookingData {
     hotel?: string
     room?: string
   }
-  pricing: {
+  pricing?: {
     amount: number
     currency: string
     breakdown: Array<{
@@ -43,7 +46,7 @@ interface BookingData {
   validUntil: Date
   additionalNotes?: string
   hasMultipleAddresses?: boolean
-  termsAccepted: {
+  termsAccepted?: {
     accepted: boolean
   }
   quotationComments?: string
@@ -179,11 +182,11 @@ class BookingService {
         method: 'POST',
         body: JSON.stringify({
           ...bookingData,
-          tourDetails: {
+          tourDetails: bookingData.tourDetails ? {
             ...bookingData.tourDetails,
             startDate: bookingData.tourDetails.startDate.toISOString(),
             endDate: bookingData.tourDetails.endDate.toISOString(),
-          },
+          } : undefined,
           validUntil: bookingData.validUntil.toISOString(),
           shareableLink: bookingData.shareableLink,
           paymentDetails: bookingData.paymentDetails ? {

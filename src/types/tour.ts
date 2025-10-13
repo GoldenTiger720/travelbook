@@ -36,7 +36,8 @@ export interface TourBooking {
   tourId: string
   tourName: string
   tourCode: string
-  destination: string
+  destination: string  // Destination name (for display)
+  destinationId?: string  // Destination ID (for database storage)
   date: Date
   pickupAddress?: string
   pickupTime?: string

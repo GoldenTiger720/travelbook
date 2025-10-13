@@ -59,6 +59,7 @@ interface TourBookingSectionProps {
   getCurrencySymbol: (currency: string) => string;
   tourBooking?: {
     destination: string;
+    destinationId?: string;  // Added to store destination ID
     tourId: string;
     tourName: string;
     date: Date;
@@ -109,9 +110,16 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
 
   // Handle destination change
   const handleDestinationChange = (value: string) => {
+    // Find the selected destination to get its ID
+    const selectedDest = destinations.find(dest => dest.name === value);
 
-    // Update destination
+    // Update destination name
     onTourBookingChange?.('destination', value);
+
+    // Update destination ID if found
+    if (selectedDest) {
+      onTourBookingChange?.('destinationId', selectedDest.id);
+    }
 
     // Reset tour selection when destination changes
     onTourBookingChange?.('tourId', '');

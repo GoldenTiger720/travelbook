@@ -90,6 +90,7 @@ const QuoteEditFormPage = () => {
   // State for new tour being added (when not editing existing tour)
   const [newTourData, setNewTourData] = useState<any>({
     destination: "",
+    destinationId: "",
     tourId: "",
     tourName: "",
     date: new Date(),
@@ -112,6 +113,7 @@ const QuoteEditFormPage = () => {
       const tour = formData.tours[editingTourIndex];
       return {
         destination: formData?.tourDetails?.destination || tour.tourName || "",
+        destinationId: tour.destinationId || "",
         tourId: tour.tourId || "",
         tourName: tour.tourName || "",
         date: tour.date ? new Date(tour.date) : new Date(),
@@ -307,6 +309,7 @@ const QuoteEditFormPage = () => {
         tourId: newTourData.tourId,
         tourName: selectedTour.name,
         destination: newTourData.destination,
+        destinationId: newTourData.destinationId || selectedDest?.id,
         date: newTourData.date.toISOString(),
         operator: newTourData.operator || "own-operation",
         pickupAddress: newTourData.pickupAddress || "",
@@ -330,6 +333,7 @@ const QuoteEditFormPage = () => {
       // Reset new tour data
       setNewTourData({
         destination: "",
+        destinationId: "",
         tourId: "",
         tourName: "",
         date: new Date(),
@@ -396,6 +400,7 @@ const QuoteEditFormPage = () => {
           tourId: tour.tourId,
           tourName: tour.tourName,
           tourCode: tour.tourCode || '',
+          destination: tour.destinationId || null,
           date: tour.date,
           pickupAddress: tour.pickupAddress || '',
           pickupTime: tour.pickupTime || '',

@@ -424,12 +424,17 @@ const BookQuotePage = () => {
       tourCode = tour.code
     }
 
+    // Find the selected destination to get its ID
+    const selectedDest = apiDestinations.find(dest => dest.name === selectedDestination);
+    const destinationId = selectedDest?.id;
+
     const newTourBooking: TourBooking = {
       id: editingTourId || Date.now().toString(),
       tourId: currentTour.tourId,
       tourName,
       tourCode,
       destination: selectedDestination,
+      destinationId: destinationId,
       date: currentTour.date,
       pickupAddress: currentTour.pickupAddress || formData.defaultHotel,
       pickupTime: currentTour.pickupTime,
