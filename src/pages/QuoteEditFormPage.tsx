@@ -87,6 +87,24 @@ const QuoteEditFormPage = () => {
   // State to track which tour is being edited (-1 means adding new tour)
   const [editingTourIndex, setEditingTourIndex] = useState<number>(-1);
 
+  // State for new tour being added (when not editing existing tour)
+  const [newTourData, setNewTourData] = useState<any>({
+    destination: "",
+    tourId: "",
+    tourName: "",
+    date: new Date(),
+    operator: "",
+    pickupAddress: "",
+    pickupTime: "",
+    adultPax: 0,
+    adultPrice: 0,
+    childPax: 0,
+    childPrice: 0,
+    infantPax: 0,
+    infantPrice: 0,
+    comments: "",
+  });
+
   // Helper function to get current tour booking data
   const getCurrentTourBooking = () => {
     // If editing an existing tour, return its data
@@ -110,23 +128,8 @@ const QuoteEditFormPage = () => {
       };
     }
 
-    // Default empty values for new tour
-    return {
-      destination: "",
-      tourId: "",
-      tourName: "",
-      date: new Date(),
-      operator: "",
-      pickupAddress: "",
-      pickupTime: "",
-      adultPax: 0,
-      adultPrice: 0,
-      childPax: 0,
-      childPrice: 0,
-      infantPax: 0,
-      infantPrice: 0,
-      comments: "",
-    };
+    // Return new tour data when adding new tour
+    return newTourData;
   };
 
   // Load destinations and users data on component mount
@@ -219,6 +222,10 @@ const QuoteEditFormPage = () => {
 
   // Handle tour booking changes
   const handleTourBookingChange = (field: string, value: any) => {
+    console.log('=== handleTourBookingChange ===');
+    console.log('field:', field, 'value:', value);
+    console.log('editingTourIndex:', editingTourIndex);
+
     // If editing an existing tour (editingTourIndex >= 0)
     if (editingTourIndex >= 0 && formData?.tours?.[editingTourIndex]) {
       setFormData((prev: any) => ({
@@ -253,6 +260,13 @@ const QuoteEditFormPage = () => {
           }
         })
       }));
+    } else {
+      // Adding new tour - update newTourData state
+      console.log('Updating newTourData');
+      setNewTourData((prev: any) => ({
+        ...prev,
+        [field]: value,
+      }));
     }
   };
 
@@ -261,6 +275,24 @@ const QuoteEditFormPage = () => {
     // The tour data is already being updated in real-time via handleTourBookingChange
     // Reset editing mode
     setEditingTourIndex(-1);
+
+    // Reset new tour data when going back to add mode
+    setNewTourData({
+      destination: "",
+      tourId: "",
+      tourName: "",
+      date: new Date(),
+      operator: "",
+      pickupAddress: "",
+      pickupTime: "",
+      adultPax: 0,
+      adultPrice: 0,
+      childPax: 0,
+      childPrice: 0,
+      infantPax: 0,
+      infantPrice: 0,
+      comments: "",
+    });
 
     toast({
       title: "Tour Updated",
@@ -278,7 +310,7 @@ const QuoteEditFormPage = () => {
   };
 
   // Handle deleting a tour
-  const handleDeleteTour = (tourId: string, index: number) => {
+  const handleDeleteTour = (_tourId: string, index: number) => {
     setFormData((prev: any) => ({
       ...prev,
       tours: prev.tours.filter((_: any, i: number) => i !== index)
