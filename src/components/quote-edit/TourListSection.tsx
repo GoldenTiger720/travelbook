@@ -167,7 +167,7 @@ const TourListSection: React.FC<TourListSectionProps> = ({
                 <TableHead className="min-w-[120px]">{t("quotes.tour")}</TableHead>
                 <TableHead className="min-w-[100px]">{t("quotes.operationDate")}</TableHead>
                 <TableHead className="min-w-[80px]">{t("quotes.pickupTime")}</TableHead>
-                <TableHead className="min-w-[80px]">{t("quotes.operator")}</TableHead>
+                {/* <TableHead className="min-w-[80px]">{t("quotes.operator")}</TableHead> */}
                 <TableHead className="min-w-[60px] text-center">{t("quotes.adultPax")}</TableHead>
                 <TableHead className="min-w-[80px] text-right">{t("quotes.adultPrice")}</TableHead>
                 <TableHead className="min-w-[60px] text-center">{t("quotes.childPax")}</TableHead>
@@ -196,7 +196,7 @@ const TourListSection: React.FC<TourListSectionProps> = ({
                   <TableCell className="text-sm">
                     {tour.pickupTime || "-"}
                   </TableCell>
-                  <TableCell>
+                  {/* <TableCell>
                     <div className="flex items-center gap-1">
                       {tour.operator === "own-operation" && (
                         <Building className="w-3 h-3 flex-shrink-0" />
@@ -207,7 +207,7 @@ const TourListSection: React.FC<TourListSectionProps> = ({
                           : tour.operator}
                       </span>
                     </div>
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell className="text-center text-sm">{tour.adultPax}</TableCell>
                   <TableCell className="text-right text-sm">
                     <div className="break-words">
