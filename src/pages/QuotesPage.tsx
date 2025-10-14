@@ -56,11 +56,19 @@ const convertBookingToQuote = (booking: any): Quote => {
   // Use the ID from the booking (backend returns proper UUID)
   const uniqueId = booking.id;
 
-  // Generate quote number based on tours data
+  // Calculate total passengers from tours
+  const totalAdults = booking.tours?.reduce((sum: number, tour: any) => sum + (tour.adultPax || 0), 0) || 0;
+  const totalChildren = booking.tours?.reduce((sum: number, tour: any) => sum + (tour.childPax || 0), 0) || 0;
+  const totalInfants = booking.tours?.reduce((sum: number, tour: any) => sum + (tour.infantPax || 0), 0) || 0;
+  const totalPassengers = totalAdults + totalChildren + totalInfants;
+
+  // Get first tour's destination and date
   const primaryTour = booking.tours && booking.tours[0];
-  const quoteNumber = primaryTour?.tourCode
-    ? `${primaryTour.tourCode}-${uniqueId.slice(0, 8)}`
-    : `B-${uniqueId.slice(0, 8)}`;
+  const destination = primaryTour?.destinationName || "Unknown Destination";
+  const tourDate = primaryTour?.date ? new Date(primaryTour.date) : new Date();
+
+  // Generate quote number
+  const quoteNumber = `Q-${uniqueId.slice(0, 8).toUpperCase()}`;
 
   return {
     id: uniqueId,
@@ -72,41 +80,39 @@ const convertBookingToQuote = (booking: any): Quote => {
       company: booking.customer?.company || "",
     },
     tourDetails: {
-      destination: booking.tourDetails?.destination || "Unknown Destination",
-      tourType: booking.tourDetails?.tourType || "unknown",
-      startDate: new Date(booking.tourDetails?.startDate || Date.now()),
-      endDate: new Date(booking.tourDetails?.endDate || Date.now()),
-      passengers: booking.tourDetails?.passengers || 0,
-      passengerBreakdown: booking.tourDetails?.passengerBreakdown || {
-        adults: 0,
-        children: 0,
-        infants: 0,
+      destination: destination,
+      tourType: "custom",
+      startDate: tourDate,
+      endDate: tourDate,
+      passengers: totalPassengers,
+      passengerBreakdown: {
+        adults: totalAdults,
+        children: totalChildren,
+        infants: totalInfants,
       },
-      description: booking.additionalNotes || booking.quotationComments || "",
+      description: booking.quotationComments || "",
     },
     pricing: {
-      amount: booking.pricing?.amount || 0,
-      currency: booking.pricing?.currency || "USD",
-      breakdown: booking.pricing?.breakdown || [],
+      amount: booking.totalAmount || 0,
+      currency: booking.currency || "USD",
+      breakdown: [],
     },
     status: getDisplayStatus(booking.status, booking.validUntil),
-    leadSource: booking.leadSource || "unknown",
-    assignedTo: booking.assignedTo || "Unassigned",
+    leadSource: booking.leadSource || "other",
+    assignedTo: booking.fullName || "Unassigned",
     agency: booking.agency || null,
     validUntil: new Date(booking.validUntil || Date.now()),
-    shareableLink: "",
-    notes: booking.additionalNotes || booking.quotationComments || "",
+    shareableLink: booking.shareableLink || "",
+    notes: booking.quotationComments || "",
     termsAccepted: {
-      accepted: booking.termsAccepted?.accepted || false,
-      acceptedBy: booking.termsAccepted?.acceptedBy,
-      acceptedAt: booking.termsAccepted?.acceptedAt
-        ? new Date(booking.termsAccepted.acceptedAt)
-        : undefined,
+      accepted: false,
+      acceptedBy: undefined,
+      acceptedAt: undefined,
     },
     metadata: {
-      createdAt: new Date(booking.createdAt || Date.now()),
-      updatedAt: new Date(booking.updatedAt || Date.now()),
-      createdBy: booking.createdBy?.fullName || booking.assignedTo || "Unknown",
+      createdAt: booking.customer?.createdAt ? new Date(booking.customer.createdAt) : new Date(),
+      updatedAt: booking.customer?.updatedAt ? new Date(booking.customer.updatedAt) : new Date(),
+      createdBy: booking.fullName || "Unknown",
     },
   };
 };

@@ -112,8 +112,8 @@ const QuoteEditFormPage = () => {
     if (editingTourIndex >= 0 && formData?.tours?.[editingTourIndex]) {
       const tour = formData.tours[editingTourIndex];
       return {
-        destination: formData?.tourDetails?.destination || tour.tourName || "",
-        destinationId: tour.destinationId || "",
+        destination: tour.destination || "",  // This is the destination name
+        destinationId: tour.destinationId || "",  // This is the destination UUID
         tourId: tour.tourId || "",
         tourName: tour.tourName || "",
         date: tour.date ? new Date(tour.date) : new Date(),
@@ -143,7 +143,78 @@ const QuoteEditFormPage = () => {
   // Initialize form data when booking loads
   useEffect(() => {
     if (booking) {
-      setFormData(booking);
+      // Map backend data structure to form data structure
+      const mappedFormData = {
+        ...booking,
+        // Map assignedTo from fullName (sales person name from backend)
+        assignedTo: booking.fullName || booking.assignedTo || "",
+        // Ensure customer data is properly mapped
+        customer: {
+          name: booking.customer?.name || "",
+          email: booking.customer?.email || "",
+          phone: booking.customer?.phone || "",
+          language: booking.customer?.language || "en",
+          country: booking.customer?.country || "",
+          idNumber: booking.customer?.idNumber || "",
+          cpf: booking.customer?.cpf || "",
+          address: booking.customer?.address || "",
+          hotel: booking.customer?.hotel || "",
+          room: booking.customer?.room || "",
+          comments: booking.customer?.comments || "",
+        },
+        // Map tours array properly
+        tours: (booking.tours || []).map((tour: any) => ({
+          id: tour.id,
+          tourId: tour.tourId,
+          tourName: tour.tourName,
+          tourCode: tour.tourCode || "",
+          destination: tour.destinationName || tour.destination || "",  // Use destinationName for display
+          destinationId: tour.destination,  // Store destination UUID
+          date: tour.date ? new Date(tour.date) : new Date(),
+          pickupAddress: tour.pickupAddress || "",
+          pickupTime: tour.pickupTime || "",
+          adultPax: tour.adultPax || 0,
+          adultPrice: tour.adultPrice || 0,
+          childPax: tour.childPax || 0,
+          childPrice: tour.childPrice || 0,
+          infantPax: tour.infantPax || 0,
+          infantPrice: tour.infantPrice || 0,
+          subtotal: tour.subtotal || 0,
+          operator: tour.operator || "own-operation",
+          comments: tour.comments || "",
+        })),
+        // Map tourDetails properly
+        tourDetails: {
+          destination: booking.tours?.[0]?.destinationName || "",
+          tourType: booking.tourDetails?.tourType || "custom",
+          startDate: booking.tours?.[0]?.date ? new Date(booking.tours[0].date) : new Date(),
+          endDate: booking.tours?.[0]?.date ? new Date(booking.tours[0].date) : new Date(),
+          passengers: (booking.tours || []).reduce((sum: number, tour: any) =>
+            sum + (tour.adultPax || 0) + (tour.childPax || 0) + (tour.infantPax || 0), 0),
+          passengerBreakdown: {
+            adults: (booking.tours || []).reduce((sum: number, tour: any) => sum + (tour.adultPax || 0), 0),
+            children: (booking.tours || []).reduce((sum: number, tour: any) => sum + (tour.childPax || 0), 0),
+            infants: (booking.tours || []).reduce((sum: number, tour: any) => sum + (tour.infantPax || 0), 0),
+          },
+          hotel: booking.customer?.hotel || "",
+          room: booking.customer?.room || "",
+        },
+        // Map pricing properly
+        pricing: {
+          amount: booking.totalAmount || 0,
+          currency: booking.currency || "CLP",
+          breakdown: [],
+        },
+        // Map other fields
+        leadSource: booking.leadSource || "other",
+        status: booking.status || "pending",
+        validUntil: booking.validUntil ? new Date(booking.validUntil) : new Date(),
+        quotationComments: booking.quotationComments || "",
+        additionalNotes: booking.customer?.comments || "",
+        sendQuotationAccess: booking.sendQuotationAccess || true,
+      };
+
+      setFormData(mappedFormData);
     }
   }, [booking]);
 

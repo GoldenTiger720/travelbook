@@ -68,6 +68,10 @@ interface BookingData {
 
 interface BookingResponse {
   id: string
+  sales_person_id?: string  // Sales person UUID
+  fullName?: string  // Sales person full name
+  totalAmount?: number  // Total amount from backend
+  currency?: string  // Currency from backend
   customer: {
     id?: string
     name: string
@@ -78,6 +82,9 @@ interface BookingResponse {
     idNumber?: string
     cpf?: string
     address?: string
+    hotel?: string  // Hotel from customer table
+    room?: string  // Room from customer table
+    comments?: string  // Comments from customer table
     company?: string
     location?: string
     status?: string
@@ -94,6 +101,8 @@ interface BookingResponse {
     tourId: string
     tourName: string
     tourCode: string
+    destination?: string  // Destination UUID
+    destinationName?: string  // Destination name for display
     date: Date | string
     pickupAddress?: string
     pickupTime?: string
