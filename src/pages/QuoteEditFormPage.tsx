@@ -463,15 +463,13 @@ const QuoteEditFormPage = () => {
     if (!formData || !quoteId) return;
 
     try {
-      // Format tours data - never send ID, let backend generate new UUIDs
+      // Format tours data - match the structure from BookQuotePage (convertToBookingData)
+      // Never send ID - backend generates new UUIDs
       // Backend deletes all existing tours and recreates them anyway
       const formattedTours = (formData.tours || []).map((tour: any) => {
-
         return {
           tourId: tour.tourId,
-          tourName: tour.tourName,
-          tourCode: tour.tourCode || '',
-          destination: tour.destinationId || null,
+          destination: tour.destinationId || null,  // Use destinationId, not destination name
           date: tour.date,
           pickupAddress: tour.pickupAddress || '',
           pickupTime: tour.pickupTime || '',
@@ -484,13 +482,35 @@ const QuoteEditFormPage = () => {
           subtotal: tour.subtotal || 0,
           operator: tour.operator || 'own-operation',
           comments: tour.comments || '',
+          // Note: tourName and tourCode are excluded as in BookQuotePage
           // Note: ID is intentionally omitted - backend generates new UUIDs
         };
       });
 
-      // Format the data to match the backend expectations (same as quotes page)
-      // Remove agency, hasMultipleAddresses, and paymentDetails
+      // Get currency from pricing
+      const currency = formData.pricing?.currency || 'CLP';
+
+      // Find the sales person ID by matching assignedTo (full name)
+      const salesPerson = users.find(user => user.full_name === formData.assignedTo);
+      const salesPersonId = salesPerson?.id || '';
+
+      // Format the data to match BookQuotePage structure (using convertToBookingData format)
+      // This uses the same structure: config object, customer, tours array
       const bookingData = {
+        // Section 1: Booking or quotation configuration (config object)
+        config: {
+          sales_person: salesPersonId,  // Sales person ID
+          leadSource: formData.leadSource || 'other',
+          currency: currency
+        },
+
+        status: formData.status || 'pending',
+        validUntil: formData.validUntil || new Date(),
+        quotationComments: formData.quotationComments || '',
+        sendQuotationAccess: formData.sendQuotationAccess !== undefined ? formData.sendQuotationAccess : true,
+        shareableLink: formData.shareableLink || '',
+
+        // Section 2: Customer Information (includes hotel, room, additionalNotes)
         customer: {
           name: formData.customer?.name || '',
           email: formData.customer?.email || '',
@@ -500,38 +520,13 @@ const QuoteEditFormPage = () => {
           idNumber: formData.customer?.idNumber || '',
           cpf: formData.customer?.cpf || '',
           address: formData.customer?.address || '',
+          hotel: formData.customer?.hotel || '',
+          room: formData.customer?.room || '',
+          additionalNotes: formData.additionalNotes || ''
         },
-        tours: formattedTours,
-        tourDetails: {
-          destination: formData.tourDetails?.destination || '',
-          tourType: formData.tourDetails?.tourType || '',
-          startDate: formData.tourDetails?.startDate || new Date(),
-          endDate: formData.tourDetails?.endDate || new Date(),
-          passengers: formData.tourDetails?.passengers || 0,
-          passengerBreakdown: formData.tourDetails?.passengerBreakdown || {
-            adults: 0,
-            children: 0,
-            infants: 0,
-          },
-          hotel: formData.tourDetails?.hotel || '',
-          room: formData.tourDetails?.room || '',
-        },
-        pricing: {
-          amount: formData.pricing?.amount || 0,
-          currency: formData.pricing?.currency || 'USD',
-          breakdown: formData.pricing?.breakdown || [],
-        },
-        leadSource: formData.leadSource || '',
-        assignedTo: formData.assignedTo || '',
-        status: formData.status || 'pending',
-        validUntil: formData.validUntil || new Date(),
-        additionalNotes: formData.additionalNotes || '',
-        termsAccepted: formData.termsAccepted || { accepted: false },
-        quotationComments: formData.quotationComments || '',
-        includePayment: formData.includePayment || false,
-        copyComments: formData.copyComments || true,
-        sendPurchaseOrder: formData.sendPurchaseOrder || true,
-        sendQuotationAccess: formData.sendQuotationAccess || true,
+
+        // Section 3: Add Tour - All tour information in array
+        tours: formattedTours
       };
 
       await updateBookingMutation.mutateAsync({

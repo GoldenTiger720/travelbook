@@ -157,13 +157,53 @@ export const buildUrl = (endpoint: string): string => {
   return `${API_CONFIG.BASE_URL}${endpoint}`;
 };
 
-// Helper function for API calls with error handling
+// Track if we're currently refreshing to avoid multiple simultaneous refresh attempts
+let isRefreshing = false;
+let refreshPromise: Promise<string> | null = null;
+
+// Helper function to refresh the access token
+const refreshAccessToken = async (): Promise<string> => {
+  const refreshToken = localStorage.getItem('refreshToken');
+
+  if (!refreshToken) {
+    throw new Error('No refresh token available');
+  }
+
+  const response = await fetch(buildUrl(API_ENDPOINTS.AUTH.REFRESH_TOKEN), {
+    method: 'POST',
+    headers: {
+      ...API_CONFIG.HEADERS,
+    },
+    body: JSON.stringify({ refresh: refreshToken }),
+  });
+
+  if (!response.ok) {
+    // Refresh token is invalid or expired
+    localStorage.clear();
+    window.location.href = '/signin';
+    throw new Error('Refresh token expired');
+  }
+
+  const data = await response.json();
+
+  // Store new tokens
+  if (data.access) {
+    localStorage.setItem('accessToken', data.access);
+  }
+  if (data.refresh) {
+    localStorage.setItem('refreshToken', data.refresh);
+  }
+
+  return data.access;
+};
+
+// Helper function for API calls with error handling and automatic token refresh
 export const apiCall = async (
   endpoint: string,
   options: RequestInit = {}
 ): Promise<Response> => {
   const url = buildUrl(endpoint);
-  
+
   const config: RequestInit = {
     ...options,
     headers: {
@@ -171,7 +211,7 @@ export const apiCall = async (
       ...options.headers,
     },
   };
-  
+
   // Add access token if it exists
   const token = localStorage.getItem('accessToken');
   if (token) {
@@ -180,49 +220,99 @@ export const apiCall = async (
       'Authorization': `Bearer ${token}`,
     };
   }
-  
+
   try {
     const response = await fetch(url, config);
-    
-    // Check for token expiration errors
-    if (!response.ok) {
+
+    // Check for token expiration errors (401 Unauthorized)
+    if (response.status === 401) {
       try {
         const errorData = await response.clone().json();
-        
-        // Check for the specific token expiration error structure
-        if (errorData.code === 'token_not_valid' && 
-            errorData.detail === 'Given token not valid for any token type') {
-          
-          
-          // Clear all localStorage data
-          localStorage.clear();
-          
-          // Redirect to login page
-          window.location.href = '/signin';
-          
-          // Throw error to prevent further processing
-          throw new Error('Token expired');
-        }
-        
-        // Also check for any other token-related errors
-        if (errorData.messages && Array.isArray(errorData.messages)) {
-          const hasExpiredToken = errorData.messages.some((msg: any) => 
-            msg.message === 'Token is expired' || 
-            msg.token_type === 'access'
-          );
-          
-          if (hasExpiredToken) {
-            
+
+        // Check if this is a token expiration error
+        const isTokenExpired =
+          errorData.code === 'token_not_valid' ||
+          errorData.detail?.includes('token') ||
+          errorData.detail?.includes('expired') ||
+          (errorData.messages && Array.isArray(errorData.messages) &&
+            errorData.messages.some((msg: any) =>
+              msg.message === 'Token is expired' || msg.token_type === 'access'
+            ));
+
+        if (isTokenExpired) {
+          // Don't try to refresh if we're already on the refresh endpoint
+          if (endpoint === API_ENDPOINTS.AUTH.REFRESH_TOKEN) {
             localStorage.clear();
             window.location.href = '/signin';
-            throw new Error('Token expired');
+            throw new Error('Refresh token expired');
+          }
+
+          // Try to refresh the token
+          try {
+            // If already refreshing, wait for that promise
+            if (isRefreshing && refreshPromise) {
+              await refreshPromise;
+            } else {
+              // Start refreshing
+              isRefreshing = true;
+              refreshPromise = refreshAccessToken();
+              await refreshPromise;
+              isRefreshing = false;
+              refreshPromise = null;
+            }
+
+            // Retry the original request with new token
+            const newToken = localStorage.getItem('accessToken');
+            if (newToken) {
+              config.headers = {
+                ...config.headers,
+                'Authorization': `Bearer ${newToken}`,
+              };
+              return await fetch(url, config);
+            }
+          } catch (refreshError) {
+            // Refresh failed, clear tokens and redirect to login
+            isRefreshing = false;
+            refreshPromise = null;
+            localStorage.clear();
+            window.location.href = '/signin';
+            throw new Error('Session expired, please login again');
           }
         }
       } catch (parseError) {
-        // If we can't parse the error JSON, just continue with normal flow
+        // If we can't parse the error JSON, check if it's a 401
+        // and try to refresh anyway
+        if (response.status === 401 && endpoint !== API_ENDPOINTS.AUTH.REFRESH_TOKEN) {
+          try {
+            if (isRefreshing && refreshPromise) {
+              await refreshPromise;
+            } else {
+              isRefreshing = true;
+              refreshPromise = refreshAccessToken();
+              await refreshPromise;
+              isRefreshing = false;
+              refreshPromise = null;
+            }
+
+            const newToken = localStorage.getItem('accessToken');
+            if (newToken) {
+              config.headers = {
+                ...config.headers,
+                'Authorization': `Bearer ${newToken}`,
+              };
+              return await fetch(url, config);
+            }
+          } catch (refreshError) {
+            isRefreshing = false;
+            refreshPromise = null;
+            localStorage.clear();
+            window.location.href = '/signin';
+            throw new Error('Session expired, please login again');
+          }
+        }
       }
     }
-    
+
     return response;
   } catch (error) {
     console.error('API call error:', error);
