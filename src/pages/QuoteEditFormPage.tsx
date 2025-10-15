@@ -437,6 +437,36 @@ const QuoteEditFormPage = () => {
     });
   };
 
+  // Handle canceling edit mode
+  const handleCancelEdit = () => {
+    // Reset editing index to exit edit mode
+    setEditingTourIndex(-1);
+
+    // Reset the new tour data to initialize the "Add Tour" section
+    setNewTourData({
+      destination: "",
+      destinationId: "",
+      tourId: "",
+      tourName: "",
+      date: new Date(),
+      operator: "",
+      pickupAddress: "",
+      pickupTime: "",
+      adultPax: 0,
+      adultPrice: 0,
+      childPax: 0,
+      childPrice: 0,
+      infantPax: 0,
+      infantPrice: 0,
+      comments: "",
+    });
+
+    toast({
+      title: "Edit Cancelled",
+      description: "Returned to Add Tour mode",
+    });
+  };
+
   // Handle deleting a tour
   const handleDeleteTour = (_tourId: string, index: number) => {
     setFormData((prev: any) => ({
@@ -682,6 +712,7 @@ const QuoteEditFormPage = () => {
           editingTourIndex={editingTourIndex}
           onTourBookingChange={handleTourBookingChange}
           onUpdateTour={handleUpdateTour}
+          onCancelEdit={handleCancelEdit}
         />
 
         {/* Bookings List */}

@@ -78,6 +78,7 @@ interface TourBookingSectionProps {
   editingTourIndex?: number;
   onTourBookingChange?: (field: string, value: any) => void;
   onUpdateTour?: () => void;
+  onCancelEdit?: () => void;
 }
 
 const TourBookingSection: React.FC<TourBookingSectionProps> = ({
@@ -88,6 +89,7 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
   editingTourIndex = -1,
   onTourBookingChange,
   onUpdateTour,
+  onCancelEdit,
 }) => {
   const { t } = useLanguage();
   const [filteredTours, setFilteredTours] = useState<DestinationTour[]>([]);
@@ -368,14 +370,26 @@ const TourBookingSection: React.FC<TourBookingSectionProps> = ({
               return (adultTotal + childTotal + infantTotal).toLocaleString();
             })()}
           </div>
-          <Button
-            type="button"
-            className="bg-blue-600 hover:bg-blue-700"
-            onClick={onUpdateTour}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            {editingTourIndex >= 0 ? (t("quotes.updateTour") || "Update Tour") : (t("quotes.addTour") || "Add Tour")}
-          </Button>
+          <div className="flex gap-2">
+            {editingTourIndex >= 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                className="border-gray-300 hover:bg-gray-100"
+                onClick={onCancelEdit}
+              >
+                Cancel
+              </Button>
+            )}
+            <Button
+              type="button"
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={onUpdateTour}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              {editingTourIndex >= 0 ? (t("quotes.updateTour") || "Update Tour") : (t("quotes.addTour") || "Add Tour")}
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
