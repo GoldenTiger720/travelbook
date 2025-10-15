@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useBooking, useUpdateBooking } from "@/hooks/useBookings";
 import { useToast } from "@/components/ui/use-toast";
 import { apiCall } from "@/config/api";
+import Swal from "sweetalert2";
 import {
   QuoteConfigSection,
   CustomerInfoSection,
@@ -462,6 +463,24 @@ const QuoteEditFormPage = () => {
     e.preventDefault();
     if (!formData || !quoteId) return;
 
+    // Show loading modal with progress
+    Swal.fire({
+      title: 'Updating Quotation...',
+      text: 'Please wait while we update the quotation.',
+      icon: 'info',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      backdrop: `
+        rgba(0,0,0,0.6)
+        center
+        no-repeat
+      `,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
     try {
       // Format tours data - match the structure from BookQuotePage (convertToBookingData)
       // Never send ID - backend generates new UUIDs
@@ -534,17 +553,24 @@ const QuoteEditFormPage = () => {
         data: bookingData,
       });
 
-      toast({
-        title: "Success",
-        description: "Quotation updated successfully",
+      // Close loading modal and show success message
+      Swal.fire({
+        title: 'Success!',
+        text: 'Quotation updated successfully',
+        icon: 'success',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#10b981'
+      }).then(() => {
+        navigate("/my-quotes");
       });
-
-      navigate("/my-quotes");
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update quotation",
-        variant: "destructive",
+      // Close loading modal and show error message
+      Swal.fire({
+        title: 'Error',
+        text: 'Failed to update quotation',
+        icon: 'error',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ef4444'
       });
     }
   };
