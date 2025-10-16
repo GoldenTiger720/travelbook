@@ -215,7 +215,7 @@ const QuotesPage = () => {
 
   const handleShareLinkClick = (shareableLink: string) => {
     if (shareableLink) {
-      navigate(`/quotes/share/${shareableLink}`);
+      window.open(`/quotes/share/${shareableLink}`, '_blank');
     }
   };
 

@@ -198,12 +198,16 @@ class BookingService {
     }
   }
 
-  // Public method for shared quotes - uses only public endpoint
+  // Public method for shared quotes - uses only public endpoint without authentication
   async getSharedBooking(shareId: string): Promise<BookingResponse | null> {
     try {
-      // Use only the public endpoint for shared bookings
-      const publicResponse = await apiCall(`/api/public/booking/${shareId}`, {
+      // Use fetch directly without authentication for public endpoint
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const publicResponse = await fetch(`${API_BASE_URL}/api/public/booking/${shareId}/`, {
         method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       })
 
       if (!publicResponse.ok) {

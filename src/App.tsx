@@ -224,7 +224,6 @@ const MainLayout = () => {
                   <Route path="/quotes" element={<BookQuotePage />} />
                   <Route path="/my-quotes" element={<QuotesPage />} />
                   <Route path="/quotes/:quoteId/edit" element={<QuoteEditFormPage />} />
-                  <Route path="/quotes/share/:shareId" element={<SharedQuotePage />} />
                   <Route path="/customers" element={<CustomersPage />} />
                   <Route path="/financial" element={<FinancialPage />} />
                   <Route path="/sales-commissions" element={<SalesCommissionsPage />} />
@@ -256,6 +255,7 @@ const AppContent = () => {
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route path="/quotes/share/:shareId" element={<SharedQuotePage />} />
         <Route path="/*" element={<MainLayout />} />
       </Routes>
     </BrowserRouter>
