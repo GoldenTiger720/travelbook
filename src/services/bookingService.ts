@@ -198,45 +198,30 @@ class BookingService {
     }
   }
 
-  // Public method for shared quotes - tries multiple endpoints
+  // Public method for shared quotes - uses only public endpoint
   async getSharedBooking(shareId: string): Promise<BookingResponse | null> {
     try {
-      // Try the regular booking endpoint first
-      const response = await apiCall(`${this.endpoint}/${shareId}`, {
+      // Use only the public endpoint for shared bookings
+      const publicResponse = await apiCall(`/api/public/booking/${shareId}`, {
         method: 'GET',
       })
 
-      if (!response.ok) {
-        if (response.status === 404) {
-          // Try alternative public endpoint
-          try {
-            const publicResponse = await apiCall(`/api/public/booking/${shareId}`, {
-              method: 'GET',
-            })
-
-            if (!publicResponse.ok) {
-              return null
-            }
-
-            const publicData = await publicResponse.json()
-            return {
-              ...publicData,
-              createdAt: new Date(publicData.createdAt),
-              updatedAt: new Date(publicData.updatedAt),
-            }
-          } catch (publicError) {
-            console.error('Error fetching booking from public endpoint:', publicError)
-            return null
-          }
+      if (!publicResponse.ok) {
+        if (publicResponse.status === 404) {
+          return null
         }
-        throw new Error(`Failed to get shared booking: ${response.statusText}`)
+        throw new Error(`Failed to get shared booking: ${publicResponse.statusText}`)
       }
 
-      const data = await response.json()
+      const publicData = await publicResponse.json()
+
+      // Handle the response structure: { success, message, data, shareableLink, timestamp }
+      const bookingData = publicData.success && publicData.data ? publicData.data : publicData
+
       return {
-        ...data,
-        createdAt: new Date(data.createdAt),
-        updatedAt: new Date(data.updatedAt),
+        ...bookingData,
+        createdAt: bookingData.createdAt ? new Date(bookingData.createdAt) : new Date(),
+        updatedAt: bookingData.updatedAt ? new Date(bookingData.updatedAt) : new Date(),
       }
     } catch (error) {
       console.error('Error getting shared booking:', error)
