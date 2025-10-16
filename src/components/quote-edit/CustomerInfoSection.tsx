@@ -22,24 +22,16 @@ interface CustomerInfoSectionProps {
     idNumber: string;
     cpf: string;
     address: string;
-  };
-  tourDetails: {
     hotel: string;
     room: string;
+    comments: string;
   };
-  additionalNotes: string;
   onCustomerChange?: (field: string, value: string) => void;
-  onTourDetailsChange?: (field: string, value: string) => void;
-  onAdditionalNotesChange?: (value: string) => void;
 }
 
 const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
   customer,
-  tourDetails,
-  additionalNotes,
   onCustomerChange,
-  onTourDetailsChange,
-  onAdditionalNotesChange,
 }) => {
   const { t } = useLanguage();
 
@@ -155,8 +147,8 @@ const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
               <Input
                 id="defaultHotel"
                 placeholder={t("quotes.hotelPlaceholder")}
-                value={tourDetails?.hotel || ""}
-                onChange={(e) => onTourDetailsChange?.('hotel', e.target.value)}
+                value={customer?.hotel || ""}
+                onChange={(e) => onCustomerChange?.('hotel', e.target.value)}
               />
             </div>
 
@@ -165,8 +157,8 @@ const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
               <Input
                 id="defaultRoom"
                 placeholder={t("quotes.roomPlaceholder")}
-                value={tourDetails?.room || ""}
-                onChange={(e) => onTourDetailsChange?.('room', e.target.value)}
+                value={customer?.room || ""}
+                onChange={(e) => onCustomerChange?.('room', e.target.value)}
               />
             </div>
           </div>
@@ -179,8 +171,8 @@ const CustomerInfoSection: React.FC<CustomerInfoSectionProps> = ({
               id="accommodationComments"
               rows={3}
               placeholder={t("quotes.accommodationPlaceholder")}
-              value={additionalNotes || ""}
-              onChange={(e) => onAdditionalNotesChange?.(e.target.value)}
+              value={customer?.comments || ""}
+              onChange={(e) => onCustomerChange?.('comments', e.target.value)}
             />
           </div>
         </div>

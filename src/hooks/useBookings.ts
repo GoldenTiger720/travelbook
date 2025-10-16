@@ -156,6 +156,53 @@ export function useCreateBookingPayment() {
   })
 }
 
+// Update booking payment mutation (updates existing booking payment with PUT request)
+export function useUpdateBookingPayment() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ bookingId, paymentData }: {
+      bookingId: string
+      paymentData: {
+        customer: {
+          name: string
+          email: string
+          phone?: string
+        }
+        tours?: any[]
+        tourDetails?: any
+        pricing?: any
+        paymentDetails: {
+          date?: Date
+          method?: string
+          percentage?: number
+          amountPaid?: number
+          comments?: string
+          status?: string
+          receiptFile?: File | null
+        }
+        bookingOptions: {
+          includePayment: boolean
+          copyComments: boolean
+          sendPurchaseOrder: boolean
+          quotationComments?: string
+          sendQuotationAccess?: boolean
+        }
+      }
+    }) => bookingService.updateBookingPayment(bookingId, paymentData),
+    onSuccess: () => {
+      // Invalidate bookings cache to refresh All Reservations
+      queryClient.invalidateQueries({ queryKey: bookingKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: ['reservations'] })
+      // Note: Success handling is done in component for better UX control
+    },
+    onError: (error) => {
+      console.error('Error updating booking payment:', error)
+      // Note: Error handling is done in component for better UX control
+    },
+  })
+}
+
 // Convert quote to booking mutation
 export function useConvertQuoteToBooking() {
   const queryClient = useQueryClient()

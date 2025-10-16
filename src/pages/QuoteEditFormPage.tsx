@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useBooking, useUpdateBooking } from "@/hooks/useBookings";
+import { useBooking, useUpdateBooking, useUpdateBookingPayment } from "@/hooks/useBookings";
 import { useToast } from "@/components/ui/use-toast";
 import { apiCall } from "@/config/api";
 import Swal from "sweetalert2";
@@ -76,10 +76,14 @@ const QuoteEditFormPage = () => {
   const navigate = useNavigate();
   const { data: booking, isLoading, error } = useBooking(quoteId || "");
   const updateBookingMutation = useUpdateBooking();
+  const updateBookingPaymentMutation = useUpdateBookingPayment();
   const { toast } = useToast();
 
   // Form state
   const [formData, setFormData] = useState<any>(null);
+
+  // Track if quotation has been saved (needed for Book button)
+  const [isQuotationSaved, setIsQuotationSaved] = useState<boolean>(true); // true on edit page since quote already exists
 
   // API data state
   const [destinations, setDestinations] = useState<Destination[]>([]);
@@ -154,10 +158,10 @@ const QuoteEditFormPage = () => {
   useEffect(() => {
     if (booking) {
       // Map backend data structure to form data structure
-      const mappedFormData = {
+      const mappedFormData: any = {
         ...booking,
         // Map assignedTo from fullName (sales person name from backend)
-        assignedTo: booking.fullName || booking.assignedTo || "",
+        assignedTo: booking.fullName || "",
         // Ensure customer data is properly mapped
         customer: {
           name: booking.customer?.name || "",
@@ -177,9 +181,8 @@ const QuoteEditFormPage = () => {
           id: tour.id,
           tourId: tour.tourId,
           tourName: tour.tourName,
-          tourCode: tour.tourCode || "",
-          destination: tour.destinationName || tour.destination || "",  // Use destinationName for display
-          destinationId: tour.destination,  // Store destination UUID
+          destination: tour.destinationName || "",  // Use destinationName for display
+          destinationId: tour.destination || "",  // Store destination UUID
           date: tour.date ? new Date(tour.date) : new Date(),
           pickupAddress: tour.pickupAddress || "",
           pickupTime: tour.pickupTime || "",
@@ -193,47 +196,48 @@ const QuoteEditFormPage = () => {
           operator: tour.operator || "own-operation",
           comments: tour.comments || "",
         })),
-        // Map tourDetails properly
-        tourDetails: {
-          destination: booking.tours?.[0]?.destinationName || "",
-          tourType: booking.tourDetails?.tourType || "custom",
-          startDate: booking.tours?.[0]?.date ? new Date(booking.tours[0].date) : new Date(),
-          endDate: booking.tours?.[0]?.date ? new Date(booking.tours[0].date) : new Date(),
-          passengers: (booking.tours || []).reduce((sum: number, tour: any) =>
-            sum + (tour.adultPax || 0) + (tour.childPax || 0) + (tour.infantPax || 0), 0),
-          passengerBreakdown: {
-            adults: (booking.tours || []).reduce((sum: number, tour: any) => sum + (tour.adultPax || 0), 0),
-            children: (booking.tours || []).reduce((sum: number, tour: any) => sum + (tour.childPax || 0), 0),
-            infants: (booking.tours || []).reduce((sum: number, tour: any) => sum + (tour.infantPax || 0), 0),
-          },
-          hotel: booking.customer?.hotel || "",
-          room: booking.customer?.room || "",
-        },
-        // Map pricing properly
+        // Map pricing from API response
         pricing: {
           amount: booking.totalAmount || 0,
           currency: booking.currency || "CLP",
-          breakdown: [],
         },
-        // Map other fields
+        // Map other fields from booking
         leadSource: booking.leadSource || "other",
         status: booking.status || "pending",
         validUntil: booking.validUntil ? new Date(booking.validUntil) : new Date(),
         quotationComments: booking.quotationComments || "",
         additionalNotes: booking.customer?.comments || "",
-        sendQuotationAccess: booking.sendQuotationAccess || true,
+        sendQuotationAccess: booking.sendQuotationAccess,
+        shareableLink: booking.shareableLink || "",
+        // Initialize booking options with defaults
+        includePayment: false,
+        copyComments: false,
+        sendPurchaseOrder: false,
       };
+
+      // Override booking options from paymentDetails if available
+      if (booking.paymentDetails) {
+        mappedFormData.includePayment = booking.paymentDetails.includePayment || false;
+        mappedFormData.copyComments = booking.paymentDetails.copyComments || false;
+        mappedFormData.sendPurchaseOrder = booking.paymentDetails.sendPurchaseOrder || false;
+        if (booking.paymentDetails.sendQuotationAccess !== undefined) {
+          mappedFormData.sendQuotationAccess = booking.paymentDetails.sendQuotationAccess;
+        }
+        if (booking.paymentDetails.quoteComments) {
+          mappedFormData.quotationComments = booking.paymentDetails.quoteComments;
+        }
+      }
 
       setFormData(mappedFormData);
 
-      // Initialize payment state from booking data if available
-      if (booking.payment) {
-        setPaymentDate(booking.payment.paymentDate ? new Date(booking.payment.paymentDate) : undefined);
-        setPaymentMethod(booking.payment.paymentMethod || "");
-        setPaymentPercentage(booking.payment.paymentPercentage || 50);
-        setAmountPaid(booking.payment.amountPaid || 0);
-        setPaymentComments(booking.payment.paymentComments || "");
-        setPaymentStatus(booking.payment.paymentStatus || "pending");
+      // Initialize payment state from paymentDetails if available
+      if (booking.paymentDetails) {
+        setPaymentDate(booking.paymentDetails.date ? new Date(booking.paymentDetails.date) : undefined);
+        setPaymentMethod(booking.paymentDetails.method || "");
+        setPaymentPercentage(booking.paymentDetails.percentage || 50);
+        setAmountPaid(booking.paymentDetails.amountPaid || 0);
+        setPaymentComments(booking.paymentDetails.comments || "");
+        setPaymentStatus(booking.paymentDetails.status || "pending");
       }
     }
   }, [booking]);
@@ -637,6 +641,116 @@ const QuoteEditFormPage = () => {
     }
   };
 
+  // Handle booking/reservation (converting quotation to confirmed booking using PUT request)
+  const handleBookReservation = async () => {
+    if (!formData || !quoteId) return;
+
+    // Validation
+    if (!formData.tours || formData.tours.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please add at least one tour before booking",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Show loading modal
+    Swal.fire({
+      title: 'Processing Reservation...',
+      text: 'Please wait while we process your booking.',
+      icon: 'info',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    try {
+      // Prepare payment data for booking (PUT request)
+      const paymentData = {
+        customer: {
+          name: formData.customer?.name || '',
+          email: formData.customer?.email || '',
+          phone: formData.customer?.phone || ''
+        },
+        tours: formData.tours?.map((tour: any) => ({
+          tourId: tour.tourId,
+          destination: tour.destinationId || tour.destination,
+          date: tour.date,
+          pickupAddress: tour.pickupAddress || '',
+          pickupTime: tour.pickupTime || '',
+          adultPax: tour.adultPax || 0,
+          adultPrice: tour.adultPrice || 0,
+          childPax: tour.childPax || 0,
+          childPrice: tour.childPrice || 0,
+          infantPax: tour.infantPax || 0,
+          infantPrice: tour.infantPrice || 0,
+          subtotal: tour.subtotal || 0,
+          operator: tour.operator || 'own-operation',
+          comments: tour.comments || ''
+        })),
+        tourDetails: {
+          destination: formData.tours?.[0]?.destination || '',
+          passengers: (formData.tours || []).reduce((sum: number, tour: any) =>
+            sum + (tour.adultPax || 0) + (tour.childPax || 0) + (tour.infantPax || 0), 0)
+        },
+        pricing: {
+          amount: calculateGrandTotal(),
+          currency: formData.pricing?.currency || 'CLP'
+        },
+        paymentDetails: {
+          date: paymentDate,
+          method: paymentMethod,
+          percentage: paymentPercentage,
+          amountPaid: amountPaid,
+          comments: paymentComments,
+          status: paymentStatus,
+          receiptFile: receiptFile
+        },
+        bookingOptions: {
+          includePayment: formData.includePayment || false,
+          copyComments: formData.copyComments || false,
+          sendPurchaseOrder: formData.sendPurchaseOrder || false,
+          quotationComments: formData.quotationComments || '',
+          sendQuotationAccess: formData.sendQuotationAccess || false
+        }
+      };
+
+      // Use PUT request for edit page
+      const result = await updateBookingPaymentMutation.mutateAsync({
+        bookingId: quoteId,
+        paymentData: paymentData
+      });
+
+      // Close loading modal and show success
+      Swal.fire({
+        title: 'Success!',
+        html: `
+          <p>Booking confirmed successfully!</p>
+          <p class="text-sm text-gray-600 mt-2">Reservation ID: ${result.data.reservationId}</p>
+          ${result.data.purchaseOrderId ? `<p class="text-sm text-gray-600">Purchase Order ID: ${result.data.purchaseOrderId}</p>` : ''}
+        `,
+        icon: 'success',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#10b981'
+      }).then(() => {
+        navigate("/my-quotes");
+      });
+    } catch (error) {
+      console.error('Booking error:', error);
+      Swal.fire({
+        title: 'Error',
+        text: 'Failed to create booking. Please try again.',
+        icon: 'error',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ef4444'
+      });
+    }
+  };
+
   // Show loading state
   if (isLoading) {
     return (
@@ -728,11 +842,7 @@ const QuoteEditFormPage = () => {
         {/* Client Information */}
         <CustomerInfoSection
           customer={formData.customer}
-          tourDetails={formData.tourDetails}
-          additionalNotes={formData.additionalNotes}
           onCustomerChange={(field, value) => handleNestedFieldChange('customer', field, value)}
-          onTourDetailsChange={(field, value) => handleNestedFieldChange('tourDetails', field, value)}
-          onAdditionalNotesChange={(value) => handleFieldChange('additionalNotes', value)}
         />
 
         {/* Add Tour */}
@@ -788,12 +898,16 @@ const QuoteEditFormPage = () => {
           validUntil={formData.validUntil}
           quotationComments={formData.quotationComments}
           customerEmail={formData.customer?.email}
+          isQuotationSaved={isQuotationSaved}
+          isBookingPending={updateBookingPaymentMutation.isPending}
+          tourCount={formData.tours?.length || 0}
           onIncludePaymentChange={(value) => handleFieldChange('includePayment', value)}
           onCopyCommentsChange={(value) => handleFieldChange('copyComments', value)}
           onSendPurchaseOrderChange={(value) => handleFieldChange('sendPurchaseOrder', value)}
           onSendQuotationAccessChange={(value) => handleFieldChange('sendQuotationAccess', value)}
           onValidUntilChange={(value) => handleFieldChange('validUntil', value)}
           onQuotationCommentsChange={(value) => handleFieldChange('quotationComments', value)}
+          onBookReservation={handleBookReservation}
         />
         </div>
           </form>

@@ -68,10 +68,16 @@ interface BookingData {
 
 interface BookingResponse {
   id: string
-  sales_person_id?: string  // Sales person UUID
-  fullName?: string  // Sales person full name
-  totalAmount?: number  // Total amount from backend
-  currency?: string  // Currency from backend
+  sales_person_id?: string
+  fullName?: string
+  leadSource: string
+  currency: string
+  status: string
+  validUntil: Date | string
+  quotationComments?: string
+  sendQuotationAccess: boolean
+  shareableLink?: string
+  totalAmount: number
   customer: {
     id?: string
     name: string
@@ -82,17 +88,13 @@ interface BookingResponse {
     idNumber?: string
     cpf?: string
     address?: string
-    hotel?: string  // Hotel from customer table
-    room?: string  // Room from customer table
-    comments?: string  // Comments from customer table
-    company?: string
-    location?: string
+    hotel?: string
+    room?: string
+    comments?: string
     status?: string
     totalBookings?: number
     totalSpent?: number
-    lastBooking?: string
-    notes?: string
-    avatar?: string
+    lastBooking?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -100,9 +102,8 @@ interface BookingResponse {
     id: string
     tourId: string
     tourName: string
-    tourCode: string
-    destination?: string  // Destination UUID
-    destinationName?: string  // Destination name for display
+    destination?: string
+    destinationName?: string
     date: Date | string
     pickupAddress?: string
     pickupTime?: string
@@ -115,71 +116,22 @@ interface BookingResponse {
     subtotal: number
     operator?: string
     comments?: string
-    createdAt?: Date | string
-    updatedAt?: Date | string
   }>
-  tourDetails: {
-    destination: string
-    tourType: string
-    startDate: Date | string
-    endDate: Date | string
-    passengers: number
-    passengerBreakdown: {
-      adults: number
-      children: number
-      infants: number
-    }
-    hotel?: string
-    room?: string
-  }
-  pricing: {
-    amount: number
-    currency: string
-    breakdown: Array<{
-      item: string
-      quantity: number
-      unitPrice: number
-      total: number
-    }>
-  }
-  leadSource: string
-  assignedTo: string
-  agency?: string
-  status: string
-  validUntil: Date | string
-  additionalNotes?: string
-  hasMultipleAddresses?: boolean
-  termsAccepted: {
-    accepted: boolean
-    acceptedBy?: string
-    acceptedAt?: Date | string
-  }
-  quotationComments?: string
-  includePayment?: boolean
-  copyComments?: boolean
-  sendPurchaseOrder?: boolean
-  sendQuotationAccess?: boolean
-  shareableLink?: string
   paymentDetails?: {
+    id?: number
     date?: Date | string
     method?: string
     percentage?: number
     amountPaid?: number
     comments?: string
     status?: string
-    receiptFile?: File | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
+    receiptFile?: string | null
+    copyComments?: boolean
+    includePayment?: boolean
+    quoteComments?: string
+    sendPurchaseOrder?: boolean
+    sendQuotationAccess?: boolean
   }
-  createdBy?: {
-    id: string
-    email: string
-    fullName: string
-    phone?: string
-    company?: string
-  }
-  createdAt: Date | string
-  updatedAt: Date | string
 }
 
 class BookingService {
@@ -417,6 +369,66 @@ class BookingService {
     }
   }
 
+  async updateBookingPayment(bookingId: string, paymentData: {
+    customer: {
+      name: string
+      email: string
+      phone?: string
+    }
+    tours?: any[]
+    tourDetails?: any
+    pricing?: any
+    paymentDetails: {
+      date?: Date
+      method?: string
+      percentage?: number
+      amountPaid?: number
+      comments?: string
+      status?: string
+      receiptFile?: File | null
+    }
+    bookingOptions: {
+      includePayment: boolean
+      copyComments: boolean
+      sendPurchaseOrder: boolean
+      quotationComments?: string
+      sendQuotationAccess?: boolean
+    }
+  }): Promise<{
+    success: boolean
+    message: string
+    data: {
+      bookingId: string
+      reservationId: string
+      purchaseOrderId?: string
+      paymentId?: string
+      status: 'confirmed'
+    }
+  }> {
+    try {
+      const response = await apiCall(`/api/booking/payment/${bookingId}/`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          ...paymentData,
+          paymentDetails: {
+            ...paymentData.paymentDetails,
+            date: paymentData.paymentDetails.date?.toISOString(),
+          }
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to update booking payment: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error('Error updating booking payment:', error)
+      throw error
+    }
+  }
+
   async listBookings(filters?: any): Promise<BookingResponse[]> {
     try {
       let endpoint = this.endpoint
@@ -457,20 +469,15 @@ class BookingService {
       
       return bookings.map((booking: any) => ({
         ...booking,
-        createdAt: booking.createdAt ? new Date(booking.createdAt) : new Date(),
-        updatedAt: booking.updatedAt ? new Date(booking.updatedAt) : new Date(),
+        validUntil: booking.validUntil ? new Date(booking.validUntil) : new Date(),
         tours: booking.tours ? booking.tours.map((tour: any) => ({
           ...tour,
           date: tour.date ? new Date(tour.date) : new Date(),
-          createdAt: tour.createdAt ? new Date(tour.createdAt) : new Date(),
-          updatedAt: tour.updatedAt ? new Date(tour.updatedAt) : new Date(),
         })) : [],
-        tourDetails: booking.tourDetails ? {
-          ...booking.tourDetails,
-          startDate: booking.tourDetails.startDate ? new Date(booking.tourDetails.startDate) : new Date(),
-          endDate: booking.tourDetails.endDate ? new Date(booking.tourDetails.endDate) : new Date(),
+        paymentDetails: booking.paymentDetails ? {
+          ...booking.paymentDetails,
+          date: booking.paymentDetails.date ? new Date(booking.paymentDetails.date) : undefined,
         } : undefined,
-        validUntil: booking.validUntil ? new Date(booking.validUntil) : new Date(),
       }))
     } catch (error) {
       console.error('Error listing bookings:', error)

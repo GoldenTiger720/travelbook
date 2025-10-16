@@ -22,12 +22,16 @@ interface BookingOptionsSectionProps {
   validUntil: Date;
   quotationComments: string;
   customerEmail: string;
+  isQuotationSaved?: boolean;
+  isBookingPending?: boolean;
+  tourCount?: number;
   onIncludePaymentChange?: (value: boolean) => void;
   onCopyCommentsChange?: (value: boolean) => void;
   onSendPurchaseOrderChange?: (value: boolean) => void;
   onSendQuotationAccessChange?: (value: boolean) => void;
   onValidUntilChange?: (value: Date) => void;
   onQuotationCommentsChange?: (value: string) => void;
+  onBookReservation?: () => void;
 }
 
 const BookingOptionsSection: React.FC<BookingOptionsSectionProps> = ({
@@ -38,12 +42,16 @@ const BookingOptionsSection: React.FC<BookingOptionsSectionProps> = ({
   validUntil,
   quotationComments,
   customerEmail,
+  isQuotationSaved = true,
+  isBookingPending = false,
+  tourCount = 0,
   onIncludePaymentChange,
   onCopyCommentsChange,
   onSendPurchaseOrderChange,
   onSendQuotationAccessChange,
   onValidUntilChange,
   onQuotationCommentsChange,
+  onBookReservation,
 }) => {
   const { t } = useLanguage();
 
@@ -121,17 +129,19 @@ const BookingOptionsSection: React.FC<BookingOptionsSectionProps> = ({
             <div className="space-y-4">
               <Button
                 type="button"
-                className="w-full bg-green-500 hover:bg-green-600 text-white py-3"
+                className="w-full bg-green-500 hover:bg-green-600 text-white py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={tourCount === 0 || !isQuotationSaved || isBookingPending}
+                onClick={onBookReservation}
               >
-                {t("quotes.reserve")}
+                {isBookingPending ? "Processing..." : t("quotes.reserve")}
               </Button>
 
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-green-100">
-                <div className="w-6 h-6 rounded flex items-center justify-center bg-green-500">
+              <div className={`flex items-center gap-2 p-3 rounded-lg ${isQuotationSaved && tourCount > 0 ? 'bg-green-100' : 'bg-gray-100'}`}>
+                <div className={`w-6 h-6 rounded flex items-center justify-center ${isQuotationSaved && tourCount > 0 ? 'bg-green-500' : 'bg-gray-400'}`}>
                   <span className="text-white text-xs">✓</span>
                 </div>
-                <span className="font-medium text-green-700">
-                  {t("quotes.readyToBook")}
+                <span className={`font-medium ${isQuotationSaved && tourCount > 0 ? 'text-green-700' : 'text-gray-600'}`}>
+                  {isQuotationSaved && tourCount > 0 ? t("quotes.readyToBook") : 'Add tours to book'}
                 </span>
               </div>
             </div>
