@@ -88,6 +88,15 @@ const QuoteEditFormPage = () => {
   // State to track which tour is being edited (-1 means adding new tour)
   const [editingTourIndex, setEditingTourIndex] = useState<number>(-1);
 
+  // Payment state
+  const [paymentDate, setPaymentDate] = useState<Date | undefined>(undefined);
+  const [paymentMethod, setPaymentMethod] = useState<string>("");
+  const [paymentPercentage, setPaymentPercentage] = useState<number>(50);
+  const [amountPaid, setAmountPaid] = useState<number>(0);
+  const [paymentComments, setPaymentComments] = useState<string>("");
+  const [paymentStatus, setPaymentStatus] = useState<string>("pending");
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+
   // State for new tour being added (when not editing existing tour)
   const [newTourData, setNewTourData] = useState<any>({
     destination: "",
@@ -216,6 +225,16 @@ const QuoteEditFormPage = () => {
       };
 
       setFormData(mappedFormData);
+
+      // Initialize payment state from booking data if available
+      if (booking.payment) {
+        setPaymentDate(booking.payment.paymentDate ? new Date(booking.payment.paymentDate) : undefined);
+        setPaymentMethod(booking.payment.paymentMethod || "");
+        setPaymentPercentage(booking.payment.paymentPercentage || 50);
+        setAmountPaid(booking.payment.amountPaid || 0);
+        setPaymentComments(booking.payment.paymentComments || "");
+        setPaymentStatus(booking.payment.paymentStatus || "pending");
+      }
     }
   }, [booking]);
 
@@ -575,7 +594,20 @@ const QuoteEditFormPage = () => {
         },
 
         // Section 3: Add Tour - All tour information in array
-        tours: formattedTours
+        tours: formattedTours,
+
+        // Section 4: Payment Details (if includePayment is enabled)
+        ...(formData.includePayment && {
+          payment: {
+            paymentDate: paymentDate,
+            paymentMethod: paymentMethod,
+            paymentPercentage: paymentPercentage,
+            amountPaid: amountPaid,
+            paymentComments: paymentComments,
+            paymentStatus: paymentStatus,
+            // Note: receiptFile would need separate handling for file upload
+          }
+        })
       };
 
       await updateBookingMutation.mutateAsync({
@@ -731,6 +763,20 @@ const QuoteEditFormPage = () => {
           currency={formData.pricing?.currency}
           getCurrencySymbol={getCurrencySymbol}
           calculateGrandTotal={calculateGrandTotal}
+          paymentDate={paymentDate}
+          paymentMethod={paymentMethod}
+          paymentPercentage={paymentPercentage}
+          amountPaid={amountPaid}
+          paymentComments={paymentComments}
+          paymentStatus={paymentStatus}
+          receiptFile={receiptFile}
+          onPaymentDateChange={setPaymentDate}
+          onPaymentMethodChange={setPaymentMethod}
+          onPaymentPercentageChange={setPaymentPercentage}
+          onAmountPaidChange={setAmountPaid}
+          onPaymentCommentsChange={setPaymentComments}
+          onPaymentStatusChange={setPaymentStatus}
+          onReceiptFileChange={setReceiptFile}
         />
 
         {/* Booking Options */}

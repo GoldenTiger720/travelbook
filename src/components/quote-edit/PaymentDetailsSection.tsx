@@ -26,6 +26,20 @@ interface PaymentDetailsSectionProps {
   currency: string;
   getCurrencySymbol: (currency: string) => string;
   calculateGrandTotal: () => number;
+  paymentDate?: Date | undefined;
+  paymentMethod: string;
+  paymentPercentage: number;
+  amountPaid: number;
+  paymentComments: string;
+  paymentStatus: string;
+  receiptFile?: File | null;
+  onPaymentDateChange: (date: Date | undefined) => void;
+  onPaymentMethodChange: (method: string) => void;
+  onPaymentPercentageChange: (percentage: number) => void;
+  onAmountPaidChange: (amount: number) => void;
+  onPaymentCommentsChange: (comments: string) => void;
+  onPaymentStatusChange: (status: string) => void;
+  onReceiptFileChange: (file: File | null) => void;
 }
 
 const PaymentDetailsSection: React.FC<PaymentDetailsSectionProps> = ({
@@ -33,6 +47,20 @@ const PaymentDetailsSection: React.FC<PaymentDetailsSectionProps> = ({
   currency,
   getCurrencySymbol,
   calculateGrandTotal,
+  paymentDate,
+  paymentMethod,
+  paymentPercentage,
+  amountPaid,
+  paymentComments,
+  paymentStatus,
+  receiptFile,
+  onPaymentDateChange,
+  onPaymentMethodChange,
+  onPaymentPercentageChange,
+  onAmountPaidChange,
+  onPaymentCommentsChange,
+  onPaymentStatusChange,
+  onReceiptFileChange,
 }) => {
   const { t } = useLanguage();
 
@@ -57,16 +85,16 @@ const PaymentDetailsSection: React.FC<PaymentDetailsSectionProps> = ({
                 <Button
                   variant="outline"
                   className="w-full justify-start text-left font-normal mt-1"
-                  disabled
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {format(new Date(), "dd/MM/yyyy")}
+                  {paymentDate ? format(paymentDate, "dd/MM/yyyy") : t("quotes.selectDate")}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
                 <Calendar
                   mode="single"
-                  selected={new Date()}
+                  selected={paymentDate}
+                  onSelect={onPaymentDateChange}
                   initialFocus
                 />
               </PopoverContent>
@@ -81,7 +109,7 @@ const PaymentDetailsSection: React.FC<PaymentDetailsSectionProps> = ({
             >
               {t("quotes.paymentMethod")}
             </Label>
-            <Select value="">
+            <Select value={paymentMethod} onValueChange={onPaymentMethodChange}>
               <SelectTrigger className="mt-1">
                 <SelectValue placeholder={t("quotes.select")} />
               </SelectTrigger>
@@ -140,9 +168,15 @@ const PaymentDetailsSection: React.FC<PaymentDetailsSectionProps> = ({
               type="number"
               min="0"
               max="100"
-              value={50}
+              value={paymentPercentage}
+              onChange={(e) => {
+                const percentage = parseInt(e.target.value) || 0;
+                onPaymentPercentageChange(percentage);
+                const totalAmount = calculateGrandTotal();
+                const calculatedAmount = Math.round((totalAmount * percentage) / 100);
+                onAmountPaidChange(calculatedAmount);
+              }}
               className="mt-1"
-              readOnly
             />
           </div>
 
@@ -156,9 +190,17 @@ const PaymentDetailsSection: React.FC<PaymentDetailsSectionProps> = ({
               id="amount-paid"
               type="number"
               min="0"
-              value={0}
+              value={amountPaid}
+              onChange={(e) => {
+                const amount = parseInt(e.target.value) || 0;
+                onAmountPaidChange(amount);
+                const totalAmount = calculateGrandTotal();
+                if (totalAmount > 0) {
+                  const calculatedPercentage = Math.round((amount / totalAmount) * 100);
+                  onPaymentPercentageChange(calculatedPercentage);
+                }
+              }}
               className="mt-1"
-              readOnly
             />
           </div>
 
@@ -170,7 +212,7 @@ const PaymentDetailsSection: React.FC<PaymentDetailsSectionProps> = ({
             </Label>
             <div className="mt-1 p-2 bg-gray-100 border rounded-md">
               <span className="font-semibold text-red-600">
-                {(calculateGrandTotal() - 0).toLocaleString()}
+                {(calculateGrandTotal() - amountPaid).toLocaleString()}
               </span>
             </div>
           </div>
@@ -190,12 +232,14 @@ const PaymentDetailsSection: React.FC<PaymentDetailsSectionProps> = ({
                 id="receipt-upload"
                 type="file"
                 accept="image/*,application/pdf"
+                onChange={(e) => onReceiptFileChange(e.target.files?.[0] || null)}
                 className="file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-gray-100"
-                disabled
               />
-              <span className="text-xs text-gray-500">
-                {t("quotes.noFileChosen")}
-              </span>
+              {!receiptFile && (
+                <span className="text-xs text-gray-500">
+                  {t("quotes.noFileChosen")}
+                </span>
+              )}
             </div>
           </div>
 
@@ -212,8 +256,8 @@ const PaymentDetailsSection: React.FC<PaymentDetailsSectionProps> = ({
               rows={3}
               className="mt-1"
               placeholder={t("quotes.paymentCommentsPlaceholder")}
-              value=""
-              readOnly
+              value={paymentComments}
+              onChange={(e) => onPaymentCommentsChange(e.target.value)}
             />
           </div>
 
@@ -225,7 +269,7 @@ const PaymentDetailsSection: React.FC<PaymentDetailsSectionProps> = ({
             >
               {t("quotes.paymentStatus")}
             </Label>
-            <Select value="">
+            <Select value={paymentStatus} onValueChange={onPaymentStatusChange}>
               <SelectTrigger className="mt-1">
                 <SelectValue placeholder={t("quotes.select")} />
               </SelectTrigger>
