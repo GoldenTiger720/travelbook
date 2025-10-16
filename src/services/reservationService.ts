@@ -4,15 +4,27 @@ import { apiCall, API_ENDPOINTS } from '@/config/api'
 class ReservationService {
   private mapBackendDataToReservation(backendReservation: any): Reservation {
     // Get the first tour from the tours array for now
-    const firstTour = backendReservation.tours[0]
-    
+    const firstTour = backendReservation.tours && backendReservation.tours.length > 0
+      ? backendReservation.tours[0]
+      : null
+
+    if (!firstTour) {
+      throw new Error('No tour data found in reservation')
+    }
+
+    // Determine payment status from paymentDetails
+    let paymentStatus: Reservation['paymentStatus'] = 'pending'
+    if (backendReservation.paymentDetails) {
+      paymentStatus = backendReservation.paymentDetails.status || 'pending'
+    }
+
     return {
       id: backendReservation.id,
       reservationNumber: backendReservation.id.split('-')[0].toUpperCase(), // Generate reservation number from id
       operationDate: new Date(firstTour.date),
-      saleDate: new Date(backendReservation.createdAt),
+      saleDate: new Date(backendReservation.createdAt || new Date()),
       status: backendReservation.status,
-      paymentStatus: this.determinePaymentStatus(backendReservation.allPayments, backendReservation.pricing.amount),
+      paymentStatus: paymentStatus,
       client: {
         name: backendReservation.customer.name,
         email: backendReservation.customer.email,
@@ -21,35 +33,35 @@ class ReservationService {
         idNumber: backendReservation.customer.idNumber || ''
       },
       tour: {
-        id: firstTour.tourId,
-        name: firstTour.tourName,
-        code: firstTour.tourCode,
-        destination: backendReservation.tourDetails.destination,
+        id: firstTour.tourId || '',
+        name: firstTour.tourName || '',
+        code: firstTour.tourCode || '',
+        destination: firstTour.destinationName || '',
         date: new Date(firstTour.date),
-        pickupTime: firstTour.pickupTime,
-        pickupAddress: firstTour.pickupAddress
+        pickupTime: firstTour.pickupTime || '',
+        pickupAddress: firstTour.pickupAddress || ''
       },
       passengers: {
-        adults: firstTour.adultPax,
-        children: firstTour.childPax,
-        infants: firstTour.infantPax
+        adults: firstTour.adultPax || 0,
+        children: firstTour.childPax || 0,
+        infants: firstTour.infantPax || 0
       },
       pricing: {
-        adultPrice: firstTour.adultPrice,
-        childPrice: firstTour.childPrice,
-        infantPrice: firstTour.infantPrice,
-        totalAmount: backendReservation.pricing.amount,
-        currency: backendReservation.pricing.currency
+        adultPrice: firstTour.adultPrice || 0,
+        childPrice: firstTour.childPrice || 0,
+        infantPrice: firstTour.infantPrice || 0,
+        totalAmount: backendReservation.totalAmount || 0,
+        currency: backendReservation.currency || 'CLP'
       },
-      salesperson: backendReservation.createdBy.fullName || backendReservation.assignedTo,
+      salesperson: backendReservation.fullName || 'Unknown',
       operator: firstTour.operator !== 'own-operation' ? firstTour.operator : undefined,
       guide: undefined, // Not present in backend data
       driver: undefined, // Not present in backend data
-      externalAgency: backendReservation.agency,
+      externalAgency: undefined, // Not present in backend data
       purchaseOrderNumber: undefined, // Not present in backend data
-      notes: backendReservation.additionalNotes || firstTour.comments,
-      createdAt: new Date(backendReservation.createdAt),
-      updatedAt: new Date(backendReservation.updatedAt)
+      notes: firstTour.comments || '',
+      createdAt: new Date(backendReservation.createdAt || new Date()),
+      updatedAt: new Date(backendReservation.updatedAt || new Date())
     }
   }
 
@@ -71,7 +83,37 @@ class ReservationService {
 
   async getAllReservations(): Promise<Reservation[]> {
     try {
-      const response = await apiCall(API_ENDPOINTS.RESERVATIONS.LIST, {
+      // First fetch basic data (users and tours for filters)
+      const basicResponse = await apiCall(API_ENDPOINTS.RESERVATIONS.LIST, {
+        method: 'GET',
+      })
+
+      if (!basicResponse.ok) {
+        throw new Error(`HTTP error! status: ${basicResponse.status}`)
+      }
+
+      const basicData = await basicResponse.json()
+
+      // Store the raw data for filter options
+      if (basicData.success && basicData.data) {
+        // Store users and tours data in sessionStorage for filter options
+        sessionStorage.setItem('reservationFilterData', JSON.stringify({
+          users: basicData.data.users || [],
+          tours: basicData.data.tours || []
+        }))
+      }
+
+      // Now fetch confirmed reservations
+      return await this.getConfirmedReservations()
+    } catch (error) {
+      console.error('Error fetching reservations from backend:', error)
+      throw error
+    }
+  }
+
+  async getConfirmedReservations(): Promise<Reservation[]> {
+    try {
+      const response = await apiCall(API_ENDPOINTS.RESERVATIONS.CONFIRMED, {
         method: 'GET',
       })
 
@@ -81,20 +123,14 @@ class ReservationService {
 
       const data = await response.json()
 
-      // Store the raw data for filter options
-      if (data.success && data.data) {
-        // Store users and tours data in sessionStorage for filter options
-        sessionStorage.setItem('reservationFilterData', JSON.stringify({
-          users: data.data.users || [],
-          tours: data.data.tours || []
-        }))
+      // Map backend confirmed reservations to frontend format
+      if (data.success && data.data && Array.isArray(data.data)) {
+        return data.data.map((reservation: any) => this.mapBackendDataToReservation(reservation))
       }
 
-      // For now, return empty array as we don't have reservation data in this endpoint
-      // This endpoint only provides users and tours for filters
       return []
     } catch (error) {
-      console.error('Error fetching reservations from backend:', error)
+      console.error('Error fetching confirmed reservations from backend:', error)
       throw error
     }
   }
