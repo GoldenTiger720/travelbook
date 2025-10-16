@@ -35,7 +35,6 @@ interface DestinationTour {
   updated_at: string
 }
 
-// Interface for users API
 interface User {
   id: string
   email: string
