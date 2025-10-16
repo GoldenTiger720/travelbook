@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Calendar } from '@/components/ui/calendar'
@@ -20,7 +19,6 @@ import {
 } from '@/components/ui/table'
 import { 
   CalendarIcon, 
-  Search, 
   Filter,
   Download,
   Eye,
@@ -29,9 +27,7 @@ import {
   DollarSign,
   MapPin,
   Clock,
-  Building2,
   UserCheck,
-  Car,
   ChevronDown,
   ChevronUp
 } from 'lucide-react'
@@ -805,7 +801,7 @@ const AllReservationsPage = () => {
                                 >
                                   <Eye className="w-3 h-3" />
                                 </Button>
-                                <Button 
+                                {/* <Button 
                                   variant="ghost" 
                                   size="sm"
                                   className="h-7 w-7 p-0"
@@ -815,7 +811,7 @@ const AllReservationsPage = () => {
                                   }}
                                 >
                                   <Edit className="w-3 h-3" />
-                                </Button>
+                                </Button> */}
                               </div>
                             </TableCell>
                           </TableRow>
@@ -956,14 +952,14 @@ const AllReservationsPage = () => {
                             >
                               <Eye className="w-3 h-3" />
                             </Button>
-                            <Button 
+                            {/* <Button 
                               variant="ghost" 
                               size="sm"
                               className="h-8 w-8 p-0"
                               onClick={() => handleEditReservation(reservation)}
                             >
                               <Edit className="w-3 h-3" />
-                            </Button>
+                            </Button> */}
                           </div>
                         </div>
                         <CollapsibleContent>

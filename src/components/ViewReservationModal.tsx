@@ -166,7 +166,6 @@ const ViewReservationModal: React.FC<ViewReservationModalProps> = ({
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Tour Name</p>
                 <p className="font-medium">{reservation.tour.name}</p>
-                <p className="text-sm text-muted-foreground">Code: {reservation.tour.code}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
