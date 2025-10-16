@@ -4,11 +4,12 @@ import Swal from "sweetalert2";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, X, Edit, Trash2 } from "lucide-react";
+import { FileText, X, Edit, Trash2, ExternalLink, Copy } from "lucide-react";
 import { Quote, QuoteFilters } from "@/types/quote";
 import { exportToExcel, exportToPDF } from "@/utils/exportUtils";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/use-toast";
 
 // React Query hooks
 import {
@@ -119,6 +120,7 @@ const convertBookingToQuote = (booking: any): Quote => {
 
 const QuotesPage = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const [filters, setFilters] = useState<QuoteFilters>({
     search: "",
@@ -211,6 +213,24 @@ const QuotesPage = () => {
     }
   };
 
+  const handleShareLinkClick = (shareableLink: string) => {
+    if (shareableLink) {
+      navigate(`/quotes/share/${shareableLink}`);
+    }
+  };
+
+  const handleCopyShareLink = (shareableLink: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (shareableLink) {
+      const fullUrl = `${window.location.origin}/quotes/share/${shareableLink}`;
+      navigator.clipboard.writeText(fullUrl);
+      toast({
+        title: "Link copied",
+        description: "Share link has been copied to clipboard",
+      });
+    }
+  };
+
   const exportQuotes = (format: "excel" | "pdf") => {
     try {
       const exportData = { quotes: sortedQuotes, filters };
@@ -285,8 +305,8 @@ const QuotesPage = () => {
                       <th className="text-left p-2 font-medium text-xs w-[20%]">
                         Customer
                       </th>
-                      <th className="text-left p-2 font-medium text-xs w-[12%]">
-                        Tour Date
+                      <th className="text-left p-2 font-medium text-xs w-[15%]">
+                        Share Link
                       </th>
                       <th className="text-left p-2 font-medium text-xs w-[12%]">
                         Created
@@ -300,7 +320,7 @@ const QuotesPage = () => {
                       <th className="text-left p-2 font-medium text-xs w-[12%]">
                         Total Value
                       </th>
-                      <th className="text-left p-2 font-medium text-xs w-[12%]">
+                      <th className="text-left p-2 font-medium text-xs w-[9%]">
                         Status
                       </th>
                       <th className="text-left p-2 font-medium text-xs w-[12%]">
@@ -323,12 +343,32 @@ const QuotesPage = () => {
                           </div>
                         </td>
                         <td className="p-2">
-                          <div className="font-medium text-xs">
-                            {format(quote.tourDetails.startDate, "MMM dd")}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground">
-                            {format(quote.tourDetails.startDate, "yyyy")}
-                          </div>
+                          {quote.shareableLink ? (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="link"
+                                size="sm"
+                                className="h-auto p-0 text-xs text-blue-600 hover:text-blue-800"
+                                onClick={() => handleShareLinkClick(quote.shareableLink)}
+                              >
+                                <ExternalLink className="w-3 h-3 mr-1" />
+                                View
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-5 w-5 p-0"
+                                onClick={(e) => handleCopyShareLink(quote.shareableLink, e)}
+                                title="Copy link"
+                              >
+                                <Copy className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-muted-foreground">
+                              No link
+                            </div>
+                          )}
                         </td>
                         <td className="p-2">
                           <div className="font-medium text-xs">
@@ -417,13 +457,13 @@ const QuotesPage = () => {
                       <th className="text-left p-2 font-medium text-xs w-[25%]">
                         Customer
                       </th>
-                      <th className="text-left p-2 font-medium text-xs w-[15%]">
-                        Tour Date
+                      <th className="text-left p-2 font-medium text-xs w-[18%]">
+                        Share Link
                       </th>
-                      <th className="text-left p-2 font-medium text-xs w-[15%]">
+                      <th className="text-left p-2 font-medium text-xs w-[13%]">
                         Expires
                       </th>
-                      <th className="text-left p-2 font-medium text-xs w-[15%]">
+                      <th className="text-left p-2 font-medium text-xs w-[14%]">
                         Total
                       </th>
                       <th className="text-left p-2 font-medium text-xs w-[12%]">
@@ -449,12 +489,32 @@ const QuotesPage = () => {
                           </div>
                         </td>
                         <td className="p-1.5">
-                          <div className="font-medium text-xs">
-                            {format(quote.tourDetails.startDate, "MMM dd")}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground">
-                            {format(quote.tourDetails.startDate, "yyyy")}
-                          </div>
+                          {quote.shareableLink ? (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="link"
+                                size="sm"
+                                className="h-auto p-0 text-xs text-blue-600 hover:text-blue-800"
+                                onClick={() => handleShareLinkClick(quote.shareableLink)}
+                              >
+                                <ExternalLink className="w-3 h-3 mr-1" />
+                                View
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-5 w-5 p-0"
+                                onClick={(e) => handleCopyShareLink(quote.shareableLink, e)}
+                                title="Copy link"
+                              >
+                                <Copy className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-muted-foreground">
+                              No link
+                            </div>
+                          )}
                         </td>
                         <td className="p-1.5">
                           <div className="font-medium text-xs">
@@ -575,14 +635,34 @@ const QuotesPage = () => {
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground mb-1">
-                        Tour Date
+                        Share Link
                       </div>
-                      <div className="font-medium">
-                        {format(quote.tourDetails.startDate, "MMM dd")}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {format(quote.tourDetails.startDate, "yyyy")}
-                      </div>
+                      {quote.shareableLink ? (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="h-auto p-0 text-xs text-blue-600 hover:text-blue-800"
+                            onClick={() => handleShareLinkClick(quote.shareableLink)}
+                          >
+                            <ExternalLink className="w-3 h-3 mr-1" />
+                            View
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={(e) => handleCopyShareLink(quote.shareableLink, e)}
+                            title="Copy link"
+                          >
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-muted-foreground">
+                          No link available
+                        </div>
+                      )}
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground mb-1">
