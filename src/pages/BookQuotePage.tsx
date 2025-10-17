@@ -537,6 +537,18 @@ const BookQuotePage = () => {
     // Store the shareableLink that was included in the booking data
     const generatedShareableLink = bookingData.shareableLink || generateShareableLink()
 
+    // Show progress modal
+    Swal.fire({
+      title: 'Saving Quotation',
+      html: 'Please wait while we save the quotation...',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading()
+      }
+    })
+
     // Send data to booking API endpoint using React Query
     createBookingMutation.mutate(bookingData, {
       onSuccess: (newBooking) => {
@@ -549,6 +561,7 @@ const BookQuotePage = () => {
         // Mark quotation as saved successfully
         setIsQuotationSaved(true);
 
+        // Close progress modal and show success
         Swal.fire({
           title: 'Success!',
           text: 'Quote created successfully',
@@ -582,6 +595,7 @@ const BookQuotePage = () => {
           errorMessage = error.message;
         }
 
+        // Close progress modal and show error
         Swal.fire({
           title: 'Error',
           text: errorMessage,

@@ -209,7 +209,24 @@ const QuotesPage = () => {
     });
 
     if (result.isConfirmed) {
-      deleteBookingMutation.mutate(quote.id);
+      // Show progress modal
+      Swal.fire({
+        title: 'Deleting Booking',
+        html: 'Please wait while we delete the booking...',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          Swal.showLoading()
+        }
+      })
+
+      deleteBookingMutation.mutate(quote.id, {
+        onSettled: () => {
+          // Close the progress modal after deletion completes
+          Swal.close()
+        }
+      });
     }
   };
 
