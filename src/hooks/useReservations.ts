@@ -8,6 +8,7 @@ export const reservationKeys = {
   all: ['reservations'] as const,
   lists: () => [...reservationKeys.all, 'list'] as const,
   list: (filters?: ReservationFilters) => [...reservationKeys.lists(), filters] as const,
+  calendar: () => [...reservationKeys.all, 'calendar'] as const,
   details: () => [...reservationKeys.all, 'detail'] as const,
   detail: (id: string) => [...reservationKeys.details(), id] as const,
   uniqueValues: () => [...reservationKeys.all, 'uniqueValues'] as const,
@@ -21,6 +22,19 @@ export function useReservations() {
     staleTime: 0, // Force fresh data
     refetchOnMount: true,
     retry: (failureCount, error) => {
+      return failureCount < 3
+    },
+  })
+}
+
+// Fetch all reservations for calendar (regardless of status)
+export function useCalendarReservations() {
+  return useQuery({
+    queryKey: reservationKeys.calendar(),
+    queryFn: () => reservationService.getAllReservationsForCalendar(),
+    staleTime: 0, // Force fresh data
+    refetchOnMount: true,
+    retry: (failureCount) => {
       return failureCount < 3
     },
   })

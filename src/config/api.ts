@@ -33,6 +33,7 @@ export const API_ENDPOINTS = {
   RESERVATIONS: {
     LIST: '/api/reservations/basic/',
     CONFIRMED: '/api/reservation/confirm/',
+    ALL: '/api/reservation/all/',
     CREATE: '/api/reservations',
     GET: (id: string) => `/api/reservations/${id}`,
     UPDATE: (id: string) => `/api/reservations/${id}`,

@@ -135,6 +135,34 @@ class ReservationService {
     }
   }
 
+  /**
+   * Get all reservations for calendar view (regardless of status)
+   * @returns Promise<Reservation[]> All reservations from all statuses
+   */
+  async getAllReservationsForCalendar(): Promise<Reservation[]> {
+    try {
+      const response = await apiCall(API_ENDPOINTS.RESERVATIONS.ALL, {
+        method: 'GET',
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      // Map backend all reservations to frontend format
+      if (data.success && data.data && Array.isArray(data.data)) {
+        return data.data.map((reservation: any) => this.mapBackendDataToReservation(reservation))
+      }
+
+      return []
+    } catch (error) {
+      console.error('Error fetching all reservations for calendar from backend:', error)
+      throw error
+    }
+  }
+
   getFilterOptions() {
     try {
       const filterDataString = sessionStorage.getItem('reservationFilterData')

@@ -1,102 +1,66 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useLanguage } from "@/contexts/LanguageContext"
-import { 
-  ChevronLeft, 
+import { useCalendarReservations } from "@/hooks/useReservations"
+import {
+  ChevronLeft,
   ChevronRight,
   Calendar as CalendarIcon,
   Users,
-  MapPin
+  MapPin,
+  Loader2
 } from "lucide-react"
-import { 
-  format, 
-  startOfMonth, 
-  endOfMonth, 
-  eachDayOfInterval, 
-  getDay, 
-  addMonths, 
-  subMonths, 
-  isSameMonth, 
-  isToday 
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  getDay,
+  addMonths,
+  subMonths,
+  isSameMonth,
+  isToday
 } from "date-fns"
 
-// Mock tour capacity data
-const tourCapacities = {
-  "City Tour": 50,
-  "Wine Tour": 20,
-  "Beach Experience": 30,
-  "Mountain Adventure": 15,
-  "Cultural Tour": 25,
-  "Food Tour": 18
-}
-
-// Mock reservation data with tours
-const reservations = [
-  {
-    id: "R001",
-    date: new Date(2025, 0, 15), // January 15, 2025
-    tour: "City Tour",
-    pax: 8,
-    status: "confirmed",
-    customer: "Maria González"
-  },
-  {
-    id: "R002", 
-    date: new Date(2025, 0, 15),
-    tour: "Wine Tour",
-    pax: 12,
-    status: "confirmed",
-    customer: "João Silva"
-  },
-  {
-    id: "R003",
-    date: new Date(2025, 0, 18),
-    tour: "Beach Experience",
-    pax: 6,
-    status: "confirmed",
-    customer: "Sarah Johnson"
-  },
-  {
-    id: "R004",
-    date: new Date(2025, 0, 18),
-    tour: "City Tour",
-    pax: 15,
-    status: "confirmed",
-    customer: "Carlos Rodriguez"
-  },
-  {
-    id: "R005",
-    date: new Date(2025, 0, 22),
-    tour: "Mountain Adventure",
-    pax: 4,
-    status: "confirmed",
-    customer: "Lisa Chen"
-  },
-  {
-    id: "R006",
-    date: new Date(2025, 0, 25),
-    tour: "Cultural Tour",
-    pax: 9,
-    status: "confirmed",
-    customer: "Ahmed Hassan"
-  },
-  {
-    id: "R007",
-    date: new Date(2025, 0, 28),
-    tour: "Food Tour",
-    pax: 7,
-    status: "confirmed",
-    customer: "Emma Wilson"
-  }
-]
+// Default tour capacity (can be overridden with actual data if available)
+const DEFAULT_TOUR_CAPACITY = 50
 
 export function ReservationCalendar() {
   const { t } = useLanguage()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+
+  // Fetch all reservations from API
+  const { data: apiReservations, isLoading, isError } = useCalendarReservations()
+
+  // Transform API data to calendar format
+  const reservations = useMemo(() => {
+    if (!apiReservations) return []
+
+    return apiReservations.map(reservation => ({
+      id: reservation.id,
+      date: new Date(reservation.tour.date),
+      tour: reservation.tour.name,
+      pax: reservation.passengers.adults + reservation.passengers.children + reservation.passengers.infants,
+      status: reservation.status,
+      customer: reservation.client.name
+    }))
+  }, [apiReservations])
+
+  // Extract unique tours and their capacities
+  const tourCapacities = useMemo(() => {
+    const capacities: { [key: string]: number } = {}
+    reservations.forEach(reservation => {
+      if (!capacities[reservation.tour]) {
+        // Use default capacity for now - can be extended to fetch from tour data
+        capacities[reservation.tour] = DEFAULT_TOUR_CAPACITY
+      }
+    })
+    return capacities
+  }, [reservations])
   
   const dayNames = [
     t('reservations.sun'),
@@ -194,6 +158,50 @@ export function ReservationCalendar() {
 
   const currentYear = currentDate.getFullYear()
   const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i)
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{t('reservations.title')}</h1>
+            <p className="text-muted-foreground">{t('reservations.subtitle')}</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-muted-foreground">Loading reservations...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Error state
+  if (isError) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{t('reservations.title')}</h1>
+            <p className="text-muted-foreground">{t('reservations.subtitle')}</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <p className="text-red-600 font-semibold mb-2">Error loading reservations</p>
+              <p className="text-muted-foreground text-sm">Please try refreshing the page</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
