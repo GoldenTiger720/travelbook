@@ -730,8 +730,6 @@ const QuoteEditFormPage = () => {
         title: 'Success!',
         html: `
           <p>Booking confirmed successfully!</p>
-          <p class="text-sm text-gray-600 mt-2">Reservation ID: ${result.data.reservationId}</p>
-          ${result.data.purchaseOrderId ? `<p class="text-sm text-gray-600">Purchase Order ID: ${result.data.purchaseOrderId}</p>` : ''}
         `,
         icon: 'success',
         confirmButtonText: 'OK',
@@ -826,90 +824,90 @@ const QuoteEditFormPage = () => {
           </div>
 
           <form className="w-full max-w-full overflow-x-hidden" onSubmit={handleSubmit}>
-        <div className="w-full max-w-full overflow-x-hidden space-y-6 sm:space-y-8 lg:space-y-12">
+            <div className="w-full max-w-full overflow-x-hidden space-y-6 sm:space-y-8 lg:space-y-12">
 
-        {/* Booking or quotation configuration */}
-        <QuoteConfigSection
-          assignedTo={formData.assignedTo}
-          currency={formData.pricing?.currency}
-          leadSource={formData.leadSource}
-          users={users}
-          onAssignedToChange={(value) => handleFieldChange('assignedTo', value)}
-          onCurrencyChange={(value) => handleNestedFieldChange('pricing', 'currency', value)}
-          onLeadSourceChange={(value) => handleFieldChange('leadSource', value)}
-        />
+              {/* Booking or quotation configuration */}
+              <QuoteConfigSection
+                assignedTo={formData.assignedTo}
+                currency={formData.pricing?.currency}
+                leadSource={formData.leadSource}
+                users={users}
+                onAssignedToChange={(value) => handleFieldChange('assignedTo', value)}
+                onCurrencyChange={(value) => handleNestedFieldChange('pricing', 'currency', value)}
+                onLeadSourceChange={(value) => handleFieldChange('leadSource', value)}
+              />
 
-        {/* Client Information */}
-        <CustomerInfoSection
-          customer={formData.customer}
-          onCustomerChange={(field, value) => handleNestedFieldChange('customer', field, value)}
-        />
+              {/* Client Information */}
+              <CustomerInfoSection
+                customer={formData.customer}
+                onCustomerChange={(field, value) => handleNestedFieldChange('customer', field, value)}
+              />
 
-        {/* Add Tour */}
-        <TourBookingSection
-          currency={formData.pricing?.currency}
-          getCurrencySymbol={getCurrencySymbol}
-          tourBooking={getCurrentTourBooking()}
-          destinations={destinations}
-          editingTourIndex={editingTourIndex}
-          onTourBookingChange={handleTourBookingChange}
-          onUpdateTour={handleUpdateTour}
-          onCancelEdit={handleCancelEdit}
-        />
+              {/* Add Tour */}
+              <TourBookingSection
+                currency={formData.pricing?.currency}
+                getCurrencySymbol={getCurrencySymbol}
+                tourBooking={getCurrentTourBooking()}
+                destinations={destinations}
+                editingTourIndex={editingTourIndex}
+                onTourBookingChange={handleTourBookingChange}
+                onUpdateTour={handleUpdateTour}
+                onCancelEdit={handleCancelEdit}
+              />
 
-        {/* Bookings List */}
-        <TourListSection
-          tours={formData.tours}
-          currency={formData.pricing?.currency}
-          getCurrencySymbol={getCurrencySymbol}
-          calculateGrandTotal={calculateGrandTotal}
-          onEditTour={handleEditTourFromList}
-          onDeleteTour={handleDeleteTour}
-        />
+              {/* Bookings List */}
+              <TourListSection
+                tours={formData.tours}
+                currency={formData.pricing?.currency}
+                getCurrencySymbol={getCurrencySymbol}
+                calculateGrandTotal={calculateGrandTotal}
+                onEditTour={handleEditTourFromList}
+                onDeleteTour={handleDeleteTour}
+              />
 
-        {/* Payment details */}
-        <PaymentDetailsSection
-          includePayment={formData.includePayment}
-          currency={formData.pricing?.currency}
-          getCurrencySymbol={getCurrencySymbol}
-          calculateGrandTotal={calculateGrandTotal}
-          paymentDate={paymentDate}
-          paymentMethod={paymentMethod}
-          paymentPercentage={paymentPercentage}
-          amountPaid={amountPaid}
-          paymentComments={paymentComments}
-          paymentStatus={paymentStatus}
-          receiptFile={receiptFile}
-          onPaymentDateChange={setPaymentDate}
-          onPaymentMethodChange={setPaymentMethod}
-          onPaymentPercentageChange={setPaymentPercentage}
-          onAmountPaidChange={setAmountPaid}
-          onPaymentCommentsChange={setPaymentComments}
-          onPaymentStatusChange={setPaymentStatus}
-          onReceiptFileChange={setReceiptFile}
-        />
+              {/* Payment details */}
+              <PaymentDetailsSection
+                includePayment={formData.includePayment}
+                currency={formData.pricing?.currency}
+                getCurrencySymbol={getCurrencySymbol}
+                calculateGrandTotal={calculateGrandTotal}
+                paymentDate={paymentDate}
+                paymentMethod={paymentMethod}
+                paymentPercentage={paymentPercentage}
+                amountPaid={amountPaid}
+                paymentComments={paymentComments}
+                paymentStatus={paymentStatus}
+                receiptFile={receiptFile}
+                onPaymentDateChange={setPaymentDate}
+                onPaymentMethodChange={setPaymentMethod}
+                onPaymentPercentageChange={setPaymentPercentage}
+                onAmountPaidChange={setAmountPaid}
+                onPaymentCommentsChange={setPaymentComments}
+                onPaymentStatusChange={setPaymentStatus}
+                onReceiptFileChange={setReceiptFile}
+              />
 
-        {/* Booking Options */}
-        <BookingOptionsSection
-          includePayment={formData.includePayment}
-          copyComments={formData.copyComments}
-          sendPurchaseOrder={formData.sendPurchaseOrder}
-          sendQuotationAccess={formData.sendQuotationAccess}
-          validUntil={formData.validUntil}
-          quotationComments={formData.quotationComments}
-          customerEmail={formData.customer?.email}
-          isQuotationSaved={isQuotationSaved}
-          isBookingPending={updateBookingPaymentMutation.isPending}
-          tourCount={formData.tours?.length || 0}
-          onIncludePaymentChange={(value) => handleFieldChange('includePayment', value)}
-          onCopyCommentsChange={(value) => handleFieldChange('copyComments', value)}
-          onSendPurchaseOrderChange={(value) => handleFieldChange('sendPurchaseOrder', value)}
-          onSendQuotationAccessChange={(value) => handleFieldChange('sendQuotationAccess', value)}
-          onValidUntilChange={(value) => handleFieldChange('validUntil', value)}
-          onQuotationCommentsChange={(value) => handleFieldChange('quotationComments', value)}
-          onBookReservation={handleBookReservation}
-        />
-        </div>
+              {/* Booking Options */}
+              <BookingOptionsSection
+                includePayment={formData.includePayment}
+                copyComments={formData.copyComments}
+                sendPurchaseOrder={formData.sendPurchaseOrder}
+                sendQuotationAccess={formData.sendQuotationAccess}
+                validUntil={formData.validUntil}
+                quotationComments={formData.quotationComments}
+                customerEmail={formData.customer?.email}
+                isQuotationSaved={isQuotationSaved}
+                isBookingPending={updateBookingPaymentMutation.isPending}
+                tourCount={formData.tours?.length || 0}
+                onIncludePaymentChange={(value) => handleFieldChange('includePayment', value)}
+                onCopyCommentsChange={(value) => handleFieldChange('copyComments', value)}
+                onSendPurchaseOrderChange={(value) => handleFieldChange('sendPurchaseOrder', value)}
+                onSendQuotationAccessChange={(value) => handleFieldChange('sendQuotationAccess', value)}
+                onValidUntilChange={(value) => handleFieldChange('validUntil', value)}
+                onQuotationCommentsChange={(value) => handleFieldChange('quotationComments', value)}
+                onBookReservation={handleBookReservation}
+              />
+            </div>
           </form>
         </div>
       </div>
