@@ -218,7 +218,7 @@ const MainLayout = () => {
               <main className="flex-1 p-6 bg-gradient-to-br from-background to-muted/20">
                 <Routes>
                   <Route path="/" element={<DashboardPage />} />
-                  <Route path="/reservations" element={<ReservationsPage />} />
+                  <Route path="/reservation-calendar" element={<ReservationsPage />} />
                   <Route path="/all-reservations" element={<AllReservationsPage />} />
                   <Route path="/reservations/:reservationId/edit" element={<ReservationEditPage />} />
                   <Route path="/quotes" element={<BookQuotePage />} />

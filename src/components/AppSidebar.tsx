@@ -36,7 +36,7 @@ export function AppSidebar() {
   
   const mainItems = [
     { titleKey: "sidebar.dashboard", url: "/", icon: Home },
-    { titleKey: "sidebar.reservations", url: "/reservations", icon: Calendar },
+    { titleKey: "sidebar.reservations", url: "/reservation-calendar", icon: Calendar },
     { titleKey: "sidebar.allReservations", url: "/all-reservations", icon: ClipboardList },
     { titleKey: "sidebar.quotes", url: "/quotes", icon: FileText },
     { titleKey: "sidebar.myQuotes", url: "/my-quotes", icon: BookOpen },
