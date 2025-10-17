@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import Swal from 'sweetalert2'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -161,7 +162,24 @@ const UsersTab: React.FC = () => {
 
   // Handle delete user
   const handleDeleteUser = (userId: string) => {
-    deleteUserMutation.mutate(userId)
+    // Show progress modal
+    Swal.fire({
+      title: 'Deleting User',
+      html: 'Please wait while we delete the user...',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading()
+      }
+    })
+
+    deleteUserMutation.mutate(userId, {
+      onSettled: () => {
+        // Close the progress modal after deletion completes
+        Swal.close()
+      }
+    })
   }
 
   // Export handlers
