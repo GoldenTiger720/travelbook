@@ -3,17 +3,19 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useLanguage } from "@/contexts/LanguageContext"
-import { 
-  Calendar, 
-  DollarSign, 
-  TrendingUp, 
-  Users, 
+import { useDashboardData } from "@/hooks/useDashboard"
+import {
+  Calendar,
+  DollarSign,
+  TrendingUp,
+  Users,
   MapPin,
   ArrowUp,
   ArrowDown,
   AlertCircle,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Loader2
 } from "lucide-react"
 import {
   LineChart,
@@ -28,107 +30,6 @@ import {
   ResponsiveContainer
 } from "recharts"
 
-// Mock data for status alerts
-const statusAlerts = [
-  {
-    id: 1,
-    type: "overdue",
-    title: "Overdue Payment",
-    description: "Invoice #INV-2024-089 for Maria González is 5 days overdue",
-    amount: "$2,450",
-    daysOverdue: 5
-  },
-  {
-    id: 2,
-    type: "pending",
-    title: "Pending Payment",
-    description: "3 invoices totaling $8,320 are due within 3 days",
-    amount: "$8,320",
-    dueIn: 3
-  },
-  {
-    id: 3,
-    type: "pending",
-    title: "Pending Payment",
-    description: "Invoice #INV-2024-095 for João Silva due tomorrow",
-    amount: "$1,890",
-    dueIn: 1
-  }
-]
-
-// Monthly sales data for comparison chart
-const monthlySalesData = [
-  { month: "Jan", 2023: 45000, 2024: 52000, 2025: 58000 },
-  { month: "Feb", 2023: 48000, 2024: 54000, 2025: 61000 },
-  { month: "Mar", 2023: 51000, 2024: 58000, 2025: 65000 },
-  { month: "Apr", 2023: 49000, 2024: 56000, 2025: 63000 },
-  { month: "May", 2023: 53000, 2024: 60000, 2025: 68000 },
-  { month: "Jun", 2023: 55000, 2024: 63000, 2025: 71000 },
-  { month: "Jul", 2023: 58000, 2024: 66000, 2025: 74000 },
-  { month: "Aug", 2023: 60000, 2024: 68000, 2025: 76000 },
-  { month: "Sep", 2023: 57000, 2024: 65000, 2025: 73000 },
-  { month: "Oct", 2023: 54000, 2024: 62000, 2025: 70000 },
-  { month: "Nov", 2023: 52000, 2024: 59000, 2025: 67000 },
-  { month: "Dec", 2023: 56000, 2024: 64000, 2025: 72000 }
-]
-
-// Monthly reservation and PAX data
-const monthlyReservationData = [
-  { month: "Jan", reservations: 45, pax: 156 },
-  { month: "Feb", reservations: 52, pax: 182 },
-  { month: "Mar", reservations: 58, pax: 203 },
-  { month: "Apr", reservations: 54, pax: 189 },
-  { month: "May", reservations: 61, pax: 214 },
-  { month: "Jun", reservations: 67, pax: 235 },
-  { month: "Jul", reservations: 73, pax: 256 },
-  { month: "Aug", reservations: 78, pax: 273 },
-  { month: "Sep", reservations: 71, pax: 249 },
-  { month: "Oct", reservations: 65, pax: 228 },
-  { month: "Nov", reservations: 62, pax: 217 },
-  { month: "Dec", reservations: 69, pax: 242 }
-]
-
-// Metrics will be created inside the component to use translations
-
-const recentReservations = [
-  {
-    id: "R001",
-    customer: "Maria González",
-    destination: "Buenos Aires",
-    date: "2024-01-15",
-    status: "confirmed",
-    amount: "$2,450",
-    pax: 4
-  },
-  {
-    id: "R002", 
-    customer: "João Silva",
-    destination: "Rio de Janeiro",
-    date: "2024-01-18",
-    status: "pending",
-    amount: "$1,890",
-    pax: 2
-  },
-  {
-    id: "R003",
-    customer: "Sarah Johnson",
-    destination: "Patagonia Tour",
-    date: "2024-01-22",
-    status: "confirmed",
-    amount: "$4,200",
-    pax: 6
-  },
-  {
-    id: "R004",
-    customer: "Carlos Rodriguez",
-    destination: "Iguazu Falls",
-    date: "2024-01-25",
-    status: "quoted",
-    amount: "$1,650",
-    pax: 3
-  }
-]
-
 const getStatusColor = (status: string) => {
   switch (status) {
     case "confirmed": return "bg-success text-success-foreground"
@@ -140,37 +41,81 @@ const getStatusColor = (status: string) => {
 
 export function Dashboard() {
   const { t } = useLanguage();
-  
+  const { data: dashboardData, isLoading, isError } = useDashboardData();
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{t('dashboard.title')}</h1>
+          <p className="text-muted-foreground">{t('dashboard.subtitle')}</p>
+        </div>
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-muted-foreground">Loading dashboard data...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Error state
+  if (isError || !dashboardData) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{t('dashboard.title')}</h1>
+          <p className="text-muted-foreground">{t('dashboard.subtitle')}</p>
+        </div>
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <p className="text-red-600 font-semibold mb-2">Error loading dashboard data</p>
+              <p className="text-muted-foreground text-sm">Please try refreshing the page</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Extract data from API response
+  const { statusAlerts, metrics: apiMetrics, monthlySales, monthlyReservations, recentReservations } = dashboardData;
+
   const metrics = [
     {
       title: t('dashboard.totalRevenue'),
-      value: "$127,450",
-      change: "+12.5%",
-      trend: "up",
+      value: apiMetrics.totalRevenue.value,
+      change: apiMetrics.totalRevenue.change,
+      trend: apiMetrics.totalRevenue.trend,
       icon: DollarSign,
       color: "text-success"
     },
     {
       title: t('dashboard.activeReservations'),
-      value: "89",
-      change: "+8.2%",
-      trend: "up",
+      value: apiMetrics.activeReservations.value,
+      change: apiMetrics.activeReservations.change,
+      trend: apiMetrics.activeReservations.trend,
       icon: Calendar,
       color: "text-primary"
     },
     {
       title: t('dashboard.totalCustomers'),
-      value: "1,247",
-      change: "+5.1%",
-      trend: "up",
+      value: apiMetrics.totalCustomers.value,
+      change: apiMetrics.totalCustomers.change,
+      trend: apiMetrics.totalCustomers.trend,
       icon: Users,
       color: "text-accent"
     },
     {
       title: t('dashboard.totalPax'),
-      value: "2,644",
-      change: "+15.3%",
-      trend: "up",
+      value: apiMetrics.totalPax.value,
+      change: apiMetrics.totalPax.change,
+      trend: apiMetrics.totalPax.trend,
       icon: Users,
       color: "text-primary"
     }
@@ -248,7 +193,7 @@ export function Dashboard() {
           <CardContent>
             <div className="w-full overflow-x-auto">
               <ResponsiveContainer width="100%" height={250} minWidth={300}>
-                <LineChart data={monthlySalesData}>
+                <LineChart data={monthlySales}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
                     dataKey="month" 
@@ -281,7 +226,7 @@ export function Dashboard() {
           <CardContent>
             <div className="w-full overflow-x-auto">
               <ResponsiveContainer width="100%" height={250} minWidth={300}>
-                <BarChart data={monthlyReservationData}>
+                <BarChart data={monthlyReservations}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
                     dataKey="month" 

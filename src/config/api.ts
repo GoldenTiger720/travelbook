@@ -40,7 +40,7 @@ export const API_ENDPOINTS = {
     DELETE: (id: string) => `/api/reservations/${id}`,
     SEARCH: '/api/reservations/search',
   },
-  
+
   // Quotes endpoints
   QUOTES: {
     LIST: '/api/quotes',
@@ -147,6 +147,7 @@ export const API_ENDPOINTS = {
   
   // Dashboard endpoints
   DASHBOARD: {
+    ALL_DATA: '/api/dashboard/all-data/',
     STATS: '/api/dashboard/stats',
     CHARTS: '/api/dashboard/charts',
     RECENT_ACTIVITY: '/api/dashboard/recent-activity',
