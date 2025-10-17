@@ -780,9 +780,6 @@ const CustomersPage = () => {
       {/* Customers Table - Desktop */}
       {!isLoading && !error && filteredCustomers.length > 0 && (
         <Card className="hidden lg:block">
-          <CardHeader>
-            <CardTitle>Customer Directory</CardTitle>
-          </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
@@ -791,8 +788,6 @@ const CustomersPage = () => {
                   <TableHead>Contact</TableHead>
                   <TableHead>Location</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Total Spent</TableHead>
-                  <TableHead>Last Booking</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
@@ -809,9 +804,6 @@ const CustomersPage = () => {
                         </Avatar>
                         <div>
                           <div className="font-medium">{customer.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {customer.totalBookings} bookings
-                          </div>
                         </div>
                       </div>
                     </TableCell>
@@ -838,12 +830,6 @@ const CustomersPage = () => {
                         {customer.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="font-medium">
-                      {customer.totalSpent}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {customer.lastBooking}
-                    </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -858,7 +844,6 @@ const CustomersPage = () => {
                             View details
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEditCustomer(customer)}>Edit customer</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleViewBookings(customer)}>View bookings</DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteCustomer(customer)}>
                             Delete customer
@@ -936,8 +921,7 @@ const CustomersPage = () => {
       {/* Customers Cards - Mobile & Tablet */}
       {!isLoading && !error && filteredCustomers.length > 0 && (
         <div className="lg:hidden space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Customer Directory</h2>
+          <div className="flex items-center justify-end">
             <span className="text-sm text-muted-foreground">
               {filteredCustomers.length} customers
             </span>
@@ -989,28 +973,12 @@ const CustomersPage = () => {
                       View details
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleEditCustomer(customer)}>Edit customer</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleViewBookings(customer)}>View bookings</DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteCustomer(customer)}>
                       Delete customer
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              </div>
-              <div className="mt-3 pt-3 border-t border-border">
-                <div className="flex justify-between items-center text-sm">
-                  <div className="flex items-center gap-4">
-                    <span className="text-muted-foreground">
-                      {customer.totalBookings} bookings
-                    </span>
-                    <span className="font-medium">
-                      {customer.totalSpent}
-                    </span>
-                  </div>
-                  <span className="text-muted-foreground">
-                    Last: {customer.lastBooking}
-                  </span>
-                </div>
               </div>
             </Card>
             ))}
