@@ -2,13 +2,15 @@ import { Reservation, ReservationFilters } from '@/types/reservation'
 import { apiCall, API_ENDPOINTS } from '@/config/api'
 
 class ReservationService {
-  private mapBackendDataToReservation(backendReservation: any): Reservation {
-    // Get the first tour from the tours array for now
-    const firstTour = backendReservation.tours && backendReservation.tours.length > 0
-      ? backendReservation.tours[0]
-      : null
+  /**
+   * Maps backend reservation data to frontend format.
+   * Returns an array of Reservation objects - one for each tour in the backend reservation.
+   * This allows each tour to appear separately in the UI for better filtering and analysis.
+   */
+  private mapBackendDataToReservations(backendReservation: any): Reservation[] {
+    const tours = backendReservation.tours || []
 
-    if (!firstTour) {
+    if (tours.length === 0) {
       throw new Error('No tour data found in reservation')
     }
 
@@ -18,67 +20,59 @@ class ReservationService {
       paymentStatus = backendReservation.paymentDetails.status || 'pending'
     }
 
-    return {
-      id: backendReservation.id,
-      reservationNumber: backendReservation.id.split('-')[0].toUpperCase(), // Generate reservation number from id
-      operationDate: new Date(firstTour.date),
-      saleDate: new Date(backendReservation.createdAt || new Date()),
-      status: backendReservation.status,
-      paymentStatus: paymentStatus,
-      client: {
-        name: backendReservation.customer.name,
-        email: backendReservation.customer.email,
-        phone: backendReservation.customer.phone,
-        country: backendReservation.customer.country,
-        idNumber: backendReservation.customer.idNumber || ''
-      },
-      tour: {
-        id: firstTour.tourId || '',
-        name: firstTour.tourName || '',
-        code: firstTour.tourCode || '',
-        destination: firstTour.destinationName || '',
-        date: new Date(firstTour.date),
-        pickupTime: firstTour.pickupTime || '',
-        pickupAddress: firstTour.pickupAddress || ''
-      },
-      passengers: {
-        adults: firstTour.adultPax || 0,
-        children: firstTour.childPax || 0,
-        infants: firstTour.infantPax || 0
-      },
-      pricing: {
-        adultPrice: firstTour.adultPrice || 0,
-        childPrice: firstTour.childPrice || 0,
-        infantPrice: firstTour.infantPrice || 0,
-        totalAmount: backendReservation.totalAmount || 0,
-        currency: backendReservation.currency || 'CLP'
-      },
-      salesperson: backendReservation.fullName || 'Unknown',
-      operator: firstTour.operator !== 'own-operation' ? firstTour.operator : undefined,
-      guide: undefined, // Not present in backend data
-      driver: undefined, // Not present in backend data
-      externalAgency: undefined, // Not present in backend data
-      purchaseOrderNumber: undefined, // Not present in backend data
-      notes: firstTour.comments || '',
-      createdAt: new Date(backendReservation.createdAt || new Date()),
-      updatedAt: new Date(backendReservation.updatedAt || new Date())
-    }
-  }
+    // Create a separate reservation object for each tour
+    return tours.map((tour: any, index: number) => {
+      // Calculate tour-specific total amount (proportional to number of tours)
+      const tourSpecificAmount = tours.length > 1
+        ? (backendReservation.totalAmount || 0) / tours.length
+        : (backendReservation.totalAmount || 0)
 
-  private determinePaymentStatus(payments: any[], totalAmount: number): Reservation['paymentStatus'] {
-    if (!payments || payments.length === 0) {
-      return 'pending'
-    }
-    
-    const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0)
-    
-    if (totalPaid >= totalAmount) {
-      return 'paid'
-    } else if (totalPaid > 0) {
-      return 'partial'
-    } else {
-      return 'pending'
-    }
+      return {
+        id: tours.length > 1 ? `${backendReservation.id}-tour-${index}` : backendReservation.id,
+        reservationNumber: backendReservation.id.split('-')[0].toUpperCase(), // Generate reservation number from id
+        operationDate: new Date(tour.date),
+        saleDate: new Date(backendReservation.createdAt || new Date()),
+        status: backendReservation.status,
+        paymentStatus: paymentStatus,
+        client: {
+          name: backendReservation.customer.name,
+          email: backendReservation.customer.email,
+          phone: backendReservation.customer.phone,
+          country: backendReservation.customer.country,
+          idNumber: backendReservation.customer.idNumber || ''
+        },
+        tour: {
+          id: tour.tourId || '',
+          name: tour.tourName || '',
+          code: tour.tourCode || '',
+          destination: tour.destinationName || '',
+          date: new Date(tour.date),
+          pickupTime: tour.pickupTime || '',
+          pickupAddress: tour.pickupAddress || ''
+        },
+        passengers: {
+          adults: tour.adultPax || 0,
+          children: tour.childPax || 0,
+          infants: tour.infantPax || 0
+        },
+        pricing: {
+          adultPrice: tour.adultPrice || 0,
+          childPrice: tour.childPrice || 0,
+          infantPrice: tour.infantPrice || 0,
+          totalAmount: tourSpecificAmount,
+          currency: backendReservation.currency || 'CLP'
+        },
+        salesperson: backendReservation.fullName || 'Unknown',
+        operator: tour.operator !== 'own-operation' ? tour.operator : undefined,
+        guide: undefined, // Not present in backend data
+        driver: undefined, // Not present in backend data
+        externalAgency: undefined, // Not present in backend data
+        purchaseOrderNumber: undefined, // Not present in backend data
+        notes: tour.comments || '',
+        createdAt: new Date(backendReservation.createdAt || new Date()),
+        updatedAt: new Date(backendReservation.updatedAt || new Date())
+      }
+    })
   }
 
   async getAllReservations(): Promise<Reservation[]> {
@@ -124,8 +118,9 @@ class ReservationService {
       const data = await response.json()
 
       // Map backend confirmed reservations to frontend format
+      // Each backend reservation may have multiple tours, so flatten the array
       if (data.success && data.data && Array.isArray(data.data)) {
-        return data.data.map((reservation: any) => this.mapBackendDataToReservation(reservation))
+        return data.data.flatMap((reservation: any) => this.mapBackendDataToReservations(reservation))
       }
 
       return []
@@ -152,8 +147,9 @@ class ReservationService {
       const data = await response.json()
 
       // Map backend all reservations to frontend format
+      // Each backend reservation may have multiple tours, so flatten the array
       if (data.success && data.data && Array.isArray(data.data)) {
-        return data.data.map((reservation: any) => this.mapBackendDataToReservation(reservation))
+        return data.data.flatMap((reservation: any) => this.mapBackendDataToReservations(reservation))
       }
 
       return []
@@ -315,13 +311,16 @@ class ReservationService {
       }
 
       const data = await response.json()
-      
+
       // Map the backend data structure to frontend format
+      // Returns the first tour if multiple tours exist
       if (data.success && data.data) {
-        return this.mapBackendDataToReservation(data.data)
+        const reservations = this.mapBackendDataToReservations(data.data)
+        return reservations.length > 0 ? reservations[0] : null
       }
-      
-      return data ? this.mapBackendDataToReservation(data) : null
+
+      const reservations = data ? this.mapBackendDataToReservations(data) : []
+      return reservations.length > 0 ? reservations[0] : null
     } catch (error) {
       console.error('Error fetching reservation from backend:', error)
       throw error

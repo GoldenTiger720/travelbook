@@ -699,13 +699,20 @@ const AllReservationsPage = () => {
                     <TableBody>
                       {filteredReservations.slice(0, 50).map((reservation) => (
                         <React.Fragment key={reservation.id}>
-                          <TableRow 
+                          <TableRow
                             className="cursor-pointer hover:bg-muted/50"
                             onClick={() => toggleRowExpansion(reservation.id)}
                           >
                             <TableCell className="font-medium">
                               <div>
-                                <div className="text-xs font-semibold">{reservation.reservationNumber}</div>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs font-semibold">{reservation.reservationNumber}</span>
+                                  {filteredReservations.filter(r => r.reservationNumber === reservation.reservationNumber).length > 1 && (
+                                    <Badge className="bg-blue-100 text-blue-800 text-xs px-1 py-0">
+                                      Multi
+                                    </Badge>
+                                  )}
+                                </div>
                                 {reservation.purchaseOrderNumber && (
                                   <div className="text-xs text-muted-foreground">
                                     {t('allReservations.po')}: {reservation.purchaseOrderNumber}
@@ -865,7 +872,14 @@ const AllReservationsPage = () => {
                       {/* Header with Reservation Number and Status */}
                       <div className="flex items-start justify-between mb-3">
                         <div className="min-w-0 flex-1">
-                          <div className="font-semibold text-sm truncate">{reservation.reservationNumber}</div>
+                          <div className="flex items-center gap-1">
+                            <span className="font-semibold text-sm truncate">{reservation.reservationNumber}</span>
+                            {filteredReservations.filter(r => r.reservationNumber === reservation.reservationNumber).length > 1 && (
+                              <Badge className="bg-blue-100 text-blue-800 text-xs px-1 py-0 flex-shrink-0">
+                                Multi
+                              </Badge>
+                            )}
+                          </div>
                           {reservation.purchaseOrderNumber && (
                             <div className="text-xs text-muted-foreground">
                               {t('allReservations.po')}: {reservation.purchaseOrderNumber}
