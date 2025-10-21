@@ -1,0 +1,10 @@
+// Export all customer components
+export { AddCustomerDialog } from './AddCustomerDialog'
+export { EditCustomerDialog } from './EditCustomerDialog'
+export { ViewCustomerDetailsDialog } from './ViewCustomerDetailsDialog'
+export { ViewCustomerBookingsDialog } from './ViewCustomerBookingsDialog'
+export { CustomersTable } from './CustomersTable'
+export { CustomerCards } from './CustomerCards'
+export { CustomerStatsCards } from './CustomerStatsCards'
+export * from './types'
+export * from './utils'

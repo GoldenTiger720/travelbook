@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -43,6 +44,7 @@ import {
   Printer,
   Send,
   Download,
+  AlertCircle,
   Share2,
   Eye,
   Edit,
@@ -108,6 +110,22 @@ const ReservationEditPage = () => {
 
   // Dialog state
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
+  const [isEditCustomerOpen, setIsEditCustomerOpen] = useState(false)
+
+  // Edit customer state
+  const [editCustomer, setEditCustomer] = useState({
+    name: '',
+    id_number: '',
+    email: '',
+    phone: '',
+    language: '',
+    country: '',
+    cpf: '',
+    address: '',
+    hotel: '',
+    room: '',
+    comments: ''
+  })
 
   useEffect(() => {
     loadReservationDataFromCache()
@@ -330,6 +348,46 @@ const ReservationEditPage = () => {
     setIsPaymentDialogOpen(true)
   }
 
+  const handleOpenCustomerDialog = () => {
+    // Populate the edit form with current customer data
+    setEditCustomer({
+      name: reservation?.client.name || '',
+      id_number: reservation?.client.idNumber || '',
+      email: reservation?.client.email || '',
+      phone: reservation?.client.phone || '',
+      language: '', // Not available in reservation data
+      country: reservation?.client.country || '',
+      cpf: '',
+      address: '',
+      hotel: '',
+      room: '',
+      comments: ''
+    })
+    setIsEditCustomerOpen(true)
+  }
+
+  const handleSaveCustomer = () => {
+    // Update the reservation's client data
+    if (reservation) {
+      setReservation({
+        ...reservation,
+        client: {
+          ...reservation.client,
+          name: editCustomer.name,
+          idNumber: editCustomer.id_number,
+          email: editCustomer.email,
+          phone: editCustomer.phone,
+          country: editCustomer.country
+        }
+      })
+    }
+    setIsEditCustomerOpen(false)
+    toast({
+      title: 'Success',
+      description: 'Customer information updated successfully',
+    })
+  }
+
   // Helper functions for payment details
   const getCurrencySymbol = (currency: string) => {
     const symbols: { [key: string]: string } = {
@@ -490,28 +548,49 @@ const ReservationEditPage = () => {
         </div>
 
         {/* Action Buttons */}
-        <Card className="mb-6">
-          <CardContent className="p-4">
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={handlePrint}>
-                <Printer className="w-4 h-4 mr-2" />
-                Print
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleSendEmail}>
-                <Send className="w-4 h-4 mr-2" />
-                Send Email
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
-                <Download className="w-4 h-4 mr-2" />
-                Download PDF
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleShare}>
-                <Share2 className="w-4 h-4 mr-2" />
-                Share Link
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="mb-6 flex flex-wrap gap-3">
+          <Button
+            className="bg-indigo-500 hover:bg-indigo-600 text-white"
+            onClick={handleOpenCustomerDialog}
+          >
+            <User className="w-4 h-4 mr-2" />
+            Modify customer data
+          </Button>
+          <Button
+            className="bg-red-500 hover:bg-red-600 text-white"
+            onClick={() => {
+              // Handle terms and conditions
+              toast({
+                title: 'Terms and Conditions',
+                description: 'Terms and conditions not yet accepted',
+                variant: 'destructive'
+              })
+            }}
+          >
+            <AlertCircle className="w-4 h-4 mr-2" />
+            Terms and conditions not yet accepted
+          </Button>
+          <Button
+            className="bg-blue-500 hover:bg-blue-600 text-white"
+            onClick={handleShare}
+          >
+            <Share2 className="w-4 h-4 mr-2" />
+            Link
+          </Button>
+          <Button
+            className="bg-blue-500 hover:bg-blue-600 text-white"
+            onClick={handleSendEmail}
+          >
+            <Send className="w-4 h-4 mr-2" />
+            Send
+          </Button>
+          <Button
+            className="bg-blue-500 hover:bg-blue-600 text-white p-3"
+            onClick={handlePrint}
+          >
+            <Printer className="w-4 h-4" />
+          </Button>
+        </div>
 
         <div className="space-y-6">
           {/* Purchase Order Header */}
@@ -1022,8 +1101,8 @@ const ReservationEditPage = () => {
 
         {/* Bottom Save Button */}
         <div className="mt-8 flex justify-end gap-3">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => navigate('/all-reservations')}
           >
             Cancel
@@ -1033,6 +1112,134 @@ const ReservationEditPage = () => {
             {saving ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
+
+        {/* Edit Customer Dialog */}
+        <Dialog open={isEditCustomerOpen} onOpenChange={setIsEditCustomerOpen}>
+          <DialogContent className="w-[95vw] max-w-[525px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Customer</DialogTitle>
+              <DialogDescription>
+                Update customer information and save changes.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-name">Full name</Label>
+                  <Input
+                    id="edit-name"
+                    placeholder="Enter full name"
+                    value={editCustomer.name}
+                    onChange={(e) => setEditCustomer({...editCustomer, name: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-id_number">ID/Passport</Label>
+                  <Input
+                    id="edit-id_number"
+                    placeholder="Enter ID or passport number"
+                    value={editCustomer.id_number}
+                    onChange={(e) => setEditCustomer({...editCustomer, id_number: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-email">Email</Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    placeholder="Enter email address"
+                    value={editCustomer.email}
+                    onChange={(e) => setEditCustomer({...editCustomer, email: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-phone">Phone</Label>
+                  <Input
+                    id="edit-phone"
+                    type="tel"
+                    placeholder="Enter phone number"
+                    value={editCustomer.phone}
+                    onChange={(e) => setEditCustomer({...editCustomer, phone: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-country">Country of origin</Label>
+                  <Input
+                    id="edit-country"
+                    placeholder="Enter country of origin"
+                    value={editCustomer.country}
+                    onChange={(e) => setEditCustomer({...editCustomer, country: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-cpf">CPF</Label>
+                  <Input
+                    id="edit-cpf"
+                    placeholder="Enter CPF (Brazilian tax ID)"
+                    value={editCustomer.cpf}
+                    onChange={(e) => setEditCustomer({...editCustomer, cpf: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="edit-address">Address</Label>
+                <Input
+                  id="edit-address"
+                  placeholder="Enter full address"
+                  value={editCustomer.address}
+                  onChange={(e) => setEditCustomer({...editCustomer, address: e.target.value})}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-hotel">Hotel</Label>
+                  <Input
+                    id="edit-hotel"
+                    placeholder="Enter hotel name"
+                    value={editCustomer.hotel}
+                    onChange={(e) => setEditCustomer({...editCustomer, hotel: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-room">Room number</Label>
+                  <Input
+                    id="edit-room"
+                    placeholder="Enter room number"
+                    value={editCustomer.room}
+                    onChange={(e) => setEditCustomer({...editCustomer, room: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="edit-comments">Comments</Label>
+                <Textarea
+                  id="edit-comments"
+                  placeholder="Add any additional comments or notes..."
+                  value={editCustomer.comments}
+                  onChange={(e) => setEditCustomer({...editCustomer, comments: e.target.value})}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditCustomerOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveCustomer} className="bg-indigo-500 hover:bg-indigo-600">
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )
