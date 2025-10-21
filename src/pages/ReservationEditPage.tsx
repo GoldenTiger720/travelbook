@@ -122,12 +122,6 @@ const ReservationEditPage = () => {
       if (cachedReservations && reservationId) {
         const foundReservation = cachedReservations.find((r: Reservation) => r.id === reservationId)
         if (foundReservation) {
-          console.log('Found reservation in cache:', {
-            id: foundReservation.id,
-            salesperson: foundReservation.salesperson,
-            email: foundReservation.email,
-            phone: foundReservation.phone
-          })
           setReservation(foundReservation)
         } else {
           toast({
@@ -763,14 +757,14 @@ const ReservationEditPage = () => {
                       {/* Payment Date */}
                       <TableCell className="align-top py-3">
                         <span className="text-sm">
-                          {paymentDate ? format(paymentDate, "dd/MM/yyyy") : "-"}
+                          {reservation.paymentDetails?.date ? format(new Date(reservation.paymentDetails.date), "dd/MM/yyyy") : "-"}
                         </span>
                       </TableCell>
 
                       {/* Payment Method */}
                       <TableCell className="align-top py-3">
                         <span className="text-sm capitalize">
-                          {paymentMethod.replace('-', ' ')}
+                          {reservation.paymentDetails?.method ? reservation.paymentDetails.method.replace('-', ' ') : '-'}
                         </span>
                       </TableCell>
 
@@ -786,14 +780,14 @@ const ReservationEditPage = () => {
                       {/* Percentage */}
                       <TableCell className="align-top py-3">
                         <span className="text-sm">
-                          {paymentPercentage}%
+                          {reservation.paymentDetails?.percentage || 0}%
                         </span>
                       </TableCell>
 
                       {/* Amount Paid */}
                       <TableCell className="align-top py-3">
                         <span className="text-sm font-medium">
-                          {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {amountPaid.toLocaleString()}
+                          {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {(reservation.paymentDetails?.amountPaid || 0).toLocaleString()}
                         </span>
                       </TableCell>
 
@@ -801,7 +795,12 @@ const ReservationEditPage = () => {
                       <TableCell className="align-top py-3">
                         <div className="p-2 bg-gray-100 border rounded-md text-center">
                           <span className="font-semibold text-sm text-red-600">
-                            {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {(calculateGrandTotal() - amountPaid).toLocaleString()}
+                            {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {
+                              (reservation.paymentDetails?.status === 'paid'
+                                ? 0
+                                : calculateGrandTotal() - (reservation.paymentDetails?.amountPaid || 0)
+                              ).toLocaleString()
+                            }
                           </span>
                         </div>
                       </TableCell>
@@ -809,7 +808,7 @@ const ReservationEditPage = () => {
                       {/* Receipt */}
                       <TableCell className="align-top py-3">
                         <span className="text-sm text-muted-foreground">
-                          {receiptFile ? receiptFile.name : "-"}
+                          {reservation.paymentDetails?.receiptFile ? "View" : "-"}
                         </span>
                       </TableCell>
 
@@ -817,13 +816,13 @@ const ReservationEditPage = () => {
                       <TableCell className="align-top py-3">
                         <Badge className={cn(
                           "text-xs",
-                          paymentStatus === 'paid' && "bg-green-100 text-green-800",
-                          paymentStatus === 'refunded' && "bg-red-100 text-red-800",
-                          paymentStatus === 'cancelled' && "bg-red-100 text-red-800",
-                          paymentStatus === 'pending' && "bg-yellow-100 text-yellow-800",
-                          paymentStatus === 'partial' && "bg-blue-100 text-blue-800"
+                          reservation.paymentDetails?.status === 'paid' && "bg-green-100 text-green-800",
+                          reservation.paymentDetails?.status === 'refunded' && "bg-red-100 text-red-800",
+                          reservation.paymentDetails?.status === 'cancelled' && "bg-red-100 text-red-800",
+                          reservation.paymentDetails?.status === 'pending' && "bg-yellow-100 text-yellow-800",
+                          reservation.paymentDetails?.status === 'partial' && "bg-blue-100 text-blue-800"
                         )}>
-                          {paymentStatus.charAt(0).toUpperCase() + paymentStatus.slice(1)}
+                          {reservation.paymentDetails?.status ? reservation.paymentDetails.status.charAt(0).toUpperCase() + reservation.paymentDetails.status.slice(1) : 'Pending'}
                         </Badge>
                       </TableCell>
 
@@ -849,7 +848,7 @@ const ReservationEditPage = () => {
                 <div className="flex justify-end items-center mb-6 pb-4 border-b">
                   <span className="text-sm font-medium text-gray-600 mr-4">Total payments:</span>
                   <span className="text-xl font-bold text-gray-800">
-                    {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {amountPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {(reservation.paymentDetails?.amountPaid || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
 

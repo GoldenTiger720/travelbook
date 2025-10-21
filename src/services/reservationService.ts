@@ -79,19 +79,12 @@ class ReservationService {
         externalAgency: undefined, // Not present in backend data
         purchaseOrderNumber: undefined, // Not present in backend data
         notes: tour.comments || '',
+        paymentDetails: backendReservation.paymentDetails || undefined,
         createdAt: new Date(backendReservation.createdAt || new Date()),
         updatedAt: new Date(backendReservation.updatedAt || new Date())
       }
     }).map((reservation, index) => {
       // Debug: Log the mapped reservation to verify email and phone are included
-      if (index === 0) {
-        console.log('Mapped reservation data:', {
-          id: reservation.id,
-          salesperson: reservation.salesperson,
-          email: reservation.email,
-          phone: reservation.phone
-        })
-      }
       return reservation
     })
   }

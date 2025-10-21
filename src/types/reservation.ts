@@ -1,3 +1,19 @@
+export interface PaymentDetails {
+  id: number
+  date: string
+  method: string
+  percentage: number
+  amountPaid: number
+  comments?: string
+  status: 'pending' | 'partial' | 'paid' | 'refunded' | 'cancelled'
+  receiptFile?: string
+  copyComments?: boolean
+  includePayment?: boolean
+  quoteComments?: string
+  sendPurchaseOrder?: boolean
+  sendQuotationAccess?: boolean
+}
+
 export interface Reservation {
   id: string
   reservationNumber: string
@@ -42,6 +58,7 @@ export interface Reservation {
   externalAgency?: string
   purchaseOrderNumber?: string
   notes?: string
+  paymentDetails?: PaymentDetails
   createdAt: Date
   updatedAt: Date
 }
