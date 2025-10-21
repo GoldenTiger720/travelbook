@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { reservationKeys, useReservationUniqueValues } from '@/hooks/useReservations'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,8 +11,23 @@ import { Textarea } from '@/components/ui/textarea'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { Reservation } from '@/types/reservation'
 import { format } from 'date-fns'
@@ -24,58 +41,108 @@ import {
   MapPin,
   Users,
   DollarSign,
-  Building2,
   FileText,
-  Clock,
   Mail,
   Phone,
   Globe,
   Hash,
-  UserCheck,
-  Baby,
-  UserPlus,
-  Car,
   AlertCircle,
   Printer,
   Send,
   Download,
-  Share2
+  Share2,
+  Plus,
+  Trash2,
+  CreditCard,
+  RefreshCcw,
+  Eye
 } from 'lucide-react'
+
+// Payment interface
+interface Payment {
+  id: string
+  date: Date
+  method: string
+  amount: number
+  status: 'completed' | 'refunded' | 'pending'
+  notes?: string
+  refundedAmount?: number
+  refundDate?: Date
+  refundReason?: string
+}
 
 const ReservationEditPage = () => {
   const { reservationId } = useParams()
   const navigate = useNavigate()
   const { toast } = useToast()
-  
+  const queryClient = useQueryClient()
+
   const [reservation, setReservation] = useState<Reservation | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [filterOptions, setFilterOptions] = useState<any>({
-    salespersons: [],
-    operators: [],
-    guides: [],
-    drivers: [],
-    agencies: [],
-    tours: []
+
+  // Use React Query hook for unique values
+  const { data: uniqueValues, isLoading: isLoadingUniqueValues } = useReservationUniqueValues()
+
+  // Payment history state
+  const [payments, setPayments] = useState<Payment[]>([])
+
+  // New payment form state
+  const [newPayment, setNewPayment] = useState({
+    date: new Date(),
+    method: 'credit-card',
+    amount: 0,
+    notes: ''
   })
 
+  // Dialog state
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
+
   useEffect(() => {
-    loadReservationData()
+    loadReservationDataFromCache()
   }, [reservationId])
 
-  const loadReservationData = async () => {
+  const loadReservationDataFromCache = () => {
     setLoading(true)
     try {
-      const [reservations, uniqueValues] = await Promise.all([
-        reservationService.getAllReservations(),
-        reservationService.getUniqueValues()
-      ])
-      
+      // Get cached reservations from React Query
+      const cachedReservations = queryClient.getQueryData<Reservation[]>(reservationKeys.lists())
+
+      if (cachedReservations && reservationId) {
+        const foundReservation = cachedReservations.find((r: Reservation) => r.id === reservationId)
+        if (foundReservation) {
+          setReservation(foundReservation)
+        } else {
+          toast({
+            title: 'Error',
+            description: 'Reservation not found in cache',
+            variant: 'destructive'
+          })
+        }
+      } else {
+        // Fallback: If cache is empty, fetch from API
+        loadReservationDataFromAPI()
+        return
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to load reservation',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadReservationDataFromAPI = async () => {
+    setLoading(true)
+    try {
+      const reservations = await reservationService.getAllReservations()
       const foundReservation = reservations.find((r: Reservation) => r.id === reservationId)
       if (foundReservation) {
         setReservation(foundReservation)
       }
-      setFilterOptions(uniqueValues)
     } catch (error) {
       toast({
         title: 'Error',
@@ -186,6 +253,127 @@ const ReservationEditPage = () => {
       title: 'Link Copied',
       description: 'Reservation link copied to clipboard',
     })
+  }
+
+  // Payment handlers
+  const handleAddPayment = () => {
+    if (!reservation) return
+
+    if (newPayment.amount <= 0) {
+      toast({
+        title: 'Validation Error',
+        description: 'Payment amount must be greater than 0',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    const totalPaid = payments
+      .filter(p => p.status === 'completed')
+      .reduce((sum, p) => sum + p.amount, 0)
+
+    const totalAmount =
+      (reservation.passengers.adults * reservation.pricing.adultPrice) +
+      (reservation.passengers.children * reservation.pricing.childPrice) +
+      (reservation.passengers.infants * reservation.pricing.infantPrice)
+
+    if (totalPaid + newPayment.amount > totalAmount) {
+      toast({
+        title: 'Validation Error',
+        description: 'Payment amount exceeds remaining balance',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    const payment: Payment = {
+      id: Date.now().toString(),
+      date: newPayment.date,
+      method: newPayment.method,
+      amount: newPayment.amount,
+      status: 'completed',
+      notes: newPayment.notes
+    }
+
+    setPayments([...payments, payment])
+
+    // Reset form and close dialog
+    setNewPayment({
+      date: new Date(),
+      method: 'credit-card',
+      amount: 0,
+      notes: ''
+    })
+    setIsPaymentDialogOpen(false)
+
+    toast({
+      title: 'Payment Added',
+      description: `Payment of ${reservationService.formatCurrency(payment.amount, reservation.pricing.currency)} has been recorded`,
+    })
+  }
+
+  const handleOpenPaymentDialog = () => {
+    setIsPaymentDialogOpen(true)
+  }
+
+  const handleRefundPayment = (paymentId: string) => {
+    const payment = payments.find(p => p.id === paymentId)
+    if (!payment || !reservation) return
+
+    if (payment.status === 'refunded') {
+      toast({
+        title: 'Already Refunded',
+        description: 'This payment has already been refunded',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    // For now, refund the full amount. You can add a modal to specify partial refund
+    setPayments(payments.map(p =>
+      p.id === paymentId
+        ? {
+            ...p,
+            status: 'refunded' as const,
+            refundedAmount: p.amount,
+            refundDate: new Date()
+          }
+        : p
+    ))
+
+    toast({
+      title: 'Payment Refunded',
+      description: `Refund of ${reservationService.formatCurrency(payment.amount, reservation.pricing.currency)} has been processed`,
+    })
+  }
+
+  const handleDeletePayment = (paymentId: string) => {
+    setPayments(payments.filter(p => p.id !== paymentId))
+    toast({
+      title: 'Payment Deleted',
+      description: 'Payment record has been removed',
+    })
+  }
+
+  const calculatePaymentSummary = () => {
+    if (!reservation) return { total: 0, paid: 0, refunded: 0, remaining: 0 }
+
+    const totalAmount =
+      (reservation.passengers.adults * reservation.pricing.adultPrice) +
+      (reservation.passengers.children * reservation.pricing.childPrice) +
+      (reservation.passengers.infants * reservation.pricing.infantPrice)
+
+    const paid = payments
+      .filter(p => p.status === 'completed')
+      .reduce((sum, p) => sum + p.amount, 0)
+
+    const refunded = payments
+      .filter(p => p.status === 'refunded')
+      .reduce((sum, p) => sum + (p.refundedAmount || 0), 0)
+
+    const remaining = totalAmount - paid + refunded
+
+    return { total: totalAmount, paid, refunded, remaining }
   }
 
   const getStatusColor = (status: string) => {
@@ -508,267 +696,324 @@ const ReservationEditPage = () => {
             </CardContent>
           </Card>
 
-          {/* Tour Details */}
+          {/* Reservations */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="w-5 h-5" />
-                Tour Details
+                Reservations
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="tourSelect">Tour</Label>
-                <Select 
-                  value={reservation.tour.id} 
-                  onValueChange={(value) => {
-                    const selectedTour = filterOptions.tours.find((t: any) => t.id === value)
-                    if (selectedTour) {
-                      handleFieldChange('tour', {
-                        ...reservation.tour,
-                        id: selectedTour.id,
-                        name: selectedTour.name
-                      })
-                    }
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filterOptions.tours.map((tour: any) => (
-                      <SelectItem key={tour.id} value={tour.id}>
-                        {tour.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="w-[120px]">Date</TableHead>
+                      <TableHead className="min-w-[200px]">Tour</TableHead>
+                      <TableHead className="w-[120px]">Status</TableHead>
+                      <TableHead className="w-[80px] text-center">PAX</TableHead>
+                      <TableHead className="w-[120px] text-right">Price</TableHead>
+                      <TableHead className="w-[120px] text-right">Subtotal</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="align-top py-3">
+                        <div className="text-sm font-medium">
+                          {format(reservation.operationDate, "yyyy-MM-dd")}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          * {reservation.tour.pickupTime}
+                        </div>
+                        <div className="text-xs font-medium mt-1">
+                          {format(reservation.operationDate, 'EEEE')}
+                        </div>
+                      </TableCell>
+                      <TableCell className="align-top py-3">
+                        <div className="space-y-2">
+                          <div className="font-medium text-sm">{reservation.tour.name}</div>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <span className="font-mono">{reservation.reservationNumber}</span>
+                            <Button variant="ghost" size="sm" className="h-4 w-4 p-0">
+                              <Eye className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-4 w-4 p-0">
+                              <Mail className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <div className="text-xs flex items-start gap-1">
+                            <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                            <span>{reservation.tour.pickupAddress}</span>
+                          </div>
+                          {reservation.notes && (
+                            <div className="text-xs flex items-start gap-1">
+                              <span className="text-muted-foreground">ℹ️</span>
+                              <span className="text-muted-foreground">{reservation.notes}</span>
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="align-top py-3">
+                        <Badge className={cn(
+                          "text-xs",
+                          reservation.status === 'confirmed' && "bg-blue-100 text-blue-800",
+                          reservation.status === 'pending' && "bg-yellow-100 text-yellow-800",
+                          reservation.status === 'cancelled' && "bg-red-100 text-red-800",
+                          reservation.status === 'completed' && "bg-green-100 text-green-800"
+                        )}>
+                          {reservation.status === 'confirmed' ? 'Reserved' :
+                           reservation.status === 'cancelled' ? 'Canceled' :
+                           reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="align-top py-3 text-center">
+                        <div className="text-sm font-medium">
+                          {reservation.passengers.adults + reservation.passengers.children + reservation.passengers.infants}
+                        </div>
+                      </TableCell>
+                      <TableCell className="align-top py-3 text-right">
+                        <div className="text-sm">
+                          {reservationService.formatCurrency(reservation.pricing.adultPrice, reservation.pricing.currency)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="align-top py-3 text-right font-semibold">
+                        {reservationService.formatCurrency(
+                          (reservation.passengers.adults * reservation.pricing.adultPrice) +
+                          (reservation.passengers.children * reservation.pricing.childPrice) +
+                          (reservation.passengers.infants * reservation.pricing.infantPrice),
+                          reservation.pricing.currency
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="tourCode">Tour Code</Label>
-                  <Input
-                    id="tourCode"
-                    value={reservation.tour.code}
-                    onChange={(e) => handleFieldChange('code', e.target.value, 'tour')}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="tourDestination">Destination</Label>
-                  <Input
-                    id="tourDestination"
-                    value={reservation.tour.destination}
-                    onChange={(e) => handleFieldChange('destination', e.target.value, 'tour')}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="pickupTime">Pickup Time</Label>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="pickupTime"
-                      className="pl-10"
-                      value={reservation.tour.pickupTime}
-                      onChange={(e) => handleFieldChange('pickupTime', e.target.value, 'tour')}
-                    />
+              <div className="border-t p-4 bg-muted/20">
+                <div className="flex justify-end items-center gap-4">
+                  <div className="text-sm font-semibold">Total reservations:</div>
+                  <div className="text-lg font-bold text-primary">
+                    {reservationService.formatCurrency(
+                      (reservation.passengers.adults * reservation.pricing.adultPrice) +
+                      (reservation.passengers.children * reservation.pricing.childPrice) +
+                      (reservation.passengers.infants * reservation.pricing.infantPrice),
+                      reservation.pricing.currency
+                    )}
                   </div>
                 </div>
-                <div>
-                  <Label htmlFor="pickupAddress">Pickup Address</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="pickupAddress"
-                      className="pl-10"
-                      value={reservation.tour.pickupAddress}
-                      onChange={(e) => handleFieldChange('pickupAddress', e.target.value, 'tour')}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div>
-                <Label className="mb-3 block">Passengers</Label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="adults" className="text-sm text-muted-foreground">Adults</Label>
-                    <div className="relative">
-                      <UserCheck className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="adults"
-                        type="number"
-                        min="0"
-                        className="pl-10"
-                        value={reservation.passengers.adults}
-                        onChange={(e) => handleFieldChange('adults', parseInt(e.target.value) || 0, 'passengers')}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="children" className="text-sm text-muted-foreground">Children</Label>
-                    <div className="relative">
-                      <UserPlus className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="children"
-                        type="number"
-                        min="0"
-                        className="pl-10"
-                        value={reservation.passengers.children}
-                        onChange={(e) => handleFieldChange('children', parseInt(e.target.value) || 0, 'passengers')}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="infants" className="text-sm text-muted-foreground">Infants</Label>
-                    <div className="relative">
-                      <Baby className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="infants"
-                        type="number"
-                        min="0"
-                        className="pl-10"
-                        value={reservation.passengers.infants}
-                        onChange={(e) => handleFieldChange('infants', parseInt(e.target.value) || 0, 'passengers')}
-                      />
-                    </div>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Total Passengers: {reservation.passengers.adults + reservation.passengers.children + reservation.passengers.infants} PAX
-                </p>
               </div>
             </CardContent>
           </Card>
 
-          {/* Pricing Details */}
+          {/* Payments */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <DollarSign className="w-5 h-5" />
-                Pricing Details
+                Payments
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="currency">Currency</Label>
-                <Select 
-                  value={reservation.pricing.currency} 
-                  onValueChange={(value) => handleFieldChange('currency', value, 'pricing')}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD - US Dollar</SelectItem>
-                    <SelectItem value="EUR">EUR - Euro</SelectItem>
-                    <SelectItem value="CLP">CLP - Chilean Peso</SelectItem>
-                    <SelectItem value="BRL">BRL - Brazilian Real</SelectItem>
-                    <SelectItem value="ARS">ARS - Argentine Peso</SelectItem>
-                  </SelectContent>
-                </Select>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="w-[140px]">Date</TableHead>
+                      <TableHead className="w-[120px]">Payment ID</TableHead>
+                      <TableHead className="w-[100px]">Status</TableHead>
+                      <TableHead className="w-[100px]">Receipt</TableHead>
+                      <TableHead className="w-[150px]">Payment Method</TableHead>
+                      <TableHead className="min-w-[150px]">Payment remarks</TableHead>
+                      <TableHead className="w-[150px]">Recipient</TableHead>
+                      <TableHead className="w-[120px] text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {payments.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                          <CreditCard className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">No payments recorded yet</p>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      payments.map((payment) => (
+                        <TableRow key={payment.id} className={payment.status === 'refunded' ? 'bg-red-50' : ''}>
+                          <TableCell className="align-top py-3">
+                            <div className="text-sm">
+                              {format(payment.date, 'yyyy-MM-dd')}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {format(payment.date, 'EEEE, HH:mm')}hrs.
+                            </div>
+                          </TableCell>
+                          <TableCell className="align-top py-3">
+                            <div className="flex items-center gap-1">
+                              <Eye className="h-3 w-3 text-blue-600" />
+                              <span className="text-sm font-mono">PAY-{payment.id.slice(0, 3)}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="align-top py-3">
+                            <Badge className={cn(
+                              "text-xs",
+                              payment.status === 'completed' && "bg-green-100 text-green-800",
+                              payment.status === 'refunded' && "bg-red-100 text-red-800",
+                              payment.status === 'pending' && "bg-yellow-100 text-yellow-800"
+                            )}>
+                              {payment.status === 'refunded' ? 'Anulado' : payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="align-top py-3">
+                            <span className="text-sm text-muted-foreground">-</span>
+                          </TableCell>
+                          <TableCell className="align-top py-3">
+                            <span className="text-sm capitalize">{payment.method.replace('-', ' ')}</span>
+                          </TableCell>
+                          <TableCell className="align-top py-3">
+                            <span className="text-sm">{payment.notes || '-'}</span>
+                          </TableCell>
+                          <TableCell className="align-top py-3">
+                            <span className="text-sm">{reservation.client.name}</span>
+                          </TableCell>
+                          <TableCell className="align-top py-3 text-right">
+                            <div className={cn(
+                              "text-sm font-semibold",
+                              payment.status === 'refunded' && "line-through text-red-600"
+                            )}>
+                              {reservationService.formatCurrency(payment.amount, reservation.pricing.currency)}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="adultPrice">Adult Price</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-3 text-sm text-muted-foreground">
-                      {reservation.pricing.currency}
-                    </span>
-                    <Input
-                      id="adultPrice"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      className="pl-12"
-                      value={reservation.pricing.adultPrice}
-                      onChange={(e) => handleFieldChange('adultPrice', parseFloat(e.target.value) || 0, 'pricing')}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="childPrice">Child Price</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-3 text-sm text-muted-foreground">
-                      {reservation.pricing.currency}
-                    </span>
-                    <Input
-                      id="childPrice"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      className="pl-12"
-                      value={reservation.pricing.childPrice}
-                      onChange={(e) => handleFieldChange('childPrice', parseFloat(e.target.value) || 0, 'pricing')}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="infantPrice">Infant Price</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-3 text-sm text-muted-foreground">
-                      {reservation.pricing.currency}
-                    </span>
-                    <Input
-                      id="infantPrice"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      className="pl-12"
-                      value={reservation.pricing.infantPrice}
-                      onChange={(e) => handleFieldChange('infantPrice', parseFloat(e.target.value) || 0, 'pricing')}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                <h4 className="font-semibold mb-3">Price Breakdown</h4>
+              <div className="border-t p-4 bg-muted/20">
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Adults ({reservation.passengers.adults} × {reservationService.formatCurrency(reservation.pricing.adultPrice, reservation.pricing.currency)}):</span>
-                    <span className="font-medium">
-                      {reservationService.formatCurrency(reservation.passengers.adults * reservation.pricing.adultPrice, reservation.pricing.currency)}
-                    </span>
+                  <div className="flex justify-end items-center gap-4">
+                    <div className="text-sm font-semibold">Total payments:</div>
+                    <div className="text-lg font-bold">
+                      {reservationService.formatCurrency(calculatePaymentSummary().paid, reservation.pricing.currency)}
+                    </div>
                   </div>
-                  {reservation.passengers.children > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span>Children ({reservation.passengers.children} × {reservationService.formatCurrency(reservation.pricing.childPrice, reservation.pricing.currency)}):</span>
-                      <span className="font-medium">
-                        {reservationService.formatCurrency(reservation.passengers.children * reservation.pricing.childPrice, reservation.pricing.currency)}
-                      </span>
+                  <div className="flex justify-end items-center gap-4">
+                    <div className="text-sm font-semibold text-red-600 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      Pending balance:
                     </div>
-                  )}
-                  {reservation.passengers.infants > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span>Infants ({reservation.passengers.infants} × {reservationService.formatCurrency(reservation.pricing.infantPrice, reservation.pricing.currency)}):</span>
-                      <span className="font-medium">
-                        {reservationService.formatCurrency(reservation.passengers.infants * reservation.pricing.infantPrice, reservation.pricing.currency)}
-                      </span>
+                    <div className="text-lg font-bold text-red-600">
+                      {reservationService.formatCurrency(calculatePaymentSummary().remaining, reservation.pricing.currency)}
                     </div>
-                  )}
-                  <Separator className="my-2" />
-                  <div className="flex justify-between font-semibold text-lg">
-                    <span>Total Amount:</span>
-                    <span className="text-primary">
-                      {reservationService.formatCurrency(
-                        (reservation.passengers.adults * reservation.pricing.adultPrice) +
-                        (reservation.passengers.children * reservation.pricing.childPrice) +
-                        (reservation.passengers.infants * reservation.pricing.infantPrice),
-                        reservation.pricing.currency
-                      )}
-                    </span>
                   </div>
                 </div>
+              </div>
+              <div className="border-t p-4 flex justify-end gap-2">
+                <Button onClick={handleOpenPaymentDialog} className="bg-indigo-500 hover:bg-indigo-600">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add a payment
+                </Button>
+                <Button variant="outline" className="text-indigo-600 border-indigo-600 hover:bg-indigo-50">
+                  <RefreshCcw className="w-4 h-4 mr-2" />
+                  Add a refund
+                </Button>
               </div>
             </CardContent>
           </Card>
+
+          {/* Add Payment Dialog */}
+          <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Add New Payment</DialogTitle>
+                <DialogDescription>
+                  Record a new payment for this reservation
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Payment Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !newPayment.date && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {newPayment.date ? format(newPayment.date, "PPP") : "Select date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={newPayment.date}
+                          onSelect={(date) => setNewPayment({ ...newPayment, date: date || new Date() })}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Payment Method</Label>
+                    <Select
+                      value={newPayment.method}
+                      onValueChange={(value) => setNewPayment({ ...newPayment, method: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="credit-card">Credit Card</SelectItem>
+                        <SelectItem value="debit-card">Debit Card</SelectItem>
+                        <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
+                        <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="paypal">PayPal</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Amount</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-3 text-sm text-muted-foreground">
+                      {reservation?.pricing.currency || 'USD'}
+                    </span>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      className="pl-12"
+                      value={newPayment.amount}
+                      onChange={(e) => setNewPayment({ ...newPayment, amount: parseFloat(e.target.value) || 0 })}
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Payment Remarks (Optional)</Label>
+                  <Textarea
+                    value={newPayment.notes}
+                    onChange={(e) => setNewPayment({ ...newPayment, notes: e.target.value })}
+                    placeholder="Payment reference or notes"
+                    rows={3}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleAddPayment} className="bg-indigo-500 hover:bg-indigo-600">
+                  Add Payment
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {/* Operations Team */}
           <Card>
@@ -790,9 +1035,9 @@ const ReservationEditPage = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {filterOptions.salespersons.map((sp: string) => (
+                      {uniqueValues?.salespersons?.map((sp: string) => (
                         <SelectItem key={sp} value={sp}>{sp}</SelectItem>
-                      ))}
+                      )) || []}
                     </SelectContent>
                   </Select>
                 </div>
@@ -807,9 +1052,9 @@ const ReservationEditPage = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Not Assigned</SelectItem>
-                      {filterOptions.operators.map((op: string) => (
+                      {uniqueValues?.operators?.map((op: string) => (
                         <SelectItem key={op} value={op}>{op}</SelectItem>
-                      ))}
+                      )) || []}
                     </SelectContent>
                   </Select>
                 </div>
@@ -827,9 +1072,9 @@ const ReservationEditPage = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Not Assigned</SelectItem>
-                      {filterOptions.guides.map((guide: string) => (
+                      {uniqueValues?.guides?.map((guide: string) => (
                         <SelectItem key={guide} value={guide}>{guide}</SelectItem>
-                      ))}
+                      )) || []}
                     </SelectContent>
                   </Select>
                 </div>
@@ -844,9 +1089,9 @@ const ReservationEditPage = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Not Assigned</SelectItem>
-                      {filterOptions.drivers.map((driver: string) => (
+                      {uniqueValues?.drivers?.map((driver: string) => (
                         <SelectItem key={driver} value={driver}>{driver}</SelectItem>
-                      ))}
+                      )) || []}
                     </SelectContent>
                   </Select>
                 </div>
@@ -863,9 +1108,9 @@ const ReservationEditPage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Not Assigned</SelectItem>
-                    {filterOptions.agencies.map((agency: string) => (
+                    {uniqueValues?.agencies?.map((agency: string) => (
                       <SelectItem key={agency} value={agency}>{agency}</SelectItem>
-                    ))}
+                    )) || []}
                   </SelectContent>
                 </Select>
               </div>
