@@ -14,6 +14,14 @@ class ReservationService {
       throw new Error('No tour data found in reservation')
     }
 
+    // Debug: Log the backend reservation data to verify email and phone are present
+    console.log('Backend reservation data:', {
+      id: backendReservation.id,
+      fullName: backendReservation.fullName,
+      email: backendReservation.email,
+      phone: backendReservation.phone
+    })
+
     // Determine payment status from paymentDetails
     let paymentStatus: Reservation['paymentStatus'] = 'pending'
     if (backendReservation.paymentDetails) {
@@ -63,6 +71,8 @@ class ReservationService {
           currency: backendReservation.currency || 'CLP'
         },
         salesperson: backendReservation.fullName || 'Unknown',
+        email: backendReservation.email || '',
+        phone: backendReservation.phone || '',
         operator: tour.operator !== 'own-operation' ? tour.operator : undefined,
         guide: undefined, // Not present in backend data
         driver: undefined, // Not present in backend data
@@ -72,6 +82,17 @@ class ReservationService {
         createdAt: new Date(backendReservation.createdAt || new Date()),
         updatedAt: new Date(backendReservation.updatedAt || new Date())
       }
+    }).map((reservation, index) => {
+      // Debug: Log the mapped reservation to verify email and phone are included
+      if (index === 0) {
+        console.log('Mapped reservation data:', {
+          id: reservation.id,
+          salesperson: reservation.salesperson,
+          email: reservation.email,
+          phone: reservation.phone
+        })
+      }
+      return reservation
     })
   }
 

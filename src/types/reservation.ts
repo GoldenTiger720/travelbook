@@ -34,6 +34,8 @@ export interface Reservation {
     currency: string
   }
   salesperson: string
+  email: string
+  phone: string
   operator?: string
   guide?: string
   driver?: string

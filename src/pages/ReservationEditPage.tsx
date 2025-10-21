@@ -7,11 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import {
   Dialog,
   DialogContent,
@@ -39,24 +37,17 @@ import {
   ArrowLeft,
   User,
   MapPin,
-  Users,
-  DollarSign,
   FileText,
   Mail,
   Phone,
-  Globe,
-  Hash,
-  AlertCircle,
   Printer,
   Send,
   Download,
   Share2,
-  Plus,
-  Trash2,
-  CreditCard,
-  RefreshCcw,
   Eye,
-  Edit
+  Edit,
+  Plus,
+  RefreshCcw
 } from 'lucide-react'
 
 // Payment interface
@@ -131,6 +122,12 @@ const ReservationEditPage = () => {
       if (cachedReservations && reservationId) {
         const foundReservation = cachedReservations.find((r: Reservation) => r.id === reservationId)
         if (foundReservation) {
+          console.log('Found reservation in cache:', {
+            id: foundReservation.id,
+            salesperson: foundReservation.salesperson,
+            email: foundReservation.email,
+            phone: foundReservation.phone
+          })
           setReservation(foundReservation)
         } else {
           toast({
@@ -534,11 +531,11 @@ const ReservationEditPage = () => {
                   <div className="space-y-1.5 text-sm text-gray-600">
                     <div className="flex items-center gap-2">
                       <Mail className="w-4 h-4 flex-shrink-0" />
-                      <span>ulliviagens@gmail.com</span>
+                      <span>{reservation.email || 'ulliviagens@gmail.com'}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="w-4 h-4 flex-shrink-0" />
-                      <span>+56985400793</span>
+                      <span>{reservation.phone || '+56985400793'}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4 flex-shrink-0" />
@@ -844,6 +841,35 @@ const ReservationEditPage = () => {
                     </TableRow>
                   </TableBody>
                 </Table>
+              </div>
+
+              {/* Payment Footer */}
+              <div className="border-t p-6">
+                {/* Total Payments Row */}
+                <div className="flex justify-end items-center mb-6 pb-4 border-b">
+                  <span className="text-sm font-medium text-gray-600 mr-4">Total payments:</span>
+                  <span className="text-xl font-bold text-gray-800">
+                    {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {amountPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-end gap-3">
+                  <Button
+                    onClick={handleOpenPaymentDialog}
+                    className="bg-indigo-500 hover:bg-indigo-600 text-white"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add a payment
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="border-indigo-500 text-indigo-500 hover:bg-indigo-50"
+                  >
+                    <RefreshCcw className="w-4 h-4 mr-2" />
+                    Add a refund
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
