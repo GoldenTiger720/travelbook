@@ -797,8 +797,8 @@ const AllReservationsPage = () => {
                             <TableCell>{getPaymentBadge(reservation.paymentStatus)}</TableCell>
                             <TableCell className="text-center">
                               <div className="flex gap-1 justify-center">
-                                <Button 
-                                  variant="ghost" 
+                                <Button
+                                  variant="ghost"
                                   size="sm"
                                   className="h-7 w-7 p-0"
                                   onClick={(e) => {
@@ -808,8 +808,8 @@ const AllReservationsPage = () => {
                                 >
                                   <Eye className="w-3 h-3" />
                                 </Button>
-                                {/* <Button 
-                                  variant="ghost" 
+                                <Button
+                                  variant="ghost"
                                   size="sm"
                                   className="h-7 w-7 p-0"
                                   onClick={(e) => {
@@ -818,7 +818,7 @@ const AllReservationsPage = () => {
                                   }}
                                 >
                                   <Edit className="w-3 h-3" />
-                                </Button> */}
+                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -958,22 +958,22 @@ const AllReservationsPage = () => {
                             </Button>
                           </CollapsibleTrigger>
                           <div className="flex gap-1 ml-2">
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="sm"
                               className="h-8 w-8 p-0"
                               onClick={() => handleViewReservation(reservation)}
                             >
                               <Eye className="w-3 h-3" />
                             </Button>
-                            {/* <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="sm"
                               className="h-8 w-8 p-0"
                               onClick={() => handleEditReservation(reservation)}
                             >
                               <Edit className="w-3 h-3" />
-                            </Button> */}
+                            </Button>
                           </div>
                         </div>
                         <CollapsibleContent>

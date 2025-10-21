@@ -35,7 +35,11 @@ import {
   Baby,
   UserPlus,
   Car,
-  AlertCircle
+  AlertCircle,
+  Printer,
+  Send,
+  Download,
+  Share2
 } from 'lucide-react'
 
 const ReservationEditPage = () => {
@@ -86,17 +90,20 @@ const ReservationEditPage = () => {
   const handleFieldChange = (field: string, value: any, nested?: string) => {
     setReservation(prev => {
       if (!prev) return null
-      
+
       if (nested) {
-        return {
-          ...prev,
-          [nested]: {
-            ...prev[nested as keyof Reservation],
-            [field]: value
+        const nestedObj = prev[nested as keyof Reservation]
+        if (typeof nestedObj === 'object' && nestedObj !== null) {
+          return {
+            ...prev,
+            [nested]: {
+              ...nestedObj,
+              [field]: value
+            }
           }
         }
       }
-      
+
       return {
         ...prev,
         [field]: value
@@ -106,15 +113,15 @@ const ReservationEditPage = () => {
 
   const handleSave = async () => {
     if (!reservation) return
-    
+
     setSaving(true)
     try {
       // Calculate total amount based on passengers and prices
-      const totalAmount = 
+      const totalAmount =
         (reservation.passengers.adults * reservation.pricing.adultPrice) +
         (reservation.passengers.children * reservation.pricing.childPrice) +
         (reservation.passengers.infants * reservation.pricing.infantPrice)
-      
+
       const updatedReservation = {
         ...reservation,
         pricing: {
@@ -123,14 +130,14 @@ const ReservationEditPage = () => {
         },
         updatedAt: new Date()
       }
-      
+
       // Here you would typically call an API to save the reservation
       // For now, we'll just show a success message
       toast({
         title: '✅ Reservation Updated',
         description: `Reservation ${updatedReservation.reservationNumber} has been saved successfully`,
       })
-      
+
       // Navigate back to all reservations
       navigate('/all-reservations')
     } catch (error) {
@@ -142,6 +149,43 @@ const ReservationEditPage = () => {
     } finally {
       setSaving(false)
     }
+  }
+
+  const handlePrint = () => {
+    window.print()
+    toast({
+      title: 'Print',
+      description: 'Opening print dialog...',
+    })
+  }
+
+  const handleSendEmail = () => {
+    if (!reservation) return
+    toast({
+      title: 'Send Email',
+      description: `Preparing to send reservation details to ${reservation.client.email}`,
+    })
+    // Here you would implement email sending functionality
+  }
+
+  const handleDownloadPDF = () => {
+    if (!reservation) return
+    toast({
+      title: 'Download PDF',
+      description: 'Generating PDF document...',
+    })
+    // Here you would implement PDF generation
+  }
+
+  const handleShare = () => {
+    if (!reservation) return
+    // Copy link to clipboard
+    const link = window.location.href
+    navigator.clipboard.writeText(link)
+    toast({
+      title: 'Link Copied',
+      description: 'Reservation link copied to clipboard',
+    })
   }
 
   const getStatusColor = (status: string) => {
@@ -201,7 +245,7 @@ const ReservationEditPage = () => {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto py-6 px-4 max-w-6xl">
         {/* Header with Save Button */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -221,6 +265,30 @@ const ReservationEditPage = () => {
             {saving ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
+
+        {/* Action Buttons */}
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={handlePrint}>
+                <Printer className="w-4 h-4 mr-2" />
+                Print
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleSendEmail}>
+                <Send className="w-4 h-4 mr-2" />
+                Send Email
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
+                <Download className="w-4 h-4 mr-2" />
+                Download PDF
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleShare}>
+                <Share2 className="w-4 h-4 mr-2" />
+                Share Link
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="space-y-6">
           {/* General Information */}
