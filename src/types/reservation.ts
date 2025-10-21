@@ -22,11 +22,18 @@ export interface Reservation {
   status: 'confirmed' | 'pending' | 'cancelled' | 'completed' | 'no-show'
   paymentStatus: 'paid' | 'pending' | 'partial' | 'refunded' | 'overdue'
   client: {
+    id?: string
     name: string
     email: string
     phone: string
     country: string
     idNumber: string
+    language?: string
+    cpf?: string
+    address?: string
+    hotel?: string
+    room?: string
+    comments?: string
   }
   tour: {
     id: string

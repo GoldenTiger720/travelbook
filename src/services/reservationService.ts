@@ -43,11 +43,18 @@ class ReservationService {
         status: backendReservation.status,
         paymentStatus: paymentStatus,
         client: {
+          id: backendReservation.customer.id,
           name: backendReservation.customer.name,
           email: backendReservation.customer.email,
           phone: backendReservation.customer.phone,
           country: backendReservation.customer.country,
-          idNumber: backendReservation.customer.idNumber || ''
+          idNumber: backendReservation.customer.idNumber || '',
+          language: backendReservation.customer.language || '',
+          cpf: backendReservation.customer.cpf || '',
+          address: backendReservation.customer.address || '',
+          hotel: backendReservation.customer.hotel || '',
+          room: backendReservation.customer.room || '',
+          comments: backendReservation.customer.comments || ''
         },
         tour: {
           id: tour.tourId || '',
