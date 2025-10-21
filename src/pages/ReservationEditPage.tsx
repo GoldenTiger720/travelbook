@@ -523,220 +523,109 @@ const ReservationEditPage = () => {
         </Card>
 
         <div className="space-y-6">
-          {/* General Information */}
+          {/* Purchase Order Header */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <Hash className="w-5 h-5" />
-                  General Information
-                </span>
-                <div className="flex gap-2">
-                  <Badge className={getStatusColor(reservation.status)}>
-                    {reservation.status}
-                  </Badge>
-                  <Badge className={getPaymentStatusColor(reservation.paymentStatus)}>
-                    {reservation.paymentStatus}
-                  </Badge>
+            <CardContent className="p-8">
+              {/* Header Section */}
+              <div className="flex items-start justify-between mb-8">
+                {/* Company Info - Left */}
+                <div className="space-y-3">
+                  <img src="/omg.png" alt="Company Logo" className="h-12 w-auto" />
+                  <div className="space-y-1.5 text-sm text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 flex-shrink-0" />
+                      <span>ulliviagens@gmail.com</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 flex-shrink-0" />
+                      <span>+56985400793</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 flex-shrink-0" />
+                      <span>Salesperson: {reservation.salesperson}</span>
+                    </div>
+                  </div>
                 </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="reservationNumber">Reservation Number</Label>
-                  <Input
-                    id="reservationNumber"
-                    value={reservation.reservationNumber}
-                    onChange={(e) => handleFieldChange('reservationNumber', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="purchaseOrderNumber">Purchase Order Number</Label>
-                  <Input
-                    id="purchaseOrderNumber"
-                    value={reservation.purchaseOrderNumber || ''}
-                    onChange={(e) => handleFieldChange('purchaseOrderNumber', e.target.value)}
-                    placeholder="Optional"
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Operation Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !reservation.operationDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {reservation.operationDate ? 
-                          format(reservation.operationDate, "PPP") : 
-                          "Select date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={reservation.operationDate}
-                        onSelect={(date) => handleFieldChange('operationDate', date)}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div>
-                  <Label>Sale Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !reservation.saleDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {reservation.saleDate ? 
-                          format(reservation.saleDate, "PPP") : 
-                          "Select date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={reservation.saleDate}
-                        onSelect={(date) => handleFieldChange('saleDate', date)}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="status">Reservation Status</Label>
-                  <Select 
-                    value={reservation.status} 
-                    onValueChange={(value) => handleFieldChange('status', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="confirmed">Confirmed</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="no-show">No Show</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="paymentStatus">Payment Status</Label>
-                  <Select 
-                    value={reservation.paymentStatus} 
-                    onValueChange={(value) => handleFieldChange('paymentStatus', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="paid">Paid</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="partial">Partial</SelectItem>
-                      <SelectItem value="refunded">Refunded</SelectItem>
-                      <SelectItem value="overdue">Overdue</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="notes">Notes</Label>
-                <Textarea
-                  id="notes"
-                  value={reservation.notes || ''}
-                  onChange={(e) => handleFieldChange('notes', e.target.value)}
-                  placeholder="Add any additional notes about this reservation..."
-                  rows={3}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Client Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="w-5 h-5" />
-                Client Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="clientName">Name</Label>
-                  <Input
-                    id="clientName"
-                    value={reservation.client.name}
-                    onChange={(e) => handleFieldChange('name', e.target.value, 'client')}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="clientEmail">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="clientEmail"
-                      type="email"
-                      className="pl-10"
-                      value={reservation.client.email}
-                      onChange={(e) => handleFieldChange('email', e.target.value, 'client')}
-                    />
+                {/* Purchase Order Info - Right */}
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-600 mb-1">Purchase order</div>
+                  <div className="text-3xl font-bold text-gray-800 mb-6">
+                    {reservation.purchaseOrderNumber || reservation.reservationNumber}
+                  </div>
+                  <div className="flex gap-2 justify-end mb-2">
+                    <Badge className={getStatusColor(reservation.status)}>
+                      {reservation.status}
+                    </Badge>
+                    <Badge className={getPaymentStatusColor(reservation.paymentStatus)}>
+                      {reservation.paymentStatus}
+                    </Badge>
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              {/* Pink Divider */}
+              <div className="h-1 bg-gradient-to-r from-pink-500 to-pink-600 mb-6"></div>
+
+              {/* Customer and Dates Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Customer Info - Left */}
                 <div>
-                  <Label htmlFor="clientPhone">Phone</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="clientPhone"
-                      className="pl-10"
-                      value={reservation.client.phone}
-                      onChange={(e) => handleFieldChange('phone', e.target.value, 'client')}
-                    />
+                  <h3 className="text-sm font-bold text-gray-700 mb-3">Customer:</h3>
+                  <div className="space-y-1.5 text-sm text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 flex-shrink-0" />
+                      <span className="font-semibold">{reservation.client.name}</span>
+                      <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded">
+                        {reservation.client.country}
+                      </span>
+                    </div>
+                    <div className="text-gray-600">
+                      {reservation.client.idNumber && (
+                        <div>ID: {reservation.client.idNumber}</div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 flex-shrink-0" />
+                      <span>{reservation.client.phone}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 flex-shrink-0" />
+                      <span>{reservation.client.email}</span>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <Label htmlFor="clientCountry">Country</Label>
-                  <div className="relative">
-                    <Globe className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="clientCountry"
-                      className="pl-10"
-                      value={reservation.client.country}
-                      onChange={(e) => handleFieldChange('country', e.target.value, 'client')}
-                    />
+
+                {/* Dates and Details - Right */}
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-700 mb-1">Purchase Date:</h3>
+                    <div className="text-sm text-gray-600">
+                      {reservation.saleDate ? format(reservation.saleDate, "EEEE, dd-MM-yyyy") : 'Not set'}
+                    </div>
                   </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-700 mb-1">First tour date:</h3>
+                    <div className="text-sm text-gray-600">
+                      {format(reservation.operationDate, "EEEE, dd-MM-yyyy")}
+                    </div>
+                  </div>
+                  {(reservation.operator || reservation.guide || reservation.driver) && (
+                    <div>
+                      <h3 className="text-sm font-bold text-gray-700 mb-1">Operations Team:</h3>
+                      <div className="text-sm text-gray-600 space-y-0.5">
+                        {reservation.operator && <div>Operator: {reservation.operator}</div>}
+                        {reservation.guide && <div>Guide: {reservation.guide}</div>}
+                        {reservation.driver && <div>Driver: {reservation.driver}</div>}
+                        {reservation.externalAgency && <div>Agency: {reservation.externalAgency}</div>}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-              <div>
-                <Label htmlFor="clientIdNumber">ID Number</Label>
-                <Input
-                  id="clientIdNumber"
-                  value={reservation.client.idNumber}
-                  onChange={(e) => handleFieldChange('idNumber', e.target.value, 'client')}
-                />
-              </div>
+
+              {/* Pink Divider */}
+              <div className="h-1 bg-gradient-to-r from-pink-500 to-pink-600 mt-6"></div>
             </CardContent>
           </Card>
 
@@ -1103,108 +992,6 @@ const ReservationEditPage = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-
-          {/* Operations Team */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Operations Team
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="salesperson">Salesperson</Label>
-                  <Select 
-                    value={reservation.salesperson} 
-                    onValueChange={(value) => handleFieldChange('salesperson', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {uniqueValues?.salespersons?.map((sp: string) => (
-                        <SelectItem key={sp} value={sp}>{sp}</SelectItem>
-                      )) || []}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="operator">Operator</Label>
-                  <Select 
-                    value={reservation.operator || 'none'} 
-                    onValueChange={(value) => handleFieldChange('operator', value === 'none' ? undefined : value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select operator" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Not Assigned</SelectItem>
-                      {uniqueValues?.operators?.map((op: string) => (
-                        <SelectItem key={op} value={op}>{op}</SelectItem>
-                      )) || []}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="guide">Guide</Label>
-                  <Select 
-                    value={reservation.guide || 'none'} 
-                    onValueChange={(value) => handleFieldChange('guide', value === 'none' ? undefined : value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select guide" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Not Assigned</SelectItem>
-                      {uniqueValues?.guides?.map((guide: string) => (
-                        <SelectItem key={guide} value={guide}>{guide}</SelectItem>
-                      )) || []}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="driver">Driver</Label>
-                  <Select 
-                    value={reservation.driver || 'none'} 
-                    onValueChange={(value) => handleFieldChange('driver', value === 'none' ? undefined : value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select driver" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Not Assigned</SelectItem>
-                      {uniqueValues?.drivers?.map((driver: string) => (
-                        <SelectItem key={driver} value={driver}>{driver}</SelectItem>
-                      )) || []}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="externalAgency">External Agency</Label>
-                <Select 
-                  value={reservation.externalAgency || 'none'} 
-                  onValueChange={(value) => handleFieldChange('externalAgency', value === 'none' ? undefined : value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select agency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Not Assigned</SelectItem>
-                    {uniqueValues?.agencies?.map((agency: string) => (
-                      <SelectItem key={agency} value={agency}>{agency}</SelectItem>
-                    )) || []}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
 
         </div>
 
