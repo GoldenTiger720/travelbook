@@ -55,7 +55,8 @@ import {
   Trash2,
   CreditCard,
   RefreshCcw,
-  Eye
+  Eye,
+  Edit
 } from 'lucide-react'
 
 // Payment interface
@@ -64,8 +65,9 @@ interface Payment {
   date: Date
   method: string
   amount: number
-  status: 'completed' | 'refunded' | 'pending'
+  status: 'completed' | 'refunded' | 'pending' | 'partial' | 'paid' | 'cancelled'
   notes?: string
+  receipt?: string
   refundedAmount?: number
   refundDate?: Date
   refundReason?: string
@@ -87,12 +89,30 @@ const ReservationEditPage = () => {
   // Payment history state
   const [payments, setPayments] = useState<Payment[]>([])
 
+  // Payment details state (matching quotes page)
+  const [paymentDate, setPaymentDate] = useState<Date | undefined>(undefined)
+  const [paymentMethod, setPaymentMethod] = useState('credit-card')
+  const [paymentPercentage, setPaymentPercentage] = useState(0)
+  const [amountPaid, setAmountPaid] = useState(0)
+  const [paymentComments, setPaymentComments] = useState('')
+  const [paymentStatus, setPaymentStatus] = useState('pending')
+  const [receiptFile, setReceiptFile] = useState<File | null>(null)
+
   // New payment form state
-  const [newPayment, setNewPayment] = useState({
+  const [newPayment, setNewPayment] = useState<{
+    date: Date
+    method: string
+    amount: number
+    notes: string
+    status: Payment['status']
+    receipt: string
+  }>({
     date: new Date(),
     method: 'credit-card',
     amount: 0,
-    notes: ''
+    notes: '',
+    status: 'completed',
+    receipt: ''
   })
 
   // Dialog state
@@ -291,8 +311,9 @@ const ReservationEditPage = () => {
       date: newPayment.date,
       method: newPayment.method,
       amount: newPayment.amount,
-      status: 'completed',
-      notes: newPayment.notes
+      status: newPayment.status,
+      notes: newPayment.notes,
+      receipt: newPayment.receipt
     }
 
     setPayments([...payments, payment])
@@ -302,7 +323,9 @@ const ReservationEditPage = () => {
       date: new Date(),
       method: 'credit-card',
       amount: 0,
-      notes: ''
+      notes: '',
+      status: 'completed',
+      receipt: ''
     })
     setIsPaymentDialogOpen(false)
 
@@ -314,6 +337,27 @@ const ReservationEditPage = () => {
 
   const handleOpenPaymentDialog = () => {
     setIsPaymentDialogOpen(true)
+  }
+
+  // Helper functions for payment details
+  const getCurrencySymbol = (currency: string) => {
+    const symbols: { [key: string]: string } = {
+      'USD': '$',
+      'EUR': '€',
+      'CLP': '$',
+      'BRL': 'R$',
+      'ARS': '$'
+    }
+    return symbols[currency] || currency
+  }
+
+  const calculateGrandTotal = () => {
+    if (!reservation) return 0
+    return (
+      (reservation.passengers.adults * reservation.pricing.adultPrice) +
+      (reservation.passengers.children * reservation.pricing.childPrice) +
+      (reservation.passengers.infants * reservation.pricing.infantPrice)
+    )
   }
 
   const handleRefundPayment = (paymentId: string) => {
@@ -808,8 +852,7 @@ const ReservationEditPage = () => {
           {/* Payments */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5" />
+              <CardTitle className="text-lg font-medium">
                 Payments
               </CardTitle>
             </CardHeader>
@@ -819,139 +862,134 @@ const ReservationEditPage = () => {
                   <TableHeader>
                     <TableRow className="bg-muted/50">
                       <TableHead className="w-[140px]">Date</TableHead>
-                      <TableHead className="w-[120px]">Payment ID</TableHead>
-                      <TableHead className="w-[100px]">Status</TableHead>
-                      <TableHead className="w-[100px]">Receipt</TableHead>
                       <TableHead className="w-[150px]">Payment Method</TableHead>
-                      <TableHead className="min-w-[150px]">Payment remarks</TableHead>
-                      <TableHead className="w-[150px]">Recipient</TableHead>
-                      <TableHead className="w-[120px] text-right">Amount</TableHead>
+                      <TableHead className="w-[120px]">Total Price</TableHead>
+                      <TableHead className="w-[100px]">Percentage</TableHead>
+                      <TableHead className="w-[120px]">Amount Paid</TableHead>
+                      <TableHead className="w-[120px]">Pending</TableHead>
+                      <TableHead className="w-[120px]">Receipt</TableHead>
+                      <TableHead className="w-[120px]">Status</TableHead>
+                      <TableHead className="w-[80px]">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {payments.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                          <CreditCard className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                          <p className="text-sm">No payments recorded yet</p>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      payments.map((payment) => (
-                        <TableRow key={payment.id} className={payment.status === 'refunded' ? 'bg-red-50' : ''}>
-                          <TableCell className="align-top py-3">
-                            <div className="text-sm">
-                              {format(payment.date, 'yyyy-MM-dd')}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {format(payment.date, 'EEEE, HH:mm')}hrs.
-                            </div>
-                          </TableCell>
-                          <TableCell className="align-top py-3">
-                            <div className="flex items-center gap-1">
-                              <Eye className="h-3 w-3 text-blue-600" />
-                              <span className="text-sm font-mono">PAY-{payment.id.slice(0, 3)}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="align-top py-3">
-                            <Badge className={cn(
-                              "text-xs",
-                              payment.status === 'completed' && "bg-green-100 text-green-800",
-                              payment.status === 'refunded' && "bg-red-100 text-red-800",
-                              payment.status === 'pending' && "bg-yellow-100 text-yellow-800"
-                            )}>
-                              {payment.status === 'refunded' ? 'Anulado' : payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="align-top py-3">
-                            <span className="text-sm text-muted-foreground">-</span>
-                          </TableCell>
-                          <TableCell className="align-top py-3">
-                            <span className="text-sm capitalize">{payment.method.replace('-', ' ')}</span>
-                          </TableCell>
-                          <TableCell className="align-top py-3">
-                            <span className="text-sm">{payment.notes || '-'}</span>
-                          </TableCell>
-                          <TableCell className="align-top py-3">
-                            <span className="text-sm">{reservation.client.name}</span>
-                          </TableCell>
-                          <TableCell className="align-top py-3 text-right">
-                            <div className={cn(
-                              "text-sm font-semibold",
-                              payment.status === 'refunded' && "line-through text-red-600"
-                            )}>
-                              {reservationService.formatCurrency(payment.amount, reservation.pricing.currency)}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
+                    <TableRow>
+                      {/* Payment Date */}
+                      <TableCell className="align-top py-3">
+                        <span className="text-sm">
+                          {paymentDate ? format(paymentDate, "dd/MM/yyyy") : "-"}
+                        </span>
+                      </TableCell>
+
+                      {/* Payment Method */}
+                      <TableCell className="align-top py-3">
+                        <span className="text-sm capitalize">
+                          {paymentMethod.replace('-', ' ')}
+                        </span>
+                      </TableCell>
+
+                      {/* Total Price */}
+                      <TableCell className="align-top py-3">
+                        <div className="p-2 bg-green-100 border rounded-md text-center">
+                          <span className="font-semibold text-sm">
+                            {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {calculateGrandTotal().toLocaleString()}
+                          </span>
+                        </div>
+                      </TableCell>
+
+                      {/* Percentage */}
+                      <TableCell className="align-top py-3">
+                        <span className="text-sm">
+                          {paymentPercentage}%
+                        </span>
+                      </TableCell>
+
+                      {/* Amount Paid */}
+                      <TableCell className="align-top py-3">
+                        <span className="text-sm font-medium">
+                          {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {amountPaid.toLocaleString()}
+                        </span>
+                      </TableCell>
+
+                      {/* Amount Pending */}
+                      <TableCell className="align-top py-3">
+                        <div className="p-2 bg-gray-100 border rounded-md text-center">
+                          <span className="font-semibold text-sm text-red-600">
+                            {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {(calculateGrandTotal() - amountPaid).toLocaleString()}
+                          </span>
+                        </div>
+                      </TableCell>
+
+                      {/* Receipt */}
+                      <TableCell className="align-top py-3">
+                        <span className="text-sm text-muted-foreground">
+                          {receiptFile ? receiptFile.name : "-"}
+                        </span>
+                      </TableCell>
+
+                      {/* Payment Status */}
+                      <TableCell className="align-top py-3">
+                        <Badge className={cn(
+                          "text-xs",
+                          paymentStatus === 'paid' && "bg-green-100 text-green-800",
+                          paymentStatus === 'refunded' && "bg-red-100 text-red-800",
+                          paymentStatus === 'cancelled' && "bg-red-100 text-red-800",
+                          paymentStatus === 'pending' && "bg-yellow-100 text-yellow-800",
+                          paymentStatus === 'partial' && "bg-blue-100 text-blue-800"
+                        )}>
+                          {paymentStatus.charAt(0).toUpperCase() + paymentStatus.slice(1)}
+                        </Badge>
+                      </TableCell>
+
+                      {/* Action */}
+                      <TableCell className="align-top py-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={handleOpenPaymentDialog}
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                   </TableBody>
                 </Table>
-              </div>
-              <div className="border-t p-4 bg-muted/20">
-                <div className="space-y-2">
-                  <div className="flex justify-end items-center gap-4">
-                    <div className="text-sm font-semibold">Total payments:</div>
-                    <div className="text-lg font-bold">
-                      {reservationService.formatCurrency(calculatePaymentSummary().paid, reservation.pricing.currency)}
-                    </div>
-                  </div>
-                  <div className="flex justify-end items-center gap-4">
-                    <div className="text-sm font-semibold text-red-600 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      Pending balance:
-                    </div>
-                    <div className="text-lg font-bold text-red-600">
-                      {reservationService.formatCurrency(calculatePaymentSummary().remaining, reservation.pricing.currency)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="border-t p-4 flex justify-end gap-2">
-                <Button onClick={handleOpenPaymentDialog} className="bg-indigo-500 hover:bg-indigo-600">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add a payment
-                </Button>
-                <Button variant="outline" className="text-indigo-600 border-indigo-600 hover:bg-indigo-50">
-                  <RefreshCcw className="w-4 h-4 mr-2" />
-                  Add a refund
-                </Button>
               </div>
             </CardContent>
           </Card>
 
-          {/* Add Payment Dialog */}
+          {/* Edit Payment Dialog */}
           <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>
-                <DialogTitle>Add New Payment</DialogTitle>
+                <DialogTitle>Edit Payment Details</DialogTitle>
                 <DialogDescription>
-                  Record a new payment for this reservation
+                  Update payment information for this reservation
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Payment Date</Label>
+                    <Label>Date</Label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
                           className={cn(
                             "w-full justify-start text-left font-normal",
-                            !newPayment.date && "text-muted-foreground"
+                            !paymentDate && "text-muted-foreground"
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {newPayment.date ? format(newPayment.date, "PPP") : "Select date"}
+                          {paymentDate ? format(paymentDate, "PPP") : "Select date"}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
                         <Calendar
                           mode="single"
-                          selected={newPayment.date}
-                          onSelect={(date) => setNewPayment({ ...newPayment, date: date || new Date() })}
+                          selected={paymentDate}
+                          onSelect={setPaymentDate}
                           initialFocus
                         />
                       </PopoverContent>
@@ -959,57 +997,108 @@ const ReservationEditPage = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Payment Method</Label>
-                    <Select
-                      value={newPayment.method}
-                      onValueChange={(value) => setNewPayment({ ...newPayment, method: value })}
-                    >
+                    <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="credit-card">Credit Card</SelectItem>
-                        <SelectItem value="debit-card">Debit Card</SelectItem>
                         <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
-                        <SelectItem value="cash">Cash</SelectItem>
-                        <SelectItem value="paypal">PayPal</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
+                        <SelectItem value="cash-office">Cash Office</SelectItem>
+                        <SelectItem value="mercado-pago">Mercado Pago</SelectItem>
+                        <SelectItem value="van-is-broken">Van Is Broken</SelectItem>
+                        <SelectItem value="pix">PIX</SelectItem>
+                        <SelectItem value="test">Test</SelectItem>
+                        <SelectItem value="transfer">Transfer</SelectItem>
+                        <SelectItem value="nubank-transfer">Nubank Transfer</SelectItem>
+                        <SelectItem value="wise">Wise</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Amount</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-3 text-sm text-muted-foreground">
-                      {reservation?.pricing.currency || 'USD'}
-                    </span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Percentage (%)</Label>
                     <Input
                       type="number"
                       min="0"
-                      step="0.01"
-                      className="pl-12"
-                      value={newPayment.amount}
-                      onChange={(e) => setNewPayment({ ...newPayment, amount: parseFloat(e.target.value) || 0 })}
-                      placeholder="0.00"
+                      max="100"
+                      value={paymentPercentage}
+                      onChange={(e) => {
+                        const percentage = parseInt(e.target.value) || 0
+                        setPaymentPercentage(percentage)
+                        const totalAmount = calculateGrandTotal()
+                        const calculatedAmount = Math.round((totalAmount * percentage) / 100)
+                        setAmountPaid(calculatedAmount)
+                      }}
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Amount Paid</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-3 text-sm text-muted-foreground">
+                        {getCurrencySymbol(reservation?.pricing.currency || 'CLP')}
+                      </span>
+                      <Input
+                        type="number"
+                        min="0"
+                        className="pl-12"
+                        value={amountPaid}
+                        onChange={(e) => {
+                          const amount = parseInt(e.target.value) || 0
+                          setAmountPaid(amount)
+                          const totalAmount = calculateGrandTotal()
+                          if (totalAmount > 0) {
+                            const calculatedPercentage = Math.round((amount / totalAmount) * 100)
+                            setPaymentPercentage(calculatedPercentage)
+                          }
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Payment Remarks (Optional)</Label>
-                  <Textarea
-                    value={newPayment.notes}
-                    onChange={(e) => setNewPayment({ ...newPayment, notes: e.target.value })}
-                    placeholder="Payment reference or notes"
-                    rows={3}
+                  <Label>Receipt Upload</Label>
+                  <Input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                    className="file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-gray-100"
                   />
+                  {receiptFile && (
+                    <span className="text-xs text-muted-foreground">
+                      Selected: {receiptFile.name}
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select value={paymentStatus} onValueChange={setPaymentStatus}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="partial">Partial</SelectItem>
+                      <SelectItem value="paid">Paid</SelectItem>
+                      <SelectItem value="refunded">Refunded</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleAddPayment} className="bg-indigo-500 hover:bg-indigo-600">
-                  Add Payment
+                <Button onClick={() => {
+                  setIsPaymentDialogOpen(false)
+                  toast({
+                    title: 'Payment Updated',
+                    description: 'Payment details have been saved successfully',
+                  })
+                }} className="bg-indigo-500 hover:bg-indigo-600">
+                  Save Changes
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -1117,31 +1206,6 @@ const ReservationEditPage = () => {
             </CardContent>
           </Card>
 
-          {/* Metadata */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Reservation Metadata
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex justify-between">
-                <p className="text-sm text-muted-foreground">Created On</p>
-                <p className="text-sm">{format(reservation.createdAt, "MMMM d, yyyy 'at' h:mm a")}</p>
-              </div>
-              {reservation.updatedAt && (
-                <div className="flex justify-between">
-                  <p className="text-sm text-muted-foreground">Last Updated</p>
-                  <p className="text-sm">{format(reservation.updatedAt, "MMMM d, yyyy 'at' h:mm a")}</p>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <p className="text-sm text-muted-foreground">Reservation ID</p>
-                <p className="text-sm font-mono">{reservation.id}</p>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Bottom Save Button */}
