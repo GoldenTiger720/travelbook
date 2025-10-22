@@ -54,12 +54,12 @@ export const API_ENDPOINTS = {
   
   // Customers endpoints
   CUSTOMERS: {
-    LIST: '/api/customers',
-    CREATE: '/api/customers',
-    GET: (id: string) => `/api/customers/${id}`,
-    UPDATE: (id: string) => `/api/customers/${id}`,
-    DELETE: (id: string) => `/api/customers/${id}`,
-    SEARCH: '/api/customers/search',
+    LIST: '/api/customers/',
+    CREATE: '/api/customers/',
+    GET: (id: string) => `/api/customers/${id}/`,
+    UPDATE: (id: string) => `/api/customers/${id}/`,
+    DELETE: (id: string) => `/api/customers/${id}/`,
+    SEARCH: '/api/customers/search/',
   },
   
   // Services endpoints

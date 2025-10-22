@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { reservationKeys, useReservationUniqueValues } from '@/hooks/useReservations'
+import { useUpdateCustomer } from '@/hooks/useCustomers'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -79,6 +80,9 @@ const ReservationEditPage = () => {
 
   // Use React Query hook for unique values
   const { data: uniqueValues, isLoading: isLoadingUniqueValues } = useReservationUniqueValues()
+
+  // Customer update mutation
+  const updateCustomerMutation = useUpdateCustomer()
 
   // Payment history state
   const [payments, setPayments] = useState<Payment[]>([])
@@ -358,14 +362,13 @@ const ReservationEditPage = () => {
   }
 
   const handleSaveCustomer = async (id: string, data: CustomerFormData) => {
-    // Update the reservation's client data locally
-    if (reservation) {
-      setReservation({
-        ...reservation,
-        client: {
-          ...reservation.client,
+    try {
+      // Send PUT request to backend to update customer
+      await updateCustomerMutation.mutateAsync({
+        id: reservation?.client.id || id,
+        data: {
           name: data.name,
-          idNumber: data.id_number,
+          id_number: data.id_number,
           email: data.email,
           phone: data.phone,
           country: data.country,
@@ -377,13 +380,34 @@ const ReservationEditPage = () => {
           comments: data.comments
         }
       })
+
+      // Update the reservation's client data locally after successful API call
+      if (reservation) {
+        setReservation({
+          ...reservation,
+          client: {
+            ...reservation.client,
+            name: data.name,
+            idNumber: data.id_number,
+            email: data.email,
+            phone: data.phone,
+            country: data.country,
+            language: data.language,
+            cpf: data.cpf,
+            address: data.address,
+            hotel: data.hotel,
+            room: data.room,
+            comments: data.comments
+          }
+        })
+      }
+
+      setIsEditCustomerOpen(false)
+      setCustomerToEdit(null)
+    } catch (error) {
+      console.error('Error updating customer:', error)
+      // Error is handled by the mutation hook with toast notifications
     }
-    setIsEditCustomerOpen(false)
-    setCustomerToEdit(null)
-    toast({
-      title: 'Success',
-      description: 'Customer information updated successfully',
-    })
   }
 
   // Helper functions for payment details
@@ -1117,7 +1141,7 @@ const ReservationEditPage = () => {
           onOpenChange={setIsEditCustomerOpen}
           customer={customerToEdit}
           onSubmit={handleSaveCustomer}
-          isPending={false}
+          isPending={updateCustomerMutation.isPending}
         />
       </div>
     </div>
