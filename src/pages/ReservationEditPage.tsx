@@ -829,10 +829,9 @@ const ReservationEditPage = () => {
               </div>
 
               {/* Add More Reservations Button */}
-              <div className="p-4 border-t">
+              <div className="p-4 border-t flex justify-end">
                 <Button
-                  variant="outline"
-                  className="w-full"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
                   onClick={() => {
                     toast({
                       title: 'Add Tour',
