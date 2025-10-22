@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,6 +37,7 @@ import { cn } from '@/lib/utils'
 import { commissionService } from '@/services/commissionService'
 import { Commission, CommissionFilters, CommissionSummary } from '@/types/commission'
 import { useToast } from '@/components/ui/use-toast'
+import { useCommissionUniqueValues, useFilteredCommissions, useCommissionSummary } from '@/hooks/useCommissions'
 import {
   Tooltip,
   TooltipContent,
@@ -46,22 +47,13 @@ import {
 
 const SalesCommissionsPage = () => {
   const { toast } = useToast()
-  const [commissions, setCommissions] = useState<Commission[]>([])
-  const [filteredCommissions, setFilteredCommissions] = useState<Commission[]>([])
-  const [summary, setSummary] = useState<CommissionSummary | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [filterOptions, setFilterOptions] = useState<any>({
-    salespersons: [],
-    agencies: [],
-    tours: []
-  })
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
-  
+
   const [filters, setFilters] = useState<CommissionFilters>({
     dateType: 'sale',
     searchTerm: ''
   })
-  
+
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined
     to: Date | undefined
@@ -69,49 +61,21 @@ const SalesCommissionsPage = () => {
     from: undefined,
     to: undefined
   })
-  
-  useEffect(() => {
-    loadInitialData()
-  }, [])
-  
-  useEffect(() => {
-    applyFilters()
-  }, [filters, dateRange, commissions])
-  
-  const loadInitialData = async () => {
-    setLoading(true)
-    try {
-      const [allCommissions, uniqueValues] = await Promise.all([
-        commissionService.getAllCommissions(),
-        commissionService.getUniqueValues()
-      ])
-      
-      setCommissions(allCommissions)
-      setFilterOptions(uniqueValues)
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to load commission data',
-        variant: 'destructive'
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-  
-  const applyFilters = async () => {
-    const filterCriteria: CommissionFilters = {
-      ...filters,
-      startDate: dateRange.from,
-      endDate: dateRange.to
-    }
-    
-    const filtered = await commissionService.getFilteredCommissions(filterCriteria)
-    setFilteredCommissions(filtered)
-    
-    const summaryData = await commissionService.getCommissionSummary(filtered)
-    setSummary(summaryData)
-  }
+
+  // Construct filter criteria with date range
+  const filterCriteria = useMemo((): CommissionFilters => ({
+    ...filters,
+    startDate: dateRange.from,
+    endDate: dateRange.to
+  }), [filters, dateRange])
+
+  // Fetch data using React Query hooks
+  const { data: uniqueValues, isLoading: isLoadingValues } = useCommissionUniqueValues()
+  const { data: filteredCommissions = [], isLoading: isLoadingCommissions } = useFilteredCommissions(filterCriteria)
+  const { data: summary, isLoading: isLoadingSummary } = useCommissionSummary(filterCriteria)
+
+  const loading = isLoadingCommissions || isLoadingValues
+  const filterOptions = uniqueValues || { salespersons: [], agencies: [], tours: [] }
   
   const handleFilterChange = (field: string, value: any) => {
     setFilters(prev => ({

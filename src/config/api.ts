@@ -96,11 +96,12 @@ export const API_ENDPOINTS = {
   
   // Sales Commissions endpoints
   COMMISSIONS: {
-    LIST: '/api/commissions',
-    CALCULATE: '/api/commissions/calculate',
-    GET: (id: string) => `/api/commissions/${id}`,
-    APPROVE: (id: string) => `/api/commissions/${id}/approve`,
-    PAY: (id: string) => `/api/commissions/${id}/pay`,
+    LIST: '/api/commissions/',
+    UNIQUE_VALUES: '/api/commissions/unique-values/',
+    SUMMARY: '/api/commissions/summary/',
+    GET: (id: string) => `/api/commissions/${id}/`,
+    APPROVE: (id: string) => `/api/commissions/${id}/approve/`,
+    PAY: (id: string) => `/api/commissions/${id}/pay/`,
   },
   
   // Logistics endpoints
