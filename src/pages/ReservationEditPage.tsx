@@ -827,6 +827,23 @@ const ReservationEditPage = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Add More Reservations Button */}
+              <div className="p-4 border-t">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    toast({
+                      title: 'Add Tour',
+                      description: 'Tour addition functionality will be implemented here',
+                    })
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add more reservations
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
