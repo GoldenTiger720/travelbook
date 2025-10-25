@@ -117,6 +117,12 @@ const ReservationEditPage = () => {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
   const [isEditCustomerOpen, setIsEditCustomerOpen] = useState(false)
   const [customerToEdit, setCustomerToEdit] = useState<any>(null)
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
+
+  // Cancel modal state
+  const [cancelReason, setCancelReason] = useState('')
+  const [cancelFee, setCancelFee] = useState(0)
+  const [cancelObservation, setCancelObservation] = useState('')
 
   useEffect(() => {
     loadReservationDataFromCache()
@@ -235,6 +241,104 @@ const ReservationEditPage = () => {
       })
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleReservationAction = async (action: 'cancel' | 'confirm' | 'checkin' | 'noshow') => {
+    if (!reservation) return
+
+    // If action is cancel, open the cancel modal instead
+    if (action === 'cancel') {
+      setIsCancelModalOpen(true)
+      return
+    }
+
+    try {
+      let newStatus: Reservation['status'] = reservation.status
+      let actionTitle = ''
+      let actionDescription = ''
+
+      switch (action) {
+        case 'confirm':
+          newStatus = 'confirmed'
+          actionTitle = 'Reservation Confirmed'
+          actionDescription = `Reservation ${reservation.reservationNumber} has been confirmed`
+          break
+        case 'checkin':
+          actionTitle = 'Check-in Completed'
+          actionDescription = `Check-in completed for reservation ${reservation.reservationNumber}`
+          break
+        case 'noshow':
+          actionTitle = 'No Show Marked'
+          actionDescription = `Reservation ${reservation.reservationNumber} marked as no show`
+          break
+      }
+
+      // Update the reservation status
+      setReservation(prev => {
+        if (!prev) return null
+        return {
+          ...prev,
+          status: newStatus,
+          updatedAt: new Date()
+        }
+      })
+
+      // Here you would typically call an API to update the reservation
+      // For now, we'll just show a success message
+      toast({
+        title: actionTitle,
+        description: actionDescription,
+      })
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: `Failed to ${action} reservation`,
+        variant: 'destructive'
+      })
+    }
+  }
+
+  const handleConfirmCancellation = async () => {
+    if (!reservation) return
+
+    if (!cancelReason) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please select a cancellation reason',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    try {
+      // Update the reservation status
+      setReservation(prev => {
+        if (!prev) return null
+        return {
+          ...prev,
+          status: 'cancelled',
+          updatedAt: new Date()
+        }
+      })
+
+      // Here you would typically call an API to update the reservation with cancellation details
+      toast({
+        title: 'Reservation Cancelled',
+        description: `Reservation ${reservation.reservationNumber} has been cancelled. Reason: ${cancelReason}`,
+      })
+
+      // Reset and close modal
+      setIsCancelModalOpen(false)
+      setCancelReason('')
+      setCancelFee(0)
+      setCancelObservation('')
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to cancel reservation',
+        variant: 'destructive'
+      })
     }
   }
 
@@ -777,6 +881,37 @@ const ReservationEditPage = () => {
                               <span className="text-muted-foreground">{reservation.notes}</span>
                             </div>
                           )}
+                          {/* Action Buttons */}
+                          <div className="flex gap-1 mt-2">
+                            <Button
+                              size="sm"
+                              className="h-7 px-3 text-xs bg-red-500 hover:bg-red-600 text-white"
+                              onClick={() => handleReservationAction('cancel')}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="h-7 px-3 text-xs bg-green-500 hover:bg-green-600 text-white"
+                              onClick={() => handleReservationAction('confirm')}
+                            >
+                              Confirm
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="h-7 px-3 text-xs bg-teal-500 hover:bg-teal-600 text-white"
+                              onClick={() => handleReservationAction('checkin')}
+                            >
+                              Check-in
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="h-7 px-3 text-xs bg-red-400 hover:bg-red-500 text-white"
+                              onClick={() => handleReservationAction('noshow')}
+                            >
+                              No Show
+                            </Button>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="align-top py-3">
@@ -1150,6 +1285,74 @@ const ReservationEditPage = () => {
             {saving ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
+
+        {/* Cancel Reservation Dialog */}
+        <Dialog open={isCancelModalOpen} onOpenChange={setIsCancelModalOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold">Cancellation</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              {/* Reason Dropdown */}
+              <div className="space-y-2">
+                <Label htmlFor="cancel-reason">Reason</Label>
+                <Select value={cancelReason} onValueChange={setCancelReason}>
+                  <SelectTrigger id="cancel-reason">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="trip-cancellation">Trip Cancellation [70% Retention]</SelectItem>
+                    <SelectItem value="no-change-acceptance">Does not accept change suggestions [100% Retention]</SelectItem>
+                    <SelectItem value="bad-weather">Bad weather [0% Retention]</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Fee Input */}
+              <div className="space-y-2">
+                <Label htmlFor="cancel-fee">Fee</Label>
+                <Input
+                  id="cancel-fee"
+                  type="number"
+                  value={cancelFee}
+                  onChange={(e) => setCancelFee(Number(e.target.value))}
+                  placeholder="0.00"
+                />
+              </div>
+
+              {/* Observation Textarea */}
+              <div className="space-y-2">
+                <Label htmlFor="cancel-observation">Observation</Label>
+                <Textarea
+                  id="cancel-observation"
+                  value={cancelObservation}
+                  onChange={(e) => setCancelObservation(e.target.value)}
+                  placeholder="Enter any additional notes..."
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsCancelModalOpen(false)
+                  setCancelReason('')
+                  setCancelFee(0)
+                  setCancelObservation('')
+                }}
+              >
+                Close
+              </Button>
+              <Button
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                onClick={handleConfirmCancellation}
+              >
+                Confirm
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Edit Customer Dialog */}
         <EditCustomerDialog
