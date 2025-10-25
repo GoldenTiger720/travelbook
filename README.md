@@ -1,8 +1,8 @@
-# Zenith Travel Ops
+# Travel Booking System
 
 A modern travel agency management system built with React, TypeScript, and shadcn/ui components. This comprehensive platform streamlines travel operations by managing reservations, quotes, customers, and financial data in one elegant interface.
 
-![Zenith Travel Ops](./public/omg.png)
+![Travel Booking System](./public/omg.png)
 
 
 ### Core Modules
