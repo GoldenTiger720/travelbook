@@ -44,6 +44,8 @@ export interface Reservation {
     pickupTime: string
     pickupAddress: string
   }
+  tourId?: string // Backend BookingTour ID for actions
+  tourStatus?: 'pending' | 'confirmed' | 'checked-in' | 'cancelled' | 'no-show' | 'completed'
   passengers: {
     adults: number
     children: number

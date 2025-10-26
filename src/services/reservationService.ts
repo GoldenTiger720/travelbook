@@ -65,6 +65,8 @@ class ReservationService {
           pickupTime: tour.pickupTime || '',
           pickupAddress: tour.pickupAddress || ''
         },
+        tourId: tour.id || '', // Backend BookingTour ID for API calls
+        tourStatus: tour.tour_status || 'pending',
         passengers: {
           adults: tour.adultPax || 0,
           children: tour.childPax || 0,
@@ -410,6 +412,78 @@ class ReservationService {
       ARS: 'ARS$'
     }
     return `${symbols[currency] || currency} ${amount.toLocaleString()}`
+  }
+
+  /**
+   * Cancel a booking tour with cancellation details
+   * @param tourId - The ID of the tour to cancel
+   * @param cancellationData - Cancellation reason, fee, and observation
+   */
+  async cancelBookingTour(tourId: string, cancellationData: {
+    reason: string
+    fee: number
+    observation: string
+  }): Promise<any> {
+    try {
+      const response = await apiCall(`/api/reservations/booking-tour/${tourId}/cancel/`, {
+        method: 'POST',
+        body: JSON.stringify(cancellationData),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error('Error cancelling booking tour:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Check in a booking tour
+   * @param tourId - The ID of the tour to check in
+   */
+  async checkinBookingTour(tourId: string): Promise<any> {
+    try {
+      const response = await apiCall(`/api/reservations/booking-tour/${tourId}/checkin/`, {
+        method: 'POST',
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error('Error checking in booking tour:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Mark a booking tour as no-show
+   * @param tourId - The ID of the tour to mark as no-show
+   */
+  async noshowBookingTour(tourId: string): Promise<any> {
+    try {
+      const response = await apiCall(`/api/reservations/booking-tour/${tourId}/noshow/`, {
+        method: 'POST',
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error('Error marking booking tour as no-show:', error)
+      throw error
+    }
   }
 }
 

@@ -254,38 +254,62 @@ const ReservationEditPage = () => {
     }
 
     try {
-      let newStatus: Reservation['status'] = reservation.status
       let actionTitle = ''
       let actionDescription = ''
 
       switch (action) {
         case 'confirm':
-          newStatus = 'confirmed'
           actionTitle = 'Reservation Confirmed'
           actionDescription = `Reservation ${reservation.reservationNumber} has been confirmed`
+          // Update the reservation status locally
+          setReservation(prev => {
+            if (!prev) return null
+            return {
+              ...prev,
+              status: 'confirmed',
+              tourStatus: 'confirmed',
+              updatedAt: new Date()
+            }
+          })
           break
         case 'checkin':
+          if (!reservation.tourId) {
+            throw new Error('Tour ID not found')
+          }
+          // Call backend API for check-in
+          await reservationService.checkinBookingTour(reservation.tourId)
           actionTitle = 'Check-in Completed'
           actionDescription = `Check-in completed for reservation ${reservation.reservationNumber}`
+          // Update the reservation status locally
+          setReservation(prev => {
+            if (!prev) return null
+            return {
+              ...prev,
+              tourStatus: 'checked-in',
+              updatedAt: new Date()
+            }
+          })
           break
         case 'noshow':
+          if (!reservation.tourId) {
+            throw new Error('Tour ID not found')
+          }
+          // Call backend API for no-show
+          await reservationService.noshowBookingTour(reservation.tourId)
           actionTitle = 'No Show Marked'
           actionDescription = `Reservation ${reservation.reservationNumber} marked as no show`
+          // Update the reservation status locally
+          setReservation(prev => {
+            if (!prev) return null
+            return {
+              ...prev,
+              tourStatus: 'no-show',
+              updatedAt: new Date()
+            }
+          })
           break
       }
 
-      // Update the reservation status
-      setReservation(prev => {
-        if (!prev) return null
-        return {
-          ...prev,
-          status: newStatus,
-          updatedAt: new Date()
-        }
-      })
-
-      // Here you would typically call an API to update the reservation
-      // For now, we'll just show a success message
       toast({
         title: actionTitle,
         description: actionDescription,
@@ -311,18 +335,34 @@ const ReservationEditPage = () => {
       return
     }
 
+    if (!reservation.tourId) {
+      toast({
+        title: 'Error',
+        description: 'Tour ID not found',
+        variant: 'destructive'
+      })
+      return
+    }
+
     try {
-      // Update the reservation status
+      // Call backend API to cancel the tour with cancellation details
+      await reservationService.cancelBookingTour(reservation.tourId, {
+        reason: cancelReason,
+        fee: cancelFee,
+        observation: cancelObservation
+      })
+
+      // Update the reservation status locally
       setReservation(prev => {
         if (!prev) return null
         return {
           ...prev,
           status: 'cancelled',
+          tourStatus: 'cancelled',
           updatedAt: new Date()
         }
       })
 
-      // Here you would typically call an API to update the reservation with cancellation details
       toast({
         title: 'Reservation Cancelled',
         description: `Reservation ${reservation.reservationNumber} has been cancelled. Reason: ${cancelReason}`,
@@ -881,50 +921,70 @@ const ReservationEditPage = () => {
                               <span className="text-muted-foreground">{reservation.notes}</span>
                             </div>
                           )}
-                          {/* Action Buttons */}
-                          <div className="flex gap-1 mt-2">
-                            <Button
-                              size="sm"
-                              className="h-7 px-3 text-xs bg-red-500 hover:bg-red-600 text-white"
-                              onClick={() => handleReservationAction('cancel')}
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              size="sm"
-                              className="h-7 px-3 text-xs bg-green-500 hover:bg-green-600 text-white"
-                              onClick={() => handleReservationAction('confirm')}
-                            >
-                              Confirm
-                            </Button>
-                            <Button
-                              size="sm"
-                              className="h-7 px-3 text-xs bg-teal-500 hover:bg-teal-600 text-white"
-                              onClick={() => handleReservationAction('checkin')}
-                            >
-                              Check-in
-                            </Button>
-                            <Button
-                              size="sm"
-                              className="h-7 px-3 text-xs bg-red-400 hover:bg-red-500 text-white"
-                              onClick={() => handleReservationAction('noshow')}
-                            >
-                              No Show
-                            </Button>
-                          </div>
+                          {/* Action Buttons - Conditional Display Based on Tour Status */}
+                          {reservation.tourStatus !== 'no-show' && (
+                            <div className="flex gap-1 mt-2">
+                              {reservation.tourStatus === 'checked-in' ? (
+                                // Show only Cancel button when checked-in
+                                <Button
+                                  size="sm"
+                                  className="h-7 px-3 text-xs bg-red-500 hover:bg-red-600 text-white"
+                                  onClick={() => handleReservationAction('cancel')}
+                                >
+                                  Cancel
+                                </Button>
+                              ) : reservation.tourStatus !== 'cancelled' ? (
+                                // Show all four buttons when not checked-in and not cancelled
+                                <>
+                                  <Button
+                                    size="sm"
+                                    className="h-7 px-3 text-xs bg-red-500 hover:bg-red-600 text-white"
+                                    onClick={() => handleReservationAction('cancel')}
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    className="h-7 px-3 text-xs bg-green-500 hover:bg-green-600 text-white"
+                                    onClick={() => handleReservationAction('confirm')}
+                                  >
+                                    Confirm
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    className="h-7 px-3 text-xs bg-teal-500 hover:bg-teal-600 text-white"
+                                    onClick={() => handleReservationAction('checkin')}
+                                  >
+                                    Check-in
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    className="h-7 px-3 text-xs bg-red-400 hover:bg-red-500 text-white"
+                                    onClick={() => handleReservationAction('noshow')}
+                                  >
+                                    No Show
+                                  </Button>
+                                </>
+                              ) : null}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="align-top py-3">
                         <Badge className={cn(
                           "text-xs",
-                          reservation.status === 'confirmed' && "bg-blue-100 text-blue-800",
-                          reservation.status === 'pending' && "bg-yellow-100 text-yellow-800",
-                          reservation.status === 'cancelled' && "bg-red-100 text-red-800",
-                          reservation.status === 'completed' && "bg-green-100 text-green-800"
+                          (reservation.tourStatus === 'confirmed' || reservation.status === 'confirmed') && "bg-blue-100 text-blue-800",
+                          (reservation.tourStatus === 'pending' || reservation.status === 'pending') && "bg-yellow-100 text-yellow-800",
+                          (reservation.tourStatus === 'cancelled' || reservation.status === 'cancelled') && "bg-red-100 text-red-800",
+                          reservation.tourStatus === 'checked-in' && "bg-teal-100 text-teal-800",
+                          reservation.tourStatus === 'no-show' && "bg-gray-100 text-gray-800",
+                          (reservation.tourStatus === 'completed' || reservation.status === 'completed') && "bg-green-100 text-green-800"
                         )}>
-                          {reservation.status === 'confirmed' ? 'Reserved' :
-                           reservation.status === 'cancelled' ? 'Canceled' :
-                           reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
+                          {reservation.tourStatus === 'confirmed' || reservation.status === 'confirmed' ? 'Reserved' :
+                           reservation.tourStatus === 'cancelled' || reservation.status === 'cancelled' ? 'Canceled' :
+                           reservation.tourStatus === 'checked-in' ? 'Checked In' :
+                           reservation.tourStatus === 'no-show' ? 'No Show' :
+                           (reservation.tourStatus || reservation.status).charAt(0).toUpperCase() + (reservation.tourStatus || reservation.status).slice(1)}
                         </Badge>
                       </TableCell>
                       <TableCell className="align-top py-3 text-center">
