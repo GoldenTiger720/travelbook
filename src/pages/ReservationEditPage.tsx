@@ -316,7 +316,9 @@ const ReservationEditPage = () => {
           description: 'Tour has been successfully updated',
         })
       } else {
-        const response = await apiCall(`/api/reservations/booking/${reservationId}/add-tour/`, {
+        // Extract the booking ID by removing any "-tour-X" suffix
+        const bookingId = reservationId?.replace(/-tour-\d+$/, '') || reservationId
+        const response = await apiCall(`/api/reservations/booking/${bookingId}/add-tour/`, {
           method: 'POST',
           body: JSON.stringify({
             tourId: tourData.tourId,
