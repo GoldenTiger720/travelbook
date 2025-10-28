@@ -5,6 +5,7 @@ import { useUpdateCustomer } from '@/hooks/useCustomers'
 import { reservationService } from '@/services/reservationService'
 import { EditCustomerDialog, CustomerFormData } from '@/components/customer'
 import TourModal from '@/components/TourModal'
+import { apiCall } from '@/config/api'
 import {
   ReservationHeader,
   ActionButtons,
@@ -259,12 +260,8 @@ const ReservationEditPage = () => {
 
     try {
       if (tourModalMode === 'edit') {
-        const response = await fetch(`/api/reservations/booking-tour/${reservation.tourId}/update/`, {
+        const response = await apiCall(`/api/reservations/booking-tour/${reservation.tourId}/update/`, {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-          },
           body: JSON.stringify({
             tourId: tourData.tourId,
             destinationId: tourData.destinationId,
@@ -319,12 +316,8 @@ const ReservationEditPage = () => {
           description: 'Tour has been successfully updated',
         })
       } else {
-        const response = await fetch(`/api/reservations/booking/${reservationId}/add-tour/`, {
+        const response = await apiCall(`/api/reservations/booking/${reservationId}/add-tour/`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-          },
           body: JSON.stringify({
             tourId: tourData.tourId,
             destinationId: tourData.destinationId,
