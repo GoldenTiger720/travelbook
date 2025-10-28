@@ -91,13 +91,19 @@ export const useReservationEdit = () => {
         }
 
         const destination = destinationMap.get(destinationId)!
+
+        // Handle both camelCase (from backend) and snake_case (legacy)
+        const adultPrice = tour.adultPrice || tour.adult_price || 0
+        const childPrice = tour.childPrice || tour.child_price || 0
+        const departureTime = tour.departureTime || tour.departure_time || ''
+
         destination.tours.push({
           id: tour.id,
           name: tour.name,
-          adult_price: tour.adult_price || '0',
-          child_price: tour.child_price || '0',
+          adult_price: String(adultPrice),
+          child_price: String(childPrice),
           currency: tour.currency || 'CLP',
-          departure_time: tour.departure_time || ''
+          departure_time: departureTime
         })
 
         // Debug log for first few tours
@@ -105,8 +111,9 @@ export const useReservationEdit = () => {
           console.log('Tour added to destination:', {
             tourId: tour.id,
             tourName: tour.name,
-            adultPrice: tour.adult_price,
-            childPrice: tour.child_price
+            adultPrice: adultPrice,
+            childPrice: childPrice,
+            rawTourData: tour
           })
         }
       })
