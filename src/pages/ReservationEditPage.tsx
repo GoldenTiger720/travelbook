@@ -239,7 +239,7 @@ const ReservationEditPage = () => {
       infantPax: reservation.passengers.infants,
       infantPrice: reservation.pricing.infantPrice,
       comments: reservation.notes || '',
-      operator: 'own-operation',
+      operator: reservation.operator || 'own-operation',
     }
 
     console.log('Opening TourModal with data:', tourData)

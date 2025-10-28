@@ -272,8 +272,9 @@ const TourModal: React.FC<TourModalProps> = ({
                   <SelectValue placeholder="Select operator" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="own-operation">Own Operation</SelectItem>
-                  <SelectItem value="third-party">Third Party</SelectItem>
+                  <SelectItem value="others">Others</SelectItem>
                 </SelectContent>
               </Select>
             </div>
