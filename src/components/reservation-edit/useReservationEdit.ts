@@ -99,6 +99,16 @@ export const useReservationEdit = () => {
           currency: tour.currency || 'CLP',
           departure_time: tour.departure_time || ''
         })
+
+        // Debug log for first few tours
+        if (destination.tours.length <= 3) {
+          console.log('Tour added to destination:', {
+            tourId: tour.id,
+            tourName: tour.name,
+            adultPrice: tour.adult_price,
+            childPrice: tour.child_price
+          })
+        }
       })
 
       const result = Array.from(destinationMap.values()).sort((a, b) => a.name.localeCompare(b.name))

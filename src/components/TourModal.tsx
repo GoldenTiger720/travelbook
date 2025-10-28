@@ -112,21 +112,37 @@ const TourModal: React.FC<TourModalProps> = ({
 
   // Filter tours by destination
   useEffect(() => {
-    if (formData.destination) {
-      const selectedDest = destinations.find(d => d.name === formData.destination)
-      setFilteredTours(selectedDest?.tours || [])
+    if (formData.destination || formData.destinationId) {
+      // Try to find by name first, then by ID
+      const selectedDest = destinations.find(d =>
+        d.name === formData.destination || d.id === formData.destinationId
+      )
+      const tours = selectedDest?.tours || []
+      console.log('Filtering tours for destination:', formData.destination, 'ID:', formData.destinationId)
+      console.log('Found tours:', tours.length)
+      if (tours.length > 0) {
+        console.log('Sample tour data:', tours[0])
+      }
+      setFilteredTours(tours)
     } else {
       setFilteredTours([])
     }
-  }, [formData.destination, destinations])
+  }, [formData.destination, formData.destinationId, destinations])
 
   // Auto-populate prices when tour is selected
   useEffect(() => {
     if (formData.tourId && filteredTours.length > 0) {
       const selectedTour = filteredTours.find(t => t.id === formData.tourId)
       if (selectedTour) {
+        console.log('Selected tour:', selectedTour)
+        console.log('Adult price from tour:', selectedTour.adult_price)
+        console.log('Child price from tour:', selectedTour.child_price)
+
         const adultPrice = parseFloat(selectedTour.adult_price) || 0
         const childPrice = parseFloat(selectedTour.child_price) || 0
+
+        console.log('Parsed adult price:', adultPrice)
+        console.log('Parsed child price:', childPrice)
 
         setFormData(prev => ({
           ...prev,
@@ -135,6 +151,8 @@ const TourModal: React.FC<TourModalProps> = ({
           childPrice,
           pickupTime: prev.pickupTime || selectedTour.departure_time || '',
         }))
+      } else {
+        console.warn('Tour not found in filteredTours:', formData.tourId)
       }
     }
   }, [formData.tourId, filteredTours])
