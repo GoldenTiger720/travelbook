@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { reservationKeys } from '@/hooks/useReservations'
@@ -6,6 +6,22 @@ import { useToast } from '@/components/ui/use-toast'
 import { Reservation } from '@/types/reservation'
 import { reservationService } from '@/services/reservationService'
 import { Payment, TourModalState } from './types'
+
+// Interface for destination data from API
+interface Destination {
+  id: string
+  name: string
+  tours: Tour[]
+}
+
+interface Tour {
+  id: string
+  name: string
+  adult_price: string
+  child_price: string
+  currency: string
+  departure_time: string
+}
 
 export const useReservationEdit = () => {
   const { reservationId } = useParams()
@@ -44,28 +60,59 @@ export const useReservationEdit = () => {
 
   // Tour modal state
   const [editingTour, setEditingTour] = useState<TourModalState | null>(null)
-  const [destinations, setDestinations] = useState<any[]>([])
+
+  // Get destinations from sessionStorage (populated by getAllReservations API call)
+  const destinations = useMemo<Destination[]>(() => {
+    try {
+      const filterDataString = sessionStorage.getItem('reservationFilterData')
+      if (!filterDataString) {
+        console.warn('No reservationFilterData found in sessionStorage')
+        return []
+      }
+
+      const filterData = JSON.parse(filterDataString)
+      const tours = filterData.tours || []
+
+      console.log('Loading destinations from sessionStorage, found tours:', tours.length)
+
+      // Group tours by destination
+      const destinationMap = new Map<string, Destination>()
+
+      tours.forEach((tour: any) => {
+        const destinationId = tour.destination?.id || tour.destination_id
+        const destinationName = tour.destination?.name || tour.destination_name || 'Unknown'
+
+        if (!destinationMap.has(destinationId)) {
+          destinationMap.set(destinationId, {
+            id: destinationId,
+            name: destinationName,
+            tours: []
+          })
+        }
+
+        const destination = destinationMap.get(destinationId)!
+        destination.tours.push({
+          id: tour.id,
+          name: tour.name,
+          adult_price: tour.adult_price || '0',
+          child_price: tour.child_price || '0',
+          currency: tour.currency || 'CLP',
+          departure_time: tour.departure_time || ''
+        })
+      })
+
+      const result = Array.from(destinationMap.values()).sort((a, b) => a.name.localeCompare(b.name))
+      console.log('Loaded destinations for TourModal:', result.length, 'destinations')
+      return result
+    } catch (error) {
+      console.error('Error loading destinations from sessionStorage:', error)
+      return []
+    }
+  }, [])
 
   useEffect(() => {
     loadReservationDataFromCache()
-    loadDestinations()
   }, [reservationId])
-
-  const loadDestinations = async () => {
-    try {
-      const response = await fetch('/api/destinations/', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-        },
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setDestinations(data.data || [])
-      }
-    } catch (error) {
-      console.error('Error loading destinations:', error)
-    }
-  }
 
   const loadReservationDataFromCache = () => {
     setLoading(true)

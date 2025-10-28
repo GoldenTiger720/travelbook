@@ -205,10 +205,30 @@ const ReservationEditPage = () => {
     if (!reservation) return
 
     setTourModalMode('edit')
-    setEditingTour({
+
+    // Find the destinationId by searching through destinations
+    let destinationId = ''
+    console.log('Finding destinationId for tour:', reservation.tour.id)
+    console.log('Available destinations:', destinations.length)
+
+    for (const dest of destinations) {
+      const foundTour = dest.tours.find((t: any) => t.id === reservation.tour.id)
+      if (foundTour) {
+        destinationId = dest.id
+        console.log('Found destinationId:', destinationId, 'for destination:', dest.name)
+        break
+      }
+    }
+
+    if (!destinationId) {
+      console.warn('Could not find destinationId for tour:', reservation.tour.id)
+    }
+
+    const tourData = {
       tourId: reservation.tour.id,
       tourName: reservation.tour.name,
       destination: reservation.tour.destination,
+      destinationId: destinationId,
       date: reservation.operationDate,
       pickupAddress: reservation.tour.pickupAddress,
       pickupTime: reservation.tour.pickupTime,
@@ -220,7 +240,10 @@ const ReservationEditPage = () => {
       infantPrice: reservation.pricing.infantPrice,
       comments: reservation.notes || '',
       operator: 'own-operation',
-    })
+    }
+
+    console.log('Opening TourModal with data:', tourData)
+    setEditingTour(tourData)
     setIsTourModalOpen(true)
   }
 
