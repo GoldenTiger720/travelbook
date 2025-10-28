@@ -1,6 +1,8 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { FileText, ArrowLeft, Save } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { reservationKeys } from '@/hooks/useReservations'
 import { useUpdateCustomer } from '@/hooks/useCustomers'
 import { reservationService } from '@/services/reservationService'
 import { EditCustomerDialog, CustomerFormData } from '@/components/customer'
@@ -19,9 +21,11 @@ import {
 } from '@/components/reservation-edit'
 
 const ReservationEditPage = () => {
+  const queryClient = useQueryClient()
   const {
     reservation,
     setReservation,
+    allToursForBooking,
     loading,
     saving,
     paymentDate,
@@ -67,10 +71,12 @@ const ReservationEditPage = () => {
   // Customer update mutation
   const updateCustomerMutation = useUpdateCustomer()
 
-  const handleReservationAction = async (action: 'cancel' | 'confirm' | 'checkin' | 'noshow') => {
-    if (!reservation) return
+  const handleReservationAction = async (action: 'cancel' | 'confirm' | 'checkin' | 'noshow', tourReservation: typeof reservation) => {
+    if (!tourReservation) return
 
     if (action === 'cancel') {
+      // Set the reservation to the selected tour before opening cancel modal
+      setReservation(tourReservation)
       setIsCancelModalOpen(true)
       return
     }
@@ -82,50 +88,63 @@ const ReservationEditPage = () => {
       switch (action) {
         case 'confirm':
           actionTitle = 'Reservation Confirmed'
-          actionDescription = `Reservation ${reservation.reservationNumber} has been confirmed`
-          setReservation(prev => {
-            if (!prev) return null
-            return {
-              ...prev,
-              status: 'confirmed',
-              tourStatus: 'confirmed',
-              updatedAt: new Date()
-            }
-          })
+          actionDescription = `Reservation ${tourReservation.reservationNumber} has been confirmed`
+          // Update the specific tour in the list
+          if (tourReservation.id === reservation?.id) {
+            setReservation(prev => {
+              if (!prev) return null
+              return {
+                ...prev,
+                status: 'confirmed',
+                tourStatus: 'confirmed',
+                updatedAt: new Date()
+              }
+            })
+          }
           break
         case 'checkin':
-          if (!reservation.tourId) {
+          if (!tourReservation.tourId) {
             throw new Error('Tour ID not found')
           }
-          await reservationService.checkinBookingTour(reservation.tourId)
+          await reservationService.checkinBookingTour(tourReservation.tourId)
           actionTitle = 'Check-in Completed'
-          actionDescription = `Check-in completed for reservation ${reservation.reservationNumber}`
-          setReservation(prev => {
-            if (!prev) return null
-            return {
-              ...prev,
-              tourStatus: 'checked-in',
-              updatedAt: new Date()
-            }
-          })
+          actionDescription = `Check-in completed for reservation ${tourReservation.reservationNumber}`
+          // Update the specific tour in the list
+          if (tourReservation.id === reservation?.id) {
+            setReservation(prev => {
+              if (!prev) return null
+              return {
+                ...prev,
+                tourStatus: 'checked-in',
+                updatedAt: new Date()
+              }
+            })
+          }
           break
         case 'noshow':
-          if (!reservation.tourId) {
+          if (!tourReservation.tourId) {
             throw new Error('Tour ID not found')
           }
-          await reservationService.noshowBookingTour(reservation.tourId)
+          await reservationService.noshowBookingTour(tourReservation.tourId)
           actionTitle = 'No Show Marked'
-          actionDescription = `Reservation ${reservation.reservationNumber} marked as no show`
-          setReservation(prev => {
-            if (!prev) return null
-            return {
-              ...prev,
-              tourStatus: 'no-show',
-              updatedAt: new Date()
-            }
-          })
+          actionDescription = `Reservation ${tourReservation.reservationNumber} marked as no show`
+          // Update the specific tour in the list
+          if (tourReservation.id === reservation?.id) {
+            setReservation(prev => {
+              if (!prev) return null
+              return {
+                ...prev,
+                tourStatus: 'no-show',
+                updatedAt: new Date()
+              }
+            })
+          }
           break
       }
+
+      // Invalidate cache to refetch all tours
+      await queryClient.invalidateQueries({ queryKey: reservationKeys.lists() })
+      loadReservationDataFromCache()
 
       toast({
         title: actionTitle,
@@ -202,18 +221,18 @@ const ReservationEditPage = () => {
     setIsTourModalOpen(true)
   }
 
-  const handleEditTour = () => {
-    if (!reservation) return
+  const handleEditTour = (tourReservation: typeof reservation) => {
+    if (!tourReservation) return
 
     setTourModalMode('edit')
 
     // Find the destinationId by searching through destinations
     let destinationId = ''
-    console.log('Finding destinationId for tour:', reservation.tour.id)
+    console.log('Finding destinationId for tour:', tourReservation.tour.id)
     console.log('Available destinations:', destinations.length)
 
     for (const dest of destinations) {
-      const foundTour = dest.tours.find((t: any) => t.id === reservation.tour.id)
+      const foundTour = dest.tours.find((t: any) => t.id === tourReservation.tour.id)
       if (foundTour) {
         destinationId = dest.id
         console.log('Found destinationId:', destinationId, 'for destination:', dest.name)
@@ -222,25 +241,25 @@ const ReservationEditPage = () => {
     }
 
     if (!destinationId) {
-      console.warn('Could not find destinationId for tour:', reservation.tour.id)
+      console.warn('Could not find destinationId for tour:', tourReservation.tour.id)
     }
 
     const tourData = {
-      tourId: reservation.tour.id,
-      tourName: reservation.tour.name,
-      destination: reservation.tour.destination,
+      tourId: tourReservation.tour.id,
+      tourName: tourReservation.tour.name,
+      destination: tourReservation.tour.destination,
       destinationId: destinationId,
-      date: reservation.operationDate,
-      pickupAddress: reservation.tour.pickupAddress,
-      pickupTime: reservation.tour.pickupTime,
-      adultPax: reservation.passengers.adults,
-      adultPrice: reservation.pricing.adultPrice,
-      childPax: reservation.passengers.children,
-      childPrice: reservation.pricing.childPrice,
-      infantPax: reservation.passengers.infants,
-      infantPrice: reservation.pricing.infantPrice,
-      comments: reservation.notes || '',
-      operator: reservation.operator || 'own-operation',
+      date: tourReservation.operationDate,
+      pickupAddress: tourReservation.tour.pickupAddress,
+      pickupTime: tourReservation.tour.pickupTime,
+      adultPax: tourReservation.passengers.adults,
+      adultPrice: tourReservation.pricing.adultPrice,
+      childPax: tourReservation.passengers.children,
+      childPrice: tourReservation.pricing.childPrice,
+      infantPax: tourReservation.passengers.infants,
+      infantPrice: tourReservation.pricing.infantPrice,
+      comments: tourReservation.notes || '',
+      operator: tourReservation.operator || 'own-operation',
     }
 
     console.log('Opening TourModal with data:', tourData)
@@ -341,11 +360,15 @@ const ReservationEditPage = () => {
           throw new Error('Failed to add tour')
         }
 
+        // Invalidate the reservations cache to force a refetch
+        await queryClient.invalidateQueries({ queryKey: reservationKeys.lists() })
+
         toast({
           title: 'Tour Added',
           description: 'New tour has been added to the reservation',
         })
 
+        // Reload reservation data from the freshly invalidated cache
         loadReservationDataFromCache()
       }
 
@@ -527,6 +550,7 @@ const ReservationEditPage = () => {
           {/* Reservations Table */}
           <ReservationsTable
             reservation={reservation}
+            allToursForBooking={allToursForBooking}
             onEditTour={handleEditTour}
             onAddTour={handleAddTour}
             onReservationAction={handleReservationAction}

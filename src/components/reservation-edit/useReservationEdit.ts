@@ -30,6 +30,7 @@ export const useReservationEdit = () => {
   const queryClient = useQueryClient()
 
   const [reservation, setReservation] = useState<Reservation | null>(null)
+  const [allToursForBooking, setAllToursForBooking] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -137,9 +138,20 @@ export const useReservationEdit = () => {
       const cachedReservations = queryClient.getQueryData<Reservation[]>(reservationKeys.lists())
 
       if (cachedReservations && reservationId) {
-        const foundReservation = cachedReservations.find((r: Reservation) => r.id === reservationId)
-        if (foundReservation) {
-          setReservation(foundReservation)
+        // Extract base booking ID (remove -tour-X suffix if present)
+        const baseBookingId = reservationId.replace(/-tour-\d+$/, '')
+
+        // Find all reservations with this booking ID (including -tour-0, -tour-1, etc.)
+        const matchingReservations = cachedReservations.filter((r: Reservation) => {
+          const rBaseId = r.id.replace(/-tour-\d+$/, '')
+          return rBaseId === baseBookingId
+        })
+
+        if (matchingReservations.length > 0) {
+          // Use the first one as the primary reservation
+          setReservation(matchingReservations[0])
+          // Store all tours for this booking
+          setAllToursForBooking(matchingReservations)
         } else {
           toast({
             title: 'Error',
@@ -166,9 +178,19 @@ export const useReservationEdit = () => {
     setLoading(true)
     try {
       const reservations = await reservationService.getAllReservations()
-      const foundReservation = reservations.find((r: Reservation) => r.id === reservationId)
-      if (foundReservation) {
-        setReservation(foundReservation)
+
+      // Extract base booking ID (remove -tour-X suffix if present)
+      const baseBookingId = reservationId?.replace(/-tour-\d+$/, '') || reservationId
+
+      // Find all reservations with this booking ID
+      const matchingReservations = reservations.filter((r: Reservation) => {
+        const rBaseId = r.id.replace(/-tour-\d+$/, '')
+        return rBaseId === baseBookingId
+      })
+
+      if (matchingReservations.length > 0) {
+        setReservation(matchingReservations[0])
+        setAllToursForBooking(matchingReservations)
       }
     } catch (error) {
       toast({
@@ -244,6 +266,7 @@ export const useReservationEdit = () => {
   return {
     reservation,
     setReservation,
+    allToursForBooking,
     loading,
     saving,
     payments,
