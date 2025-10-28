@@ -362,7 +362,6 @@ const FinancialPage = () => {
     </Dialog>
   )
 
-  // Audit Log Dialog
   const AuditLogDialog = () => (
     <Dialog open={auditDialogOpen} onOpenChange={setAuditDialogOpen}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
