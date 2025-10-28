@@ -34,6 +34,7 @@ import { format } from 'date-fns'
 import { reservationService } from '@/services/reservationService'
 import { useToast } from '@/components/ui/use-toast'
 import { EditCustomerDialog, CustomerFormData } from '@/components/customer'
+import TourModal from '@/components/TourModal'
 import {
   CalendarIcon,
   Save,
@@ -118,15 +119,39 @@ const ReservationEditPage = () => {
   const [isEditCustomerOpen, setIsEditCustomerOpen] = useState(false)
   const [customerToEdit, setCustomerToEdit] = useState<any>(null)
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
+  const [isTourModalOpen, setIsTourModalOpen] = useState(false)
+  const [tourModalMode, setTourModalMode] = useState<'add' | 'edit'>('add')
 
   // Cancel modal state
   const [cancelReason, setCancelReason] = useState('')
   const [cancelFee, setCancelFee] = useState(0)
   const [cancelObservation, setCancelObservation] = useState('')
 
+  // Tour modal state
+  const [editingTour, setEditingTour] = useState<any>(null)
+  const [destinations, setDestinations] = useState<any[]>([])
+
   useEffect(() => {
     loadReservationDataFromCache()
+    loadDestinations()
   }, [reservationId])
+
+  const loadDestinations = async () => {
+    try {
+      // Fetch destinations from API
+      const response = await fetch('/api/destinations/', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setDestinations(data.data || [])
+      }
+    } catch (error) {
+      console.error('Error loading destinations:', error)
+    }
+  }
 
   const loadReservationDataFromCache = () => {
     setLoading(true)
@@ -379,6 +404,162 @@ const ReservationEditPage = () => {
         description: 'Failed to cancel reservation',
         variant: 'destructive'
       })
+    }
+  }
+
+  const handleAddTour = () => {
+    setTourModalMode('add')
+    setEditingTour(null)
+    setIsTourModalOpen(true)
+  }
+
+  const handleEditTour = () => {
+    if (!reservation) return
+
+    setTourModalMode('edit')
+    // Prepare tour data for editing
+    setEditingTour({
+      tourId: reservation.tour.id,
+      tourName: reservation.tour.name,
+      destination: reservation.tour.destination,
+      date: reservation.operationDate,
+      pickupAddress: reservation.tour.pickupAddress,
+      pickupTime: reservation.tour.pickupTime,
+      adultPax: reservation.passengers.adults,
+      adultPrice: reservation.pricing.adultPrice,
+      childPax: reservation.passengers.children,
+      childPrice: reservation.pricing.childPrice,
+      infantPax: reservation.passengers.infants,
+      infantPrice: reservation.pricing.infantPrice,
+      comments: reservation.notes || '',
+      operator: 'own-operation',
+    })
+    setIsTourModalOpen(true)
+  }
+
+  const handleSaveTour = async (tourData: any) => {
+    if (!reservation || !reservation.tourId) {
+      toast({
+        title: 'Error',
+        description: 'Cannot save tour: missing tour ID',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      if (tourModalMode === 'edit') {
+        // Update existing tour via backend API
+        const response = await fetch(`/api/reservations/booking-tour/${reservation.tourId}/update/`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          },
+          body: JSON.stringify({
+            tourId: tourData.tourId,
+            destinationId: tourData.destinationId,
+            date: tourData.date.toISOString(),
+            pickupAddress: tourData.pickupAddress,
+            pickupTime: tourData.pickupTime,
+            adultPax: tourData.adultPax,
+            adultPrice: tourData.adultPrice,
+            childPax: tourData.childPax,
+            childPrice: tourData.childPrice,
+            infantPax: tourData.infantPax,
+            infantPrice: tourData.infantPrice,
+            comments: tourData.comments,
+            operator: tourData.operator,
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to update tour')
+        }
+
+        const result = await response.json()
+
+        // Update local state
+        setReservation(prev => {
+          if (!prev) return null
+          return {
+            ...prev,
+            tour: {
+              ...prev.tour,
+              id: tourData.tourId,
+              name: tourData.tourName,
+              destination: tourData.destination,
+              pickupAddress: tourData.pickupAddress,
+              pickupTime: tourData.pickupTime,
+            },
+            operationDate: tourData.date,
+            passengers: {
+              adults: tourData.adultPax,
+              children: tourData.childPax,
+              infants: tourData.infantPax,
+            },
+            pricing: {
+              ...prev.pricing,
+              adultPrice: tourData.adultPrice,
+              childPrice: tourData.childPrice,
+              infantPrice: tourData.infantPrice,
+            },
+            notes: tourData.comments,
+          }
+        })
+
+        toast({
+          title: 'Tour Updated',
+          description: 'Tour has been successfully updated',
+        })
+      } else {
+        // Add new tour to booking
+        const response = await fetch(`/api/reservations/booking/${reservationId}/add-tour/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          },
+          body: JSON.stringify({
+            tourId: tourData.tourId,
+            destinationId: tourData.destinationId,
+            date: tourData.date.toISOString(),
+            pickupAddress: tourData.pickupAddress,
+            pickupTime: tourData.pickupTime,
+            adultPax: tourData.adultPax,
+            adultPrice: tourData.adultPrice,
+            childPax: tourData.childPax,
+            childPrice: tourData.childPrice,
+            infantPax: tourData.infantPax,
+            infantPrice: tourData.infantPrice,
+            comments: tourData.comments,
+            operator: tourData.operator,
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to add tour')
+        }
+
+        const result = await response.json()
+
+        toast({
+          title: 'Tour Added',
+          description: 'New tour has been added to the reservation',
+        })
+
+        // Reload reservation data
+        loadReservationDataFromCache()
+      }
+
+      setIsTourModalOpen(false)
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: tourModalMode === 'edit' ? 'Failed to update tour' : 'Failed to add tour',
+        variant: 'destructive',
+      })
+      console.error('Error saving tour:', error)
     }
   }
 
@@ -901,7 +1082,18 @@ const ReservationEditPage = () => {
                       </TableCell>
                       <TableCell className="align-top py-3">
                         <div className="space-y-2">
-                          <div className="font-medium text-sm">{reservation.tour.name}</div>
+                          <div className="flex items-center gap-2">
+                            <div className="font-medium text-sm">{reservation.tour.name}</div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 hover:bg-blue-100"
+                              onClick={() => handleEditTour()}
+                              title="Edit Tour"
+                            >
+                              <Edit className="h-4 w-4 text-blue-600" />
+                            </Button>
+                          </div>
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <span className="font-mono">{reservation.reservationNumber}</span>
                             <Button variant="ghost" size="sm" className="h-4 w-4 p-0">
@@ -1027,12 +1219,7 @@ const ReservationEditPage = () => {
               <div className="p-4 border-t flex justify-end">
                 <Button
                   className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                  onClick={() => {
-                    toast({
-                      title: 'Add Tour',
-                      description: 'Tour addition functionality will be implemented here',
-                    })
-                  }}
+                  onClick={() => handleAddTour()}
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Add more reservations
@@ -1421,6 +1608,17 @@ const ReservationEditPage = () => {
           customer={customerToEdit}
           onSubmit={handleSaveCustomer}
           isPending={updateCustomerMutation.isPending}
+        />
+
+        {/* Tour Add/Edit Modal */}
+        <TourModal
+          isOpen={isTourModalOpen}
+          onClose={() => setIsTourModalOpen(false)}
+          mode={tourModalMode}
+          tourData={editingTour}
+          destinations={destinations}
+          currency={reservation?.pricing.currency || 'CLP'}
+          onSave={handleSaveTour}
         />
       </div>
     </div>
