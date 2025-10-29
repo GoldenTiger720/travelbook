@@ -38,6 +38,10 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
   onAddExpense,
   onEditExpense,
 }) => {
+  // Ensure expenses is always an array
+  const expensesList = Array.isArray(expenses) ? expenses : []
+  const commissionsList = Array.isArray(payables?.commissions) ? payables.commissions : []
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -76,14 +80,14 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {expenses.length === 0 ? (
+                {expensesList.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       No expenses found. Click "Add Expense" to create one.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  expenses.map((expense) => (
+                  expensesList.map((expense) => (
                     <TableRow key={expense.id}>
                       <TableCell className="font-medium">{expense.name}</TableCell>
                       <TableCell className="capitalize">{expense.expense_type}</TableCell>
@@ -146,14 +150,14 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {payables.commissions.length === 0 ? (
+                {commissionsList.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       No commissions found.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  payables.commissions.map((commission) => (
+                  commissionsList.map((commission) => (
                     <TableRow key={commission.id}>
                       <TableCell className="font-medium">{commission.id}</TableCell>
                       <TableCell>
