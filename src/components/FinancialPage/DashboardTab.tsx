@@ -1,10 +1,5 @@
-import React from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { Separator } from '@/components/ui/separator'
 import {
   AreaChart,
   Area,
@@ -25,16 +20,9 @@ import {
   Wallet,
   Building,
   Users,
-  ArrowUpRight,
-  ArrowDownRight,
-  FileText,
-  Package,
-  Receipt,
-  ChevronRight,
-  ShoppingCart,
-  Send,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { FinancialDashboard } from '@/types/financial'
 
 interface DashboardTabProps {
   totals: {
@@ -46,376 +34,313 @@ interface DashboardTabProps {
     totalPendingCommissions: number
   }
   formatCurrency: (amount: number, currency?: string) => string
-  workflowData: any
-  receivablesWithInstallments: any[]
-  payablesWithWorkflow: any[]
-  cashFlowForecast: any[]
-  scenarioData: any
-  selectedScenario: 'base' | 'optimistic' | 'pessimistic'
-  setSelectedScenario: (value: 'base' | 'optimistic' | 'pessimistic') => void
+  dashboardData: FinancialDashboard | null
+  loading: boolean
 }
 
 const DashboardTab: React.FC<DashboardTabProps> = ({
   totals,
   formatCurrency,
-  workflowData,
-  receivablesWithInstallments,
-  payablesWithWorkflow,
-  cashFlowForecast,
-  scenarioData,
-  selectedScenario,
-  setSelectedScenario,
+  dashboardData,
+  loading,
 }) => {
   // KPI Card Component
-  const KPICard = ({ title, value, change, icon: Icon, color, subtitle }: any) => (
+  const KPICard = ({ title, value, icon: Icon, color }: any) => (
     <Card className="hover:shadow-lg transition-all duration-300">
-      <CardContent className="p-4 sm:p-6">
+      <CardContent className="p-6">
         <div className="flex items-center justify-between space-x-2">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">{title}</p>
-            <div className="flex items-baseline space-x-1 sm:space-x-2">
-              <h2 className="text-lg sm:text-2xl font-bold truncate">{value}</h2>
-              {change && (
-                <span className={cn(
-                  "text-xs font-medium flex items-center",
-                  change > 0 ? "text-green-500" : "text-red-500"
-                )}>
-                  {change > 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                  {Math.abs(change)}%
-                </span>
-              )}
-            </div>
-            {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
+          <div className="flex-1">
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <h2 className="text-2xl font-bold mt-2">{value}</h2>
           </div>
-          <div className={cn("p-2 sm:p-3 rounded-full", color)}>
-            <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+          <div className={cn("p-3 rounded-full", color)}>
+            <Icon className="w-6 h-6 text-white" />
           </div>
         </div>
       </CardContent>
     </Card>
   )
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading financial data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Prepare chart data
+  const monthlyData = dashboardData?.monthlyData || []
+  const expensesByCategory = dashboardData?.expenses.byCategory || []
+
+  // Colors for pie chart
+  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
+
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* KPI Cards - Responsive Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+    <div className="space-y-6">
+      {/* KPI Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <KPICard
           title="Cash Position"
           value={formatCurrency(totals.cashPosition)}
-          change={12.5}
           icon={Wallet}
-          color="bg-green-500"
-          subtitle="All accounts"
-        />
-        <KPICard
-          title="Receivables"
-          value={formatCurrency(totals.totalReceivables)}
-          change={5.2}
-          icon={DollarSign}
           color="bg-blue-500"
-          subtitle="Outstanding"
         />
         <KPICard
-          title="Payables"
-          value={formatCurrency(totals.totalPayables)}
-          change={-3.1}
+          title="Total Receivables"
+          value={formatCurrency(totals.totalReceivables)}
           icon={CreditCard}
-          color="bg-red-500"
-          subtitle="Due"
+          color="bg-green-500"
+        />
+        <KPICard
+          title="Total Payables"
+          value={formatCurrency(totals.totalPayables)}
+          icon={DollarSign}
+          color="bg-orange-500"
         />
         <KPICard
           title="Net Position"
           value={formatCurrency(totals.netPosition)}
-          change={8.5}
           icon={TrendingUp}
-          color="bg-purple-500"
-          subtitle="Current"
+          color={totals.netPosition >= 0 ? "bg-green-500" : "bg-red-500"}
         />
         <KPICard
           title="Bank Balance"
           value={formatCurrency(totals.totalBankBalance)}
-          change={3.2}
           icon={Building}
-          color="bg-indigo-500"
-          subtitle="Total"
+          color="bg-purple-500"
         />
         <KPICard
-          title="Commissions"
+          title="Pending Commissions"
           value={formatCurrency(totals.totalPendingCommissions)}
-          change={15.3}
           icon={Users}
-          color="bg-orange-500"
-          subtitle="Pending"
+          color="bg-pink-500"
         />
       </div>
 
-      {/* Workflow Status Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base sm:text-lg">Workflow Pipeline</CardTitle>
-          <CardDescription className="text-xs sm:text-sm">End-to-end financial workflow status</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {/* Quotation to Revenue Pipeline */}
-            <div>
-              <h4 className="text-sm font-medium mb-2">Revenue Pipeline</h4>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 overflow-x-auto pb-2">
-                <div className="flex items-center gap-2 min-w-fit">
-                  <div className="bg-blue-100 p-2 rounded">
-                    <FileText className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium">Quotations</p>
-                    <p className="text-xs text-muted-foreground">{workflowData.quotations.length} active</p>
-                  </div>
-                </div>
-                <ChevronRight className="w-3 h-3 xs:w-4 xs:h-4 text-muted-foreground shrink-0" />
-                <div className="flex items-center gap-2 min-w-fit">
-                  <div className="bg-green-100 p-2 rounded">
-                    <Package className="w-4 h-4 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium">Reservations</p>
-                    <p className="text-xs text-muted-foreground">{workflowData.reservations.length} confirmed</p>
-                  </div>
-                </div>
-                <ChevronRight className="w-3 h-3 xs:w-4 xs:h-4 text-muted-foreground shrink-0" />
-                <div className="flex items-center gap-2 min-w-fit">
-                  <div className="bg-yellow-100 p-2 rounded">
-                    <Receipt className="w-4 h-4 text-yellow-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium">Receivables</p>
-                    <p className="text-xs text-muted-foreground">{receivablesWithInstallments.length} pending</p>
-                  </div>
-                </div>
-                <ChevronRight className="w-3 h-3 xs:w-4 xs:h-4 text-muted-foreground shrink-0" />
-                <div className="flex items-center gap-2 min-w-fit">
-                  <div className="bg-purple-100 p-2 rounded">
-                    <DollarSign className="w-4 h-4 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium">Payments</p>
-                    <p className="text-xs text-muted-foreground">12 received</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Supplier Purchase Pipeline */}
-            <div>
-              <h4 className="text-sm font-medium mb-2">Purchase Pipeline</h4>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 overflow-x-auto pb-2">
-                <div className="flex items-center gap-2 min-w-fit">
-                  <div className="bg-orange-100 p-2 rounded">
-                    <ShoppingCart className="w-4 h-4 text-orange-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium">Purchase Orders</p>
-                    <p className="text-xs text-muted-foreground">8 active</p>
-                  </div>
-                </div>
-                <ChevronRight className="w-3 h-3 xs:w-4 xs:h-4 text-muted-foreground shrink-0" />
-                <div className="flex items-center gap-2 min-w-fit">
-                  <div className="bg-red-100 p-2 rounded">
-                    <CreditCard className="w-4 h-4 text-red-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium">Payables</p>
-                    <p className="text-xs text-muted-foreground">{payablesWithWorkflow.length} due</p>
-                  </div>
-                </div>
-                <ChevronRight className="w-3 h-3 xs:w-4 xs:h-4 text-muted-foreground shrink-0" />
-                <div className="flex items-center gap-2 min-w-fit">
-                  <div className="bg-indigo-100 p-2 rounded">
-                    <Send className="w-4 h-4 text-indigo-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium">Payments</p>
-                    <p className="text-xs text-muted-foreground">5 scheduled</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Cash Flow and Scenario Analysis */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
-        {/* Cash Flow Forecast */}
+      {/* Revenue & Expenses Summary */}
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-              <div>
-                <CardTitle className="text-base sm:text-lg">Cash Flow Forecast</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">Forecast vs Actual with drill-down</CardDescription>
+            <CardTitle>Financial Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Total Revenue</span>
+                <span className="text-sm font-bold text-green-600">
+                  {formatCurrency(dashboardData?.totals.totalRevenue || 0)}
+                </span>
               </div>
-              <Select value="monthly" onValueChange={() => {}}>
-                <SelectTrigger className="w-24 sm:w-32 h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="quarterly">Quarterly</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Total Expenses</span>
+                <span className="text-sm font-bold text-red-600">
+                  {formatCurrency(dashboardData?.totals.totalExpenses || 0)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Total Commissions</span>
+                <span className="text-sm font-bold text-orange-600">
+                  {formatCurrency(dashboardData?.totals.totalCommissions || 0)}
+                </span>
+              </div>
+              <div className="border-t pt-2 mt-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-bold">Net Income</span>
+                  <span className={cn(
+                    "text-sm font-bold",
+                    (dashboardData?.totals.netIncome || 0) >= 0 ? "text-green-600" : "text-red-600"
+                  )}>
+                    {formatCurrency(dashboardData?.totals.netIncome || 0)}
+                  </span>
+                </div>
+              </div>
             </div>
+
+            {/* Expense Breakdown */}
+            <div className="space-y-2 pt-4 border-t">
+              <h4 className="text-sm font-semibold">Expense Breakdown</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-sm">
+                  <span>Fixed Expenses</span>
+                  <span className="font-medium">
+                    {formatCurrency(dashboardData?.expenses.fixed || 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span>Variable Expenses</span>
+                  <span className="font-medium">
+                    {formatCurrency(dashboardData?.expenses.variable || 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Payment Status */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Payment Status</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold">Revenue Status</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-sm">
+                  <span>Paid</span>
+                  <span className="font-medium text-green-600">
+                    {formatCurrency(dashboardData?.revenue.paid || 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span>Pending</span>
+                  <span className="font-medium text-orange-600">
+                    {formatCurrency(dashboardData?.revenue.pending || 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-4 border-t">
+              <h4 className="text-sm font-semibold">Expense Status</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-sm">
+                  <span>Paid</span>
+                  <span className="font-medium text-green-600">
+                    {formatCurrency(dashboardData?.expenses.paid || 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span>Pending</span>
+                  <span className="font-medium text-orange-600">
+                    {formatCurrency(dashboardData?.expenses.pending || 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span>Overdue</span>
+                  <span className="font-medium text-red-600">
+                    {formatCurrency(dashboardData?.expenses.overdue || 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Monthly Trends */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Monthly Trends</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <AreaChart data={cashFlowForecast}>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip 
-                  formatter={(value) => formatCurrency(Number(value))}
-                  contentStyle={{ fontSize: 12 }}
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stackId="1"
+                  stroke="#10b981"
+                  fill="#10b981"
+                  name="Revenue"
                 />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Area type="monotone" dataKey="forecast" stackId="1" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.6} />
-                <Area type="monotone" dataKey="actual" stackId="2" stroke="#10b981" fill="#10b981" fillOpacity={0.6} />
+                <Area
+                  type="monotone"
+                  dataKey="expenses"
+                  stackId="2"
+                  stroke="#ef4444"
+                  fill="#ef4444"
+                  name="Expenses"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="netIncome"
+                  stackId="3"
+                  stroke="#3b82f6"
+                  fill="#3b82f6"
+                  name="Net Income"
+                />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Scenario Modeling */}
+        {/* Expenses by Category */}
         <Card>
           <CardHeader>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-              <div>
-                <CardTitle className="text-base sm:text-lg">Scenario Analysis</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">Financial projections</CardDescription>
+            <CardTitle>Expenses by Category</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {expensesByCategory.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={expensesByCategory}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={(entry) => entry.category}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="total"
+                  >
+                    {expensesByCategory.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                No expense data available
               </div>
-              <Select value={selectedScenario} onValueChange={(value: any) => setSelectedScenario(value)}>
-                <SelectTrigger className="w-28 sm:w-36 h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="base">Base Case</SelectItem>
-                  <SelectItem value="optimistic">Optimistic</SelectItem>
-                  <SelectItem value="pessimistic">Pessimistic</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Financial Accounts */}
+      {dashboardData?.accounts && dashboardData.accounts.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Financial Accounts</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm">Revenue</span>
-                  <span className="text-sm font-semibold text-green-600">
-                    {formatCurrency(scenarioData[selectedScenario].revenue)}
-                  </span>
-                </div>
-                <Progress value={100} className="h-2 bg-green-100" />
-              </div>
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm">Costs</span>
-                  <span className="text-sm font-semibold text-red-600">
-                    {formatCurrency(scenarioData[selectedScenario].costs)}
-                  </span>
-                </div>
-                <Progress 
-                  value={(scenarioData[selectedScenario].costs / scenarioData[selectedScenario].revenue) * 100} 
-                  className="h-2"
-                />
-              </div>
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm">Net Profit</span>
-                  <span className="text-sm font-semibold">
-                    {formatCurrency(scenarioData[selectedScenario].profit)}
-                  </span>
-                </div>
-                <Progress 
-                  value={(scenarioData[selectedScenario].profit / scenarioData[selectedScenario].revenue) * 100} 
-                  className="h-2 bg-blue-100"
-                />
-              </div>
-              <Separator />
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Profit Margin</span>
-                <Badge variant="outline" className="text-lg font-bold">
-                  {scenarioData[selectedScenario].margin}%
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Bank Accounts and Cost Centers */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
-        {/* Bank Accounts */}
-        <Card className="w-full">
-          <CardHeader className="p-3 xs:p-4 sm:p-6">
-            <CardTitle className="text-sm xs:text-base sm:text-lg">Bank Accounts</CardTitle>
-            <CardDescription className="text-[10px] xs:text-xs sm:text-sm">Account balances and reconciliation status</CardDescription>
-          </CardHeader>
-          <CardContent className="p-3 xs:p-4 sm:p-6">
-            <div className="space-y-2 xs:space-y-3">
-              {workflowData.bankAccounts.map((account: any) => (
-                <div key={account.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-background">
-                      {account.type === 'cash' ? <Wallet className="w-4 h-4" /> : <Building className="w-4 h-4" />}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{account.name}</p>
-                      <p className="text-xs text-muted-foreground">{account.bank} • {account.currency}</p>
-                    </div>
+              {dashboardData.accounts.map((account) => (
+                <div key={account.id} className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{account.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {account.bank_name} - {account.account_type}
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold">{formatCurrency(account.balance, account.currency)}</p>
-                    <Badge variant="outline" className="text-xs">
-                      {account.type}
-                    </Badge>
+                    <p className="font-bold">
+                      {account.currency} {account.current_balance.toLocaleString()}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {account.is_active ? 'Active' : 'Inactive'}
+                    </p>
                   </div>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
-
-        {/* Cost Centers */}
-        <Card className="w-full">
-          <CardHeader className="p-3 xs:p-4 sm:p-6">
-            <CardTitle className="text-sm xs:text-base sm:text-lg">Cost Centers</CardTitle>
-            <CardDescription className="text-[10px] xs:text-xs sm:text-sm">Budget utilization by department</CardDescription>
-          </CardHeader>
-          <CardContent className="p-3 xs:p-4 sm:p-6">
-            <div className="space-y-2 xs:space-y-3">
-              {workflowData.costCenters.map((center: any) => (
-                <div key={center.id} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-sm font-medium">{center.name}</p>
-                      <p className="text-xs text-muted-foreground">{center.manager}</p>
-                    </div>
-                    <span className="text-xs font-medium">
-                      {((center.spent / center.budget) * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                  <Progress 
-                    value={(center.spent / center.budget) * 100} 
-                    className="h-2"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Spent: {formatCurrency(center.spent)}</span>
-                    <span>Budget: {formatCurrency(center.budget)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      )}
     </div>
   )
 }
