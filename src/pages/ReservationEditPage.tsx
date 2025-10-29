@@ -589,34 +589,35 @@ const ReservationEditPage = () => {
     setIsAddPaymentDialogOpen(true)
   }
 
-  const handleEditPayment = () => {
-    // Load existing payment data if available
-    if (reservation?.paymentDetails) {
-      const paymentDetails = reservation.paymentDetails
+  const handleEditPayment = (paymentId: number) => {
+    // Find the payment to edit from the payments array
+    const payments = reservation?.payments || (reservation?.paymentDetails ? [reservation.paymentDetails] : [])
+    const paymentToEdit = payments.find(p => p.id === paymentId)
 
+    if (paymentToEdit) {
       // Set payment date
-      if (paymentDetails.date) {
-        setPaymentDate(new Date(paymentDetails.date))
+      if (paymentToEdit.date) {
+        setPaymentDate(new Date(paymentToEdit.date))
       }
 
       // Set payment method
-      if (paymentDetails.method) {
-        setPaymentMethod(paymentDetails.method)
+      if (paymentToEdit.method) {
+        setPaymentMethod(paymentToEdit.method)
       }
 
       // Set payment percentage
-      if (paymentDetails.percentage !== undefined) {
-        setPaymentPercentage(paymentDetails.percentage)
+      if (paymentToEdit.percentage !== undefined) {
+        setPaymentPercentage(paymentToEdit.percentage)
       }
 
       // Set amount paid
-      if (paymentDetails.amountPaid !== undefined) {
-        setAmountPaid(paymentDetails.amountPaid)
+      if (paymentToEdit.amountPaid !== undefined) {
+        setAmountPaid(paymentToEdit.amountPaid)
       }
 
       // Set payment status
-      if (paymentDetails.status) {
-        setPaymentStatus(paymentDetails.status)
+      if (paymentToEdit.status) {
+        setPaymentStatus(paymentToEdit.status)
       }
     }
 
@@ -693,6 +694,38 @@ const ReservationEditPage = () => {
     // Extract the base booking ID by removing any "-tour-X" suffix
     const bookingId = reservationId?.replace(/-tour-\d+$/, '') || reservationId
 
+    // Create optimistic payment for immediate display
+    const optimisticPayment = {
+      id: Date.now(), // Temporary ID, will be replaced by backend response
+      date: paymentDate?.toISOString() || new Date().toISOString(),
+      method: paymentMethod,
+      percentage: paymentPercentage,
+      amountPaid: amountPaid,
+      comments: '',
+      status: paymentStatus as 'pending' | 'partial' | 'paid' | 'refunded' | 'cancelled',
+      receiptFile: receiptFile ? 'pending-upload' : undefined
+    }
+
+    // Get current payments array
+    const currentPayments = reservation.payments || (reservation.paymentDetails ? [reservation.paymentDetails] : [])
+
+    // Add optimistic payment to local state immediately
+    setReservation(prev => {
+      if (!prev) return null
+      return {
+        ...prev,
+        payments: [...currentPayments, optimisticPayment]
+      }
+    })
+
+    // Close dialog immediately for better UX
+    setIsAddPaymentDialogOpen(false)
+
+    toast({
+      title: 'Payment Added',
+      description: 'Payment has been added to the table',
+    })
+
     try {
       // Prepare payment data for backend
       const paymentData = {
@@ -713,13 +746,13 @@ const ReservationEditPage = () => {
           method: paymentMethod,
           percentage: paymentPercentage,
           amountPaid: amountPaid,
-          comments: '', // Add comments field if needed
+          comments: '',
           status: paymentStatus,
           receiptFile: receiptFile || null
         }
       }
 
-      // Send POST request to create new payment
+      // Send POST request to create new payment in the background
       const response = await apiCall(`/api/reservations/booking/payment/`, {
         method: 'POST',
         body: JSON.stringify({
@@ -732,22 +765,23 @@ const ReservationEditPage = () => {
         throw new Error('Failed to add payment')
       }
 
-      // Close dialog
-      setIsAddPaymentDialogOpen(false)
-
-      // Invalidate cache to refresh data
+      // Backend succeeded, invalidate cache to get real data
       await queryClient.invalidateQueries({ queryKey: reservationKeys.lists() })
       loadReservationDataFromCache()
-
-      toast({
-        title: 'Payment Added',
-        description: 'Payment has been added successfully',
-      })
     } catch (error) {
+      // Backend failed, revert optimistic update
+      setReservation(prev => {
+        if (!prev) return null
+        return {
+          ...prev,
+          payments: currentPayments
+        }
+      })
+
       console.error('Error adding payment:', error)
       toast({
         title: 'Error',
-        description: 'Failed to add payment',
+        description: 'Failed to save payment to server. The payment has been removed.',
         variant: 'destructive',
       })
     }

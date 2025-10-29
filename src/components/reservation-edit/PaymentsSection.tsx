@@ -18,7 +18,7 @@ import { getCurrencySymbol, calculateGrandTotal } from './utils'
 interface PaymentsSectionProps {
   reservation: Reservation
   onAddPayment: () => void
-  onEditPayment: () => void
+  onEditPayment: (paymentId: number) => void
 }
 
 export const PaymentsSection = ({
@@ -26,6 +26,15 @@ export const PaymentsSection = ({
   onAddPayment,
   onEditPayment
 }: PaymentsSectionProps) => {
+  // Get all payments - support both new array format and legacy single payment
+  const payments = reservation.payments || (reservation.paymentDetails ? [reservation.paymentDetails] : [])
+
+  // Calculate total amount paid across all payments
+  const totalAmountPaid = payments.reduce((sum, payment) => sum + (payment.amountPaid || 0), 0)
+
+  // Calculate grand total for the reservation
+  const grandTotal = calculateGrandTotal(reservation)
+
   return (
     <Card>
       <CardHeader>
@@ -50,91 +59,102 @@ export const PaymentsSection = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow>
-                {/* Payment Date */}
-                <TableCell className="align-top py-3">
-                  <span className="text-sm">
-                    {reservation.paymentDetails?.date ? format(new Date(reservation.paymentDetails.date), "dd/MM/yyyy") : "-"}
-                  </span>
-                </TableCell>
+              {payments.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-6 text-muted-foreground">
+                    No payments added yet
+                  </TableCell>
+                </TableRow>
+              ) : (
+                payments.map((payment, index) => (
+                  <TableRow key={payment.id || `payment-${index}`}>
+                    {/* Payment Date */}
+                    <TableCell className="align-top py-3">
+                      <span className="text-sm">
+                        {payment.date ? format(new Date(payment.date), "dd/MM/yyyy") : "-"}
+                      </span>
+                    </TableCell>
 
-                {/* Payment Method */}
-                <TableCell className="align-top py-3">
-                  <span className="text-sm capitalize">
-                    {reservation.paymentDetails?.method ? reservation.paymentDetails.method.replace('-', ' ') : '-'}
-                  </span>
-                </TableCell>
+                    {/* Payment Method */}
+                    <TableCell className="align-top py-3">
+                      <span className="text-sm capitalize">
+                        {payment.method ? payment.method.replace('-', ' ') : '-'}
+                      </span>
+                    </TableCell>
 
-                {/* Total Price */}
-                <TableCell className="align-top py-3">
-                  <div className="p-2 bg-green-100 border rounded-md text-center">
-                    <span className="font-semibold text-sm">
-                      {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {calculateGrandTotal(reservation).toLocaleString()}
-                    </span>
-                  </div>
-                </TableCell>
+                    {/* Total Price - only show in first row */}
+                    <TableCell className="align-top py-3">
+                      {index === 0 ? (
+                        <div className="p-2 bg-green-100 border rounded-md text-center">
+                          <span className="font-semibold text-sm">
+                            {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {grandTotal.toLocaleString()}
+                          </span>
+                        </div>
+                      ) : null}
+                    </TableCell>
 
-                {/* Percentage */}
-                <TableCell className="align-top py-3">
-                  <span className="text-sm">
-                    {reservation.paymentDetails?.percentage || 0}%
-                  </span>
-                </TableCell>
+                    {/* Percentage */}
+                    <TableCell className="align-top py-3">
+                      <span className="text-sm">
+                        {payment.percentage || 0}%
+                      </span>
+                    </TableCell>
 
-                {/* Amount Paid */}
-                <TableCell className="align-top py-3">
-                  <span className="text-sm font-medium">
-                    {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {(reservation.paymentDetails?.amountPaid || 0).toLocaleString()}
-                  </span>
-                </TableCell>
+                    {/* Amount Paid */}
+                    <TableCell className="align-top py-3">
+                      <span className="text-sm font-medium">
+                        {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {(payment.amountPaid || 0).toLocaleString()}
+                      </span>
+                    </TableCell>
 
-                {/* Amount Pending */}
-                <TableCell className="align-top py-3">
-                  <div className="p-2 bg-gray-100 border rounded-md text-center">
-                    <span className="font-semibold text-sm text-red-600">
-                      {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {
-                        (reservation.paymentDetails?.status === 'paid'
-                          ? 0
-                          : calculateGrandTotal(reservation) - (reservation.paymentDetails?.amountPaid || 0)
-                        ).toLocaleString()
-                      }
-                    </span>
-                  </div>
-                </TableCell>
+                    {/* Amount Pending - only show in first row */}
+                    <TableCell className="align-top py-3">
+                      {index === 0 ? (
+                        <div className="p-2 bg-gray-100 border rounded-md text-center">
+                          <span className="font-semibold text-sm text-red-600">
+                            {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {
+                              Math.max(0, grandTotal - totalAmountPaid).toLocaleString()
+                            }
+                          </span>
+                        </div>
+                      ) : null}
+                    </TableCell>
 
-                {/* Receipt */}
-                <TableCell className="align-top py-3">
-                  <span className="text-sm text-muted-foreground">
-                    {reservation.paymentDetails?.receiptFile ? "View" : "-"}
-                  </span>
-                </TableCell>
+                    {/* Receipt */}
+                    <TableCell className="align-top py-3">
+                      <span className="text-sm text-muted-foreground">
+                        {payment.receiptFile ? "View" : "-"}
+                      </span>
+                    </TableCell>
 
-                {/* Payment Status */}
-                <TableCell className="align-top py-3">
-                  <Badge className={cn(
-                    "text-xs",
-                    reservation.paymentDetails?.status === 'paid' && "bg-green-100 text-green-800",
-                    reservation.paymentDetails?.status === 'refunded' && "bg-red-100 text-red-800",
-                    reservation.paymentDetails?.status === 'cancelled' && "bg-red-100 text-red-800",
-                    reservation.paymentDetails?.status === 'pending' && "bg-yellow-100 text-yellow-800",
-                    reservation.paymentDetails?.status === 'partial' && "bg-blue-100 text-blue-800"
-                  )}>
-                    {reservation.paymentDetails?.status ? reservation.paymentDetails.status.charAt(0).toUpperCase() + reservation.paymentDetails.status.slice(1) : 'Pending'}
-                  </Badge>
-                </TableCell>
+                    {/* Payment Status */}
+                    <TableCell className="align-top py-3">
+                      <Badge className={cn(
+                        "text-xs",
+                        payment.status === 'paid' && "bg-green-100 text-green-800",
+                        payment.status === 'refunded' && "bg-red-100 text-red-800",
+                        payment.status === 'cancelled' && "bg-red-100 text-red-800",
+                        payment.status === 'pending' && "bg-yellow-100 text-yellow-800",
+                        payment.status === 'partial' && "bg-blue-100 text-blue-800"
+                      )}>
+                        {payment.status ? payment.status.charAt(0).toUpperCase() + payment.status.slice(1) : 'Pending'}
+                      </Badge>
+                    </TableCell>
 
-                {/* Action */}
-                <TableCell className="align-top py-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    onClick={onEditPayment}
-                  >
-                    <Edit className="w-3 h-3" />
-                  </Button>
-                </TableCell>
-              </TableRow>
+                    {/* Action */}
+                    <TableCell className="align-top py-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={() => onEditPayment(payment.id)}
+                      >
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
@@ -145,7 +165,7 @@ export const PaymentsSection = ({
           <div className="flex justify-end items-center mb-6 pb-4 border-b">
             <span className="text-sm font-medium text-gray-600 mr-4">Total payments:</span>
             <span className="text-xl font-bold text-gray-800">
-              {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {(reservation.paymentDetails?.amountPaid || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {totalAmountPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
 

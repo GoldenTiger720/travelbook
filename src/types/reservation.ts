@@ -67,7 +67,8 @@ export interface Reservation {
   externalAgency?: string
   purchaseOrderNumber?: string
   notes?: string
-  paymentDetails?: PaymentDetails
+  paymentDetails?: PaymentDetails // Legacy: single payment (kept for backward compatibility)
+  payments?: PaymentDetails[] // New: multiple payments support
   createdAt: Date
   updatedAt: Date
 }
