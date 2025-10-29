@@ -194,7 +194,6 @@ const LogisticsPage = () => {
       const payload = {
         tour_assignment: {
           tour_id: tourAssignment?.tourId,
-          tour_name: tourAssignment?.tourName,
           date: tourAssignment?.date,
           departure_time: tourAssignment?.departureTime,
           main_driver: tourAssignment?.mainDriver,
