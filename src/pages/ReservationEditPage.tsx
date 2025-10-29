@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { FileText, ArrowLeft } from 'lucide-react'
+import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { reservationKeys } from '@/hooks/useReservations'
 import { useUpdateCustomer } from '@/hooks/useCustomers'
@@ -16,12 +17,19 @@ import {
   PaymentsSection,
   CancelReservationDialog,
   EditPaymentDialog,
+  AddPaymentDialog,
   useReservationEdit,
   calculateGrandTotal
 } from '@/components/reservation-edit'
 
 const ReservationEditPage = () => {
   const queryClient = useQueryClient()
+
+  // Separate dialog states for Add vs Edit payment
+  const [isAddPaymentDialogOpen, setIsAddPaymentDialogOpen] = useState(false)
+  const [isEditPaymentDialogOpen, setIsEditPaymentDialogOpen] = useState(false)
+  const [selectedTourForPayment, setSelectedTourForPayment] = useState('')
+
   const {
     reservation,
     setReservation,
@@ -566,25 +574,20 @@ const ReservationEditPage = () => {
   }
 
   const handleAddPayment = () => {
-    // Set mode to 'add'
-    setPaymentModalMode('add')
-
     // Clear/reset payment fields for new payment
     setPaymentDate(new Date())
     setPaymentMethod('credit-card')
-    setPaymentPercentage(0)
+    setPaymentPercentage(100)
     setAmountPaid(0)
     setPaymentStatus('pending')
     setReceiptFile(null)
+    setSelectedTourForPayment('')
 
-    // Open the dialog
-    setIsPaymentDialogOpen(true)
+    // Open the Add Payment dialog
+    setIsAddPaymentDialogOpen(true)
   }
 
   const handleEditPayment = () => {
-    // Set mode to 'edit'
-    setPaymentModalMode('edit')
-
     // Load existing payment data if available
     if (reservation?.paymentDetails) {
       const paymentDetails = reservation.paymentDetails
@@ -615,11 +618,11 @@ const ReservationEditPage = () => {
       }
     }
 
-    // Open the dialog
-    setIsPaymentDialogOpen(true)
+    // Open the Edit Payment dialog
+    setIsEditPaymentDialogOpen(true)
   }
 
-  const handleSavePayment = async () => {
+  const handleSaveEditPayment = async () => {
     if (!reservation) return
 
     // Extract the base booking ID by removing any "-tour-X" suffix
@@ -651,45 +654,98 @@ const ReservationEditPage = () => {
         }
       }
 
-      let response
-
-      if (paymentModalMode === 'add') {
-        // Send POST request to create new payment
-        response = await apiCall(`/api/reservations/booking/payment/`, {
-          method: 'POST',
-          body: JSON.stringify({
-            ...paymentData,
-            bookingId: bookingId
-          })
-        })
-      } else {
-        // Send PUT request to update existing payment
-        response = await apiCall(`/api/reservations/booking/payment/${bookingId}/`, {
-          method: 'PUT',
-          body: JSON.stringify(paymentData)
-        })
-      }
+      // Send PUT request to update existing payment
+      const response = await apiCall(`/api/reservations/booking/payment/${bookingId}/`, {
+        method: 'PUT',
+        body: JSON.stringify(paymentData)
+      })
 
       if (!response.ok) {
-        throw new Error(`Failed to ${paymentModalMode === 'add' ? 'add' : 'update'} payment`)
+        throw new Error('Failed to update payment')
       }
 
       // Close dialog
-      setIsPaymentDialogOpen(false)
+      setIsEditPaymentDialogOpen(false)
 
       // Invalidate cache to refresh data
       await queryClient.invalidateQueries({ queryKey: reservationKeys.lists() })
       loadReservationDataFromCache()
 
       toast({
-        title: paymentModalMode === 'add' ? 'Payment Added' : 'Payment Updated',
-        description: `Payment details have been ${paymentModalMode === 'add' ? 'added' : 'saved'} successfully`,
+        title: 'Payment Updated',
+        description: 'Payment details have been saved successfully',
       })
     } catch (error) {
-      console.error(`Error ${paymentModalMode === 'add' ? 'adding' : 'updating'} payment:`, error)
+      console.error('Error updating payment:', error)
       toast({
         title: 'Error',
-        description: `Failed to ${paymentModalMode === 'add' ? 'add' : 'update'} payment details`,
+        description: 'Failed to update payment details',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleSaveAddPayment = async () => {
+    if (!reservation || !selectedTourForPayment) return
+
+    // Extract the base booking ID by removing any "-tour-X" suffix
+    const bookingId = reservationId?.replace(/-tour-\d+$/, '') || reservationId
+
+    try {
+      // Prepare payment data for backend
+      const paymentData = {
+        bookingOptions: {
+          copyComments: false,
+          includePayment: true,
+          quoteComments: '',
+          sendPurchaseOrder: false,
+          sendQuotationAccess: false
+        },
+        customer: {
+          email: reservation.client.email,
+          name: reservation.client.name,
+          phone: reservation.client.phone
+        },
+        paymentDetails: {
+          date: paymentDate?.toISOString() || new Date().toISOString(),
+          method: paymentMethod,
+          percentage: paymentPercentage,
+          amountPaid: amountPaid,
+          comments: '', // Add comments field if needed
+          status: paymentStatus,
+          receiptFile: receiptFile || null
+        }
+      }
+
+      // Send POST request to create new payment
+      const response = await apiCall(`/api/reservations/booking/payment/`, {
+        method: 'POST',
+        body: JSON.stringify({
+          ...paymentData,
+          bookingId: bookingId
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to add payment')
+      }
+
+      // Close dialog
+      setIsAddPaymentDialogOpen(false)
+
+      // Invalidate cache to refresh data
+      await queryClient.invalidateQueries({ queryKey: reservationKeys.lists() })
+      loadReservationDataFromCache()
+
+      toast({
+        title: 'Payment Added',
+        description: 'Payment has been added successfully',
+      })
+    } catch (error) {
+      console.error('Error adding payment:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to add payment',
         variant: 'destructive',
       })
     }
@@ -702,6 +758,10 @@ const ReservationEditPage = () => {
       variant: 'destructive'
     })
   }
+
+  // Filter tours without payment status (unpaid tours)
+  // A tour is considered unpaid if it doesn't have associated payment details
+  const unpaidTours = allToursForBooking.filter(tour => !tour.paymentDetails || tour.paymentDetails.status === 'pending')
 
   if (loading) {
     return (
@@ -786,10 +846,33 @@ const ReservationEditPage = () => {
           onConfirm={handleConfirmCancellation}
         />
 
+        {/* Add Payment Dialog */}
+        <AddPaymentDialog
+          isOpen={isAddPaymentDialogOpen}
+          onOpenChange={setIsAddPaymentDialogOpen}
+          unpaidTours={unpaidTours}
+          paymentDate={paymentDate}
+          setPaymentDate={setPaymentDate}
+          paymentMethod={paymentMethod}
+          setPaymentMethod={setPaymentMethod}
+          paymentPercentage={paymentPercentage}
+          setPaymentPercentage={setPaymentPercentage}
+          amountPaid={amountPaid}
+          setAmountPaid={setAmountPaid}
+          paymentStatus={paymentStatus}
+          setPaymentStatus={setPaymentStatus}
+          receiptFile={receiptFile}
+          setReceiptFile={setReceiptFile}
+          selectedTourId={selectedTourForPayment}
+          setSelectedTourId={setSelectedTourForPayment}
+          currency={reservation.pricing.currency}
+          onSave={handleSaveAddPayment}
+        />
+
         {/* Edit Payment Dialog */}
         <EditPaymentDialog
-          isOpen={isPaymentDialogOpen}
-          onOpenChange={setIsPaymentDialogOpen}
+          isOpen={isEditPaymentDialogOpen}
+          onOpenChange={setIsEditPaymentDialogOpen}
           paymentDate={paymentDate}
           setPaymentDate={setPaymentDate}
           paymentMethod={paymentMethod}
@@ -804,7 +887,7 @@ const ReservationEditPage = () => {
           setReceiptFile={setReceiptFile}
           currency={reservation.pricing.currency}
           totalAmount={calculateGrandTotal(reservation)}
-          onSave={handleSavePayment}
+          onSave={handleSaveEditPayment}
         />
 
         {/* Edit Customer Dialog */}
