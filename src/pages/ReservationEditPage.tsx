@@ -572,11 +572,16 @@ const ReservationEditPage = () => {
     }
   }
 
+  // State for totalPrice in Add Payment dialog
+  const [totalPrice, setTotalPrice] = useState(0)
+
   const handleAddPayment = () => {
     // Clear/reset payment fields for new payment
     setPaymentDate(new Date())
     setPaymentMethod('credit-card')
+    setPaymentPercentage(0)
     setAmountPaid(0)
+    setTotalPrice(0)
     setPaymentStatus('pending')
     setReceiptFile(null)
 
@@ -847,8 +852,12 @@ const ReservationEditPage = () => {
           setPaymentDate={setPaymentDate}
           paymentMethod={paymentMethod}
           setPaymentMethod={setPaymentMethod}
+          paymentPercentage={paymentPercentage}
+          setPaymentPercentage={setPaymentPercentage}
           amountPaid={amountPaid}
           setAmountPaid={setAmountPaid}
+          totalPrice={totalPrice}
+          setTotalPrice={setTotalPrice}
           paymentStatus={paymentStatus}
           setPaymentStatus={setPaymentStatus}
           receiptFile={receiptFile}

@@ -24,8 +24,12 @@ interface AddPaymentDialogProps {
   setPaymentDate: (date: Date | undefined) => void
   paymentMethod: string
   setPaymentMethod: (method: string) => void
+  paymentPercentage: number
+  setPaymentPercentage: (percentage: number) => void
   amountPaid: number
   setAmountPaid: (amount: number) => void
+  totalPrice: number
+  setTotalPrice: (price: number) => void
   paymentStatus: string
   setPaymentStatus: (status: string) => void
   receiptFile: File | null
@@ -41,8 +45,12 @@ export const AddPaymentDialog = ({
   setPaymentDate,
   paymentMethod,
   setPaymentMethod,
+  paymentPercentage,
+  setPaymentPercentage,
   amountPaid,
   setAmountPaid,
+  totalPrice,
+  setTotalPrice,
   paymentStatus,
   setPaymentStatus,
   receiptFile,
@@ -120,13 +128,60 @@ export const AddPaymentDialog = ({
                 type="number"
                 min="0"
                 className="pl-12"
-                value={amountPaid}
+                value={totalPrice}
                 onChange={(e) => {
-                  const amount = parseInt(e.target.value) || 0
-                  setAmountPaid(amount)
+                  const price = parseInt(e.target.value) || 0
+                  setTotalPrice(price)
+                  // Recalculate Amount Paid based on percentage
+                  if (paymentPercentage > 0) {
+                    const calculatedAmount = Math.round((price * paymentPercentage) / 100)
+                    setAmountPaid(calculatedAmount)
+                  }
                 }}
-                placeholder="Enter payment amount"
+                placeholder="Enter total price"
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Percentage (%)</Label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={paymentPercentage}
+                onChange={(e) => {
+                  const percentage = parseInt(e.target.value) || 0
+                  setPaymentPercentage(percentage)
+                  if (totalPrice > 0) {
+                    const calculatedAmount = Math.round((totalPrice * percentage) / 100)
+                    setAmountPaid(calculatedAmount)
+                  }
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Amount Paid</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-3 text-sm text-muted-foreground">
+                  {getCurrencySymbol(currency)}
+                </span>
+                <Input
+                  type="number"
+                  min="0"
+                  className="pl-12"
+                  value={amountPaid}
+                  onChange={(e) => {
+                    const amount = parseInt(e.target.value) || 0
+                    setAmountPaid(amount)
+                    if (totalPrice > 0) {
+                      const calculatedPercentage = Math.round((amount / totalPrice) * 100)
+                      setPaymentPercentage(calculatedPercentage)
+                    }
+                  }}
+                />
+              </div>
             </div>
           </div>
           <div className="space-y-2">
