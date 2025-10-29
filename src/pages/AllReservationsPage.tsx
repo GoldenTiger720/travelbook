@@ -75,7 +75,6 @@ const AllReservationsPage = () => {
   // Single React Query hook - only makes one API call
   const { data: allReservations = [], isLoading: reservationsLoading, error: reservationsError } = useReservations()
 
-  // Compute filter options from API response (users and tours)
   const filterOptions = useMemo(() => {
     const options = reservationService.getFilterOptions()
 
