@@ -598,12 +598,67 @@ const ReservationEditPage = () => {
     setIsPaymentDialogOpen(true)
   }
 
-  const handleSavePayment = () => {
-    setIsPaymentDialogOpen(false)
-    toast({
-      title: 'Payment Updated',
-      description: 'Payment details have been saved successfully',
-    })
+  const handleSavePayment = async () => {
+    if (!reservation) return
+
+    // Extract the base booking ID by removing any "-tour-X" suffix
+    const bookingId = reservationId?.replace(/-tour-\d+$/, '') || reservationId
+
+    try {
+      // Prepare payment data for backend
+      const paymentData = {
+        bookingOptions: {
+          copyComments: reservation.paymentDetails?.copyComments || false,
+          includePayment: reservation.paymentDetails?.includePayment || true,
+          quoteComments: reservation.paymentDetails?.quoteComments || '',
+          sendPurchaseOrder: reservation.paymentDetails?.sendPurchaseOrder || false,
+          sendQuotationAccess: reservation.paymentDetails?.sendQuotationAccess || false
+        },
+        customer: {
+          email: reservation.client.email,
+          name: reservation.client.name,
+          phone: reservation.client.phone
+        },
+        paymentDetails: {
+          date: paymentDate?.toISOString() || new Date().toISOString(),
+          method: paymentMethod,
+          percentage: paymentPercentage,
+          amountPaid: amountPaid,
+          comments: '', // Add comments field if needed
+          status: paymentStatus,
+          receiptFile: receiptFile || null
+        }
+      }
+
+      // Send PUT request to update payment
+      const response = await apiCall(`/api/reservations/booking/payment/${bookingId}/`, {
+        method: 'PUT',
+        body: JSON.stringify(paymentData)
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update payment')
+      }
+
+      // Close dialog
+      setIsPaymentDialogOpen(false)
+
+      // Invalidate cache to refresh data
+      await queryClient.invalidateQueries({ queryKey: reservationKeys.lists() })
+      loadReservationDataFromCache()
+
+      toast({
+        title: 'Payment Updated',
+        description: 'Payment details have been saved successfully',
+      })
+    } catch (error) {
+      console.error('Error updating payment:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to update payment details',
+        variant: 'destructive',
+      })
+    }
   }
 
   const handleTermsConditions = () => {
