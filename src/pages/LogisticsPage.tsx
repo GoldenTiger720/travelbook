@@ -58,8 +58,6 @@ const LogisticsPage = () => {
   const [guides, setGuides] = useState<Guide[]>([]);
   const [selectedOperation, setSelectedOperation] =
     useState<TourOperation | null>(null);
-  const [assignedOperator, setAssignedOperator] =
-    useState<string>("own-operation");
   const [bookingTours, setBookingTours] = useState<any[]>([]);
   const [loadingPassengers, setLoadingPassengers] = useState(false);
 
@@ -200,7 +198,6 @@ const LogisticsPage = () => {
           main_guide: tourAssignment?.mainGuide,
           assistant_guide: tourAssignment?.assistantGuide,
           vehicle_id: tourAssignment?.vehicleId,
-          operator: assignedOperator,
           status: tourAssignment?.status
         },
         passengers: cleanedPassengers
@@ -454,26 +451,8 @@ const LogisticsPage = () => {
               </CardHeader>
               <CardContent className="space-y-2 sm:space-y-4 px-2 sm:px-6">
                 <div className="space-y-4">
-                  {/* Operator Selection */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-                    <div>
-                      <Label className="text-sm">Operator</Label>
-                      <Select
-                        value={assignedOperator}
-                        onValueChange={setAssignedOperator}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select operator" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="own-operation">
-                            Own Operation
-                          </SelectItem>
-                          <SelectItem value="others">Others</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
+                  {/* Tour Assignment Inputs */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
                     <div>
                       <Label className="text-sm">Departure Time</Label>
                       <Input
@@ -504,108 +483,104 @@ const LogisticsPage = () => {
                       />
                     </div>
 
-                    {assignedOperator === "own-operation" && (
-                      <div className="sm:col-span-2 lg:col-span-1">
-                        <Label className="text-sm">Assign Vehicle</Label>
-                        <Select
-                          value={selectedOperation.vehicleId || undefined}
-                          onValueChange={handleVehicleAssign}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select vehicle" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {vehicles
-                              .filter((v) => v.status === "available")
-                              .map((vehicle) => (
-                                <SelectItem key={vehicle.id} value={vehicle.id}>
-                                  {vehicle.name} ({vehicle.capacity} seats)
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
+                    <div>
+                      <Label className="text-sm">Assign Vehicle</Label>
+                      <Select
+                        value={selectedOperation.vehicleId || undefined}
+                        onValueChange={handleVehicleAssign}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select vehicle" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {vehicles
+                            .filter((v) => v.status === "available")
+                            .map((vehicle) => (
+                              <SelectItem key={vehicle.id} value={vehicle.id}>
+                                {vehicle.name} ({vehicle.capacity} seats)
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
-                  {/* Driver and Guide Selection - Only for Own Operation */}
-                  {assignedOperator === "own-operation" && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
-                      <div>
-                        <Label className="text-sm">Main Driver</Label>
-                        <Select
-                          value={selectedOperation.mainDriver || undefined}
-                          onValueChange={(value) =>
-                            handleAssignmentUpdate("mainDriver", value)
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select driver" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {drivers
-                              .filter((d) => d.status === "available")
-                              .map((driver) => (
-                                <SelectItem key={driver.id} value={driver.id}>
-                                  {driver.name}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div>
-                        <Label className="text-sm">Main Guide</Label>
-                        <Select
-                          value={selectedOperation.mainGuide || undefined}
-                          onValueChange={(value) =>
-                            handleAssignmentUpdate("mainGuide", value)
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select guide" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {guides
-                              .filter((g) => g.status === "available" && g.role === "guide")
-                              .map((guide) => (
-                                <SelectItem key={guide.id} value={guide.id}>
-                                  {guide.name}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div>
-                        <Label className="text-sm">Assistant Guide</Label>
-                        <Select
-                          value={selectedOperation.assistantGuide || undefined}
-                          onValueChange={(value) =>
-                            handleAssignmentUpdate("assistantGuide", value)
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select assistant" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {guides
-                              .filter(
-                                (g) =>
-                                  g.status === "available" &&
-                                  g.role === "assistant_guide" &&
-                                  g.id !== selectedOperation.mainGuide
-                              )
-                              .map((guide) => (
-                                <SelectItem key={guide.id} value={guide.id}>
-                                  {guide.name}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                  {/* Driver and Guide Selection */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
+                    <div>
+                      <Label className="text-sm">Main Driver</Label>
+                      <Select
+                        value={selectedOperation.mainDriver || undefined}
+                        onValueChange={(value) =>
+                          handleAssignmentUpdate("mainDriver", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select driver" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {drivers
+                            .filter((d) => d.status === "available")
+                            .map((driver) => (
+                              <SelectItem key={driver.id} value={driver.id}>
+                                {driver.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  )}
+
+                    <div>
+                      <Label className="text-sm">Main Guide</Label>
+                      <Select
+                        value={selectedOperation.mainGuide || undefined}
+                        onValueChange={(value) =>
+                          handleAssignmentUpdate("mainGuide", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select guide" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {guides
+                            .filter((g) => g.status === "available" && g.role === "guide")
+                            .map((guide) => (
+                              <SelectItem key={guide.id} value={guide.id}>
+                                {guide.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm">Assistant Guide</Label>
+                      <Select
+                        value={selectedOperation.assistantGuide || undefined}
+                        onValueChange={(value) =>
+                          handleAssignmentUpdate("assistantGuide", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select assistant" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {guides
+                            .filter(
+                              (g) =>
+                                g.status === "available" &&
+                                g.role === "assistant_guide" &&
+                                g.id !== selectedOperation.mainGuide
+                            )
+                            .map((guide) => (
+                              <SelectItem key={guide.id} value={guide.id}>
+                                {guide.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
