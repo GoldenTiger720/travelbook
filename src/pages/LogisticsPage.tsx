@@ -64,6 +64,7 @@ const LogisticsPage = () => {
   useEffect(() => {
     loadBasicData();
     loadPassengerData();
+    loadStoredPassengerList();
   }, []);
 
   const loadBasicData = async () => {
@@ -180,6 +181,23 @@ const LogisticsPage = () => {
       setBookingTours([]);
     } finally {
       setLoadingPassengers(false);
+    }
+  };
+
+  const loadStoredPassengerList = async () => {
+    try {
+      const data = await logisticsService.getPassengerList();
+
+      if (data && data.logistics_settings) {
+        console.log('Stored passenger list loaded:', data);
+        // You can add additional logic here to use this data
+        // For example, you might want to populate the passenger table
+        // or update the UI based on previously saved logistics settings
+      }
+    } catch (error) {
+      console.error('Failed to load stored passenger list:', error);
+      // Silently fail - this is for loading existing data
+      // No need to show error toast on page load
     }
   };
 

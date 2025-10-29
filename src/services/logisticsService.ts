@@ -191,6 +191,24 @@ class LogisticsService {
     }
   }
 
+  async getPassengerList(): Promise<any> {
+    try {
+      const response = await apiCall('/api/logistics/passenger/list/', {
+        method: 'GET',
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error('Error fetching passenger list:', error)
+      throw error
+    }
+  }
+
   generateWhatsAppMessage(vehicleDistribution: VehicleDistribution): string {
     const message = `🚐 *${vehicleDistribution.vehicleName}* - Passenger List\n\n` +
       `👥 Total Passengers: ${vehicleDistribution.assignedPassengers}/${vehicleDistribution.capacity}\n\n` +
