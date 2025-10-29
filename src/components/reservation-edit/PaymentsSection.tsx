@@ -82,15 +82,21 @@ export const PaymentsSection = ({
                       </span>
                     </TableCell>
 
-                    {/* Total Price - only show in first row */}
+                    {/* Total Price - calculated from percentage and amount paid for each payment */}
                     <TableCell className="align-top py-3">
-                      {index === 1 ? (
-                        <div className="p-2 bg-green-100 border rounded-md text-center">
-                          <span className="font-semibold text-sm">
-                            {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {grandTotal.toLocaleString()}
-                          </span>
-                        </div>
-                      ) : null}
+                      {(() => {
+                        // Calculate total price for this payment: Amount Paid / (Percentage / 100)
+                        const totalPrice = payment.percentage > 0
+                          ? Math.round((payment.amountPaid || 0) / (payment.percentage / 100))
+                          : 0
+                        return (
+                          <div className="p-2 bg-green-100 border rounded-md text-center">
+                            <span className="font-semibold text-sm">
+                              {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {totalPrice.toLocaleString()}
+                            </span>
+                          </div>
+                        )
+                      })()}
                     </TableCell>
 
                     {/* Percentage */}
@@ -107,17 +113,23 @@ export const PaymentsSection = ({
                       </span>
                     </TableCell>
 
-                    {/* Amount Pending - only show in first row */}
+                    {/* Amount Pending - calculated per payment: Total Price - Amount Paid */}
                     <TableCell className="align-top py-3">
-                      {index === 0 ? (
-                        <div className="p-2 bg-gray-100 border rounded-md text-center">
-                          <span className="font-semibold text-sm text-red-600">
-                            {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {
-                              Math.max(0, grandTotal - totalAmountPaid).toLocaleString()
-                            }
-                          </span>
-                        </div>
-                      ) : null}
+                      {(() => {
+                        // Calculate total price for this payment
+                        const totalPrice = payment.percentage > 0
+                          ? Math.round((payment.amountPaid || 0) / (payment.percentage / 100))
+                          : 0
+                        // Calculate pending for this payment
+                        const pending = Math.max(0, totalPrice - (payment.amountPaid || 0))
+                        return (
+                          <div className="p-2 bg-gray-100 border rounded-md text-center">
+                            <span className="font-semibold text-sm text-red-600">
+                              {getCurrencySymbol(reservation?.pricing.currency || 'CLP')} {pending.toLocaleString()}
+                            </span>
+                          </div>
+                        )
+                      })()}
                     </TableCell>
 
                     {/* Receipt */}

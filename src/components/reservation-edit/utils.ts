@@ -16,6 +16,12 @@ export const getCurrencySymbol = (currency: string): string => {
 // Calculate grand total from reservation
 export const calculateGrandTotal = (reservation: Reservation | null): number => {
   if (!reservation) return 0
+
+  // Use totalAmount from pricing if available, otherwise calculate from passengers
+  if (reservation.pricing.totalAmount) {
+    return reservation.pricing.totalAmount
+  }
+
   return (
     (reservation.passengers.adults * reservation.pricing.adultPrice) +
     (reservation.passengers.children * reservation.pricing.childPrice) +
