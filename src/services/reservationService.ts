@@ -90,7 +90,8 @@ class ReservationService {
         externalAgency: undefined, // Not present in backend data
         purchaseOrderNumber: undefined, // Not present in backend data
         notes: tour.comments || '',
-        paymentDetails: backendReservation.paymentDetails || undefined,
+        paymentDetails: backendReservation.paymentDetails || undefined, // Legacy single payment
+        payments: backendReservation.allPayments || undefined, // All payments array
         createdAt: new Date(backendReservation.createdAt || new Date()),
         updatedAt: new Date(backendReservation.updatedAt || new Date())
       }
