@@ -30,10 +30,12 @@ class ReservationService {
 
     // Create a separate reservation object for each tour
     return tours.map((tour: any, index: number) => {
-      // Calculate tour-specific total amount (proportional to number of tours)
-      const tourSpecificAmount = tours.length > 1
-        ? (backendReservation.totalAmount || 0) / tours.length
-        : (backendReservation.totalAmount || 0)
+      // Calculate tour-specific total amount based on actual pricing and passengers
+      const tourSpecificAmount = (
+        (tour.adultPax || 0) * (tour.adultPrice || 0) +
+        (tour.childPax || 0) * (tour.childPrice || 0) +
+        (tour.infantPax || 0) * (tour.infantPrice || 0)
+      )
 
       return {
         id: tours.length > 1 ? `${backendReservation.id}-tour-${index}` : backendReservation.id,
