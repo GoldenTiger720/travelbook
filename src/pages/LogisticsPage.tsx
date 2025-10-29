@@ -66,6 +66,7 @@ const LogisticsPage = () => {
 
   useEffect(() => {
     loadBasicData();
+    loadPassengerData();
   }, []);
 
   const loadBasicData = async () => {
@@ -133,7 +134,7 @@ const LogisticsPage = () => {
     }
   };
 
-  const handleTourSelect = async (tourId: string) => {
+  const handleTourSelect = (tourId: string) => {
     setSelectedTour(tourId);
     const selectedTourData = tours.find((tour) => tour.id === tourId);
 
@@ -157,20 +158,15 @@ const LogisticsPage = () => {
         operator: 'own-operation'
       };
       setSelectedOperation(operation);
-
-      // Fetch passenger data for the selected tour
-      await loadPassengerData(tourId);
     } else {
       setSelectedOperation(null);
-      setPassengers([]);
     }
   };
 
-  const loadPassengerData = async (tourId: string) => {
+  const loadPassengerData = async () => {
     try {
       setLoadingPassengers(true);
-      const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      const data = await logisticsService.getTourPassengers(tourId, dateStr, selectedOperator !== 'all' ? selectedOperator : undefined);
+      const data = await logisticsService.getTourPassengers();
 
       if (data && data.passengers) {
         setPassengers(data.passengers);
@@ -617,9 +613,9 @@ const LogisticsPage = () => {
             </div>
 
             {/* Passenger List Table */}
-            {passengers.length > 0 && (
+            {!loadingPassengers && passengers.length > 0 && selectedOperation && (
               <PassengerListTable
-                passengers={passengers}
+                passengers={passengers.filter(p => p.booking_tour_id === selectedOperation.id || p.tour_name === selectedOperation.tourName)}
                 onSave={handleSavePassengers}
               />
             )}
@@ -628,6 +624,14 @@ const LogisticsPage = () => {
               <Card>
                 <CardContent className="p-8 text-center">
                   <p className="text-muted-foreground">Loading passenger data...</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {!loadingPassengers && selectedOperation && passengers.filter(p => p.booking_tour_id === selectedOperation.id || p.tour_name === selectedOperation.tourName).length === 0 && (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <p className="text-muted-foreground">No passengers found for this tour.</p>
                 </CardContent>
               </Card>
             )}
