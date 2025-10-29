@@ -337,48 +337,135 @@ const ReservationEditPage = () => {
       } else {
         // Extract the booking ID by removing any "-tour-X" suffix
         const bookingId = reservationId?.replace(/-tour-\d+$/, '') || reservationId
-        const response = await apiCall(`/api/reservations/booking/${bookingId}/add-tour/`, {
-          method: 'POST',
-          body: JSON.stringify({
-            tourId: tourData.tourId,
-            destinationId: tourData.destinationId,
-            date: tourData.date.toISOString(),
-            pickupAddress: tourData.pickupAddress,
-            pickupTime: tourData.pickupTime,
-            adultPax: tourData.adultPax,
-            adultPrice: tourData.adultPrice,
-            childPax: tourData.childPax,
-            childPrice: tourData.childPrice,
-            infantPax: tourData.infantPax,
-            infantPrice: tourData.infantPrice,
-            comments: tourData.comments,
-            operator: tourData.operator,
-          }),
-        })
 
-        if (!response.ok) {
-          throw new Error('Failed to add tour')
+        // Create optimistic new reservation entry for immediate display
+        const newTourIndex = allToursForBooking.length
+        const optimisticReservation = {
+          id: `${bookingId}-tour-${newTourIndex}`,
+          reservationNumber: reservation?.reservationNumber || bookingId.split('-')[0].toUpperCase(),
+          operationDate: tourData.date,
+          saleDate: reservation?.saleDate || new Date(),
+          status: reservation?.status || 'pending',
+          paymentStatus: reservation?.paymentStatus || 'pending',
+          client: reservation?.client || {
+            id: '',
+            name: '',
+            email: '',
+            phone: '',
+            country: '',
+            idNumber: '',
+            language: '',
+            cpf: '',
+            address: '',
+            hotel: '',
+            room: '',
+            comments: ''
+          },
+          tour: {
+            id: tourData.tourId,
+            name: tourData.tourName,
+            code: '',
+            destination: tourData.destination,
+            date: tourData.date,
+            pickupTime: tourData.pickupTime,
+            pickupAddress: tourData.pickupAddress
+          },
+          tourId: '', // Will be updated after backend response
+          tourStatus: 'pending',
+          passengers: {
+            adults: tourData.adultPax,
+            children: tourData.childPax,
+            infants: tourData.infantPax
+          },
+          pricing: {
+            adultPrice: tourData.adultPrice,
+            childPrice: tourData.childPrice,
+            infantPrice: tourData.infantPrice,
+            totalAmount: (tourData.adultPax * tourData.adultPrice) +
+                        (tourData.childPax * tourData.childPrice) +
+                        (tourData.infantPax * tourData.infantPrice),
+            currency: reservation?.pricing.currency || 'CLP'
+          },
+          salesperson: reservation?.salesperson || 'Unknown',
+          email: reservation?.email || '',
+          phone: reservation?.phone || '',
+          operator: tourData.operator !== 'own-operation' ? tourData.operator : undefined,
+          guide: undefined,
+          driver: undefined,
+          externalAgency: undefined,
+          purchaseOrderNumber: undefined,
+          notes: tourData.comments || '',
+          paymentDetails: reservation?.paymentDetails,
+          createdAt: new Date(),
+          updatedAt: new Date()
         }
 
-        // Invalidate the reservations cache to force a refetch
-        await queryClient.invalidateQueries({ queryKey: reservationKeys.lists() })
+        // Immediately add to local state for instant visual feedback
+        const cachedReservations = queryClient.getQueryData<any[]>(reservationKeys.lists()) || []
+        const updatedReservations = [...cachedReservations, optimisticReservation]
+        queryClient.setQueryData(reservationKeys.lists(), updatedReservations)
+
+        // Update local state to show the new tour immediately
+        loadReservationDataFromCache()
 
         toast({
           title: 'Tour Added',
           description: 'New tour has been added to the reservation',
         })
 
-        // Reload reservation data from the freshly invalidated cache
-        loadReservationDataFromCache()
-      }
+        // Close modal immediately for better UX
+        setIsTourModalOpen(false)
 
-      setIsTourModalOpen(false)
+        // Now send to backend in the background
+        try {
+          const response = await apiCall(`/api/reservations/booking/${bookingId}/add-tour/`, {
+            method: 'POST',
+            body: JSON.stringify({
+              tourId: tourData.tourId,
+              destinationId: tourData.destinationId,
+              date: tourData.date.toISOString(),
+              pickupAddress: tourData.pickupAddress,
+              pickupTime: tourData.pickupTime,
+              adultPax: tourData.adultPax,
+              adultPrice: tourData.adultPrice,
+              childPax: tourData.childPax,
+              childPrice: tourData.childPrice,
+              infantPax: tourData.infantPax,
+              infantPrice: tourData.infantPrice,
+              comments: tourData.comments,
+              operator: tourData.operator,
+            }),
+          })
+
+          if (!response.ok) {
+            throw new Error('Failed to add tour')
+          }
+
+          // Backend succeeded, invalidate cache to get real data
+          await queryClient.invalidateQueries({ queryKey: reservationKeys.lists() })
+          loadReservationDataFromCache()
+        } catch (error) {
+          // Backend failed, revert optimistic update
+          queryClient.setQueryData(reservationKeys.lists(), cachedReservations)
+          loadReservationDataFromCache()
+
+          toast({
+            title: 'Error',
+            description: 'Failed to save tour to server. The tour has been removed.',
+            variant: 'destructive',
+          })
+          throw error
+        }
+      }
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: tourModalMode === 'edit' ? 'Failed to update tour' : 'Failed to add tour',
-        variant: 'destructive',
-      })
+      // Only show error toast if it's not from the background save (which has its own error handling)
+      if (tourModalMode === 'edit') {
+        toast({
+          title: 'Error',
+          description: 'Failed to update tour',
+          variant: 'destructive',
+        })
+      }
       console.error('Error saving tour:', error)
     }
   }
