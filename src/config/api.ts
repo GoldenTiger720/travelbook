@@ -85,13 +85,14 @@ export const API_ENDPOINTS = {
   
   // Financial endpoints
   FINANCIAL: {
-    DASHBOARD: '/api/financial/dashboard',
-    TRANSACTIONS: '/api/financial/transactions',
-    INVOICES: '/api/financial/invoices',
-    INVOICE: (id: string) => `/api/financial/invoices/${id}`,
-    PAYMENTS: '/api/financial/payments',
-    PAYMENT: (id: string) => `/api/financial/payments/${id}`,
-    REPORTS: '/api/financial/reports',
+    DASHBOARD: '/api/financial/dashboard/',
+    RECEIVABLES: '/api/financial/receivables/',
+    PAYABLES: '/api/financial/payables/',
+    EXPENSES: '/api/financial/expenses/',
+    EXPENSE: (id: string) => `/api/financial/expenses/${id}/`,
+    EXPENSE_SUMMARY: '/api/financial/expenses/summary/',
+    ACCOUNTS: '/api/financial/accounts/',
+    ACCOUNT: (id: string) => `/api/financial/accounts/${id}/`,
   },
   
   // Sales Commissions endpoints
