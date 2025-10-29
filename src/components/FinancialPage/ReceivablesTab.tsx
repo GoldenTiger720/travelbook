@@ -27,19 +27,47 @@ import {
   Eye,
 } from 'lucide-react'
 
+interface Receivable {
+  id: number
+  bookingId: string
+  customerName: string
+  amount: number
+  currency: string
+  dueDate: string
+  status: string
+  method: string
+  percentage: number
+}
+
 interface ReceivablesTabProps {
-  searchTerm: string
-  setSearchTerm: (value: string) => void
-  receivablesWithInstallments: any[]
+  receivables: Receivable[]
   formatCurrency: (amount: number, currency?: string) => string
+  loading: boolean
 }
 
 const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
-  searchTerm,
-  setSearchTerm,
-  receivablesWithInstallments,
+  receivables,
   formatCurrency,
+  loading,
 }) => {
+  const [searchTerm, setSearchTerm] = React.useState('')
+
+  // Filter receivables by search term
+  const filteredReceivables = receivables.filter(r =>
+    r.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    r.bookingId.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading receivables...</p>
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

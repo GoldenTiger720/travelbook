@@ -1,117 +1,80 @@
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Separator } from '@/components/ui/separator'
 import {
   PieChart,
   Pie,
   Cell,
   Tooltip,
   ResponsiveContainer,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
   Legend,
 } from 'recharts'
 import {
-  CalendarIcon,
-  RefreshCw,
   FileSpreadsheet,
   Download,
 } from 'lucide-react'
 import { format } from 'date-fns'
+import type { FinancialDashboard } from '@/types/financial'
 
 interface ReportsTabProps {
-  dateRange: { from: Date; to: Date }
-  setDateRange: (range: any) => void
-  viewMode: 'accrual' | 'cash'
-  setViewMode: (mode: 'accrual' | 'cash') => void
-  selectedCurrency: string
-  setSelectedCurrency: (currency: string) => void
-  workflowData: any
+  dashboardData: FinancialDashboard | null
   formatCurrency: (amount: number, currency?: string) => string
+  currency: string
+  startDate: Date
+  endDate: Date
+  loading: boolean
 }
 
 const ReportsTab: React.FC<ReportsTabProps> = ({
-  dateRange,
-  setDateRange,
-  viewMode,
-  setViewMode,
-  selectedCurrency,
-  setSelectedCurrency,
-  workflowData,
+  dashboardData,
   formatCurrency,
+  currency,
+  startDate,
+  endDate,
+  loading,
 }) => {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading reports...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!dashboardData) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">No data available</p>
+      </div>
+    )
+  }
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Report Controls */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm">
-                <CalendarIcon className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">
-                  {dateRange.from && dateRange.to ? (
-                    <>
-                      {format(dateRange.from, 'MMM dd')} - {format(dateRange.to, 'MMM dd')}
-                    </>
-                  ) : (
-                    'Date range'
-                  )}
-                </span>
-                <span className="sm:hidden">Date</span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="range"
-                selected={dateRange}
-                onSelect={(range: any) => setDateRange(range)}
-                numberOfMonths={2}
-              />
-            </PopoverContent>
-          </Popover>
-          <Select value={viewMode} onValueChange={(value: any) => setViewMode(value)}>
-            <SelectTrigger className="w-24 sm:w-32 h-8">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="accrual">Accrual</SelectItem>
-              <SelectItem value="cash">Cash Basis</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
-            <SelectTrigger className="w-20 sm:w-28 h-8">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="BRL">BRL</SelectItem>
-              <SelectItem value="USD">USD</SelectItem>
-              <SelectItem value="EUR">EUR</SelectItem>
-              <SelectItem value="ARS">ARS</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">
+            Period: {format(startDate, 'MMM dd, yyyy')} - {format(endDate, 'MMM dd, yyyy')}
+          </span>
+          <span className="text-sm text-muted-foreground">({currency})</span>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm">
-            <RefreshCw className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">Refresh</span>
-          </Button>
-          <Button variant="outline" size="sm">
             <FileSpreadsheet className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">Excel</span>
+            <span className="hidden sm:inline">Export Excel</span>
           </Button>
           <Button variant="outline" size="sm">
             <Download className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">PDF</span>
+            <span className="hidden sm:inline">Export PDF</span>
           </Button>
         </div>
       </div>
@@ -121,90 +84,102 @@ const ReportsTab: React.FC<ReportsTabProps> = ({
         <CardHeader>
           <CardTitle className="text-base sm:text-lg">Profit & Loss Statement</CardTitle>
           <CardDescription className="text-xs sm:text-sm">
-            {viewMode === 'accrual' ? 'Accrual Basis' : 'Cash Basis'} - {format(dateRange.from!, 'MMMM yyyy')}
+            {format(startDate, 'MMMM dd, yyyy')} - {format(endDate, 'MMMM dd, yyyy')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {/* Revenue by Product/Service */}
+            {/* Revenue Section */}
             <div>
-              <h3 className="font-semibold mb-3">Revenue by Product</h3>
+              <h3 className="font-semibold mb-3">Revenue</h3>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-sm">Tour Packages</span>
-                    <span className="text-sm font-medium">{formatCurrency(850000)}</span>
+                    <span className="text-sm">Total Revenue</span>
+                    <span className="text-sm font-medium">{formatCurrency(dashboardData.revenue.total)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm">Accommodations</span>
-                    <span className="text-sm font-medium">{formatCurrency(320000)}</span>
+                    <span className="text-sm text-muted-foreground">Paid</span>
+                    <span className="text-sm font-medium">{formatCurrency(dashboardData.revenue.paid)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm">Transportation</span>
-                    <span className="text-sm font-medium">{formatCurrency(180000)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Other Services</span>
-                    <span className="text-sm font-medium">{formatCurrency(50000)}</span>
+                    <span className="text-sm text-muted-foreground">Pending</span>
+                    <span className="text-sm font-medium">{formatCurrency(dashboardData.revenue.pending)}</span>
                   </div>
                   <div className="flex justify-between font-semibold pt-2 border-t">
                     <span>Total Revenue</span>
-                    <span>{formatCurrency(1400000)}</span>
+                    <span>{formatCurrency(dashboardData.revenue.total)}</span>
                   </div>
                 </div>
                 <div>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: 'Tours', value: 850000 },
-                          { name: 'Hotels', value: 320000 },
-                          { name: 'Transport', value: 180000 },
-                          { name: 'Other', value: 50000 },
-                        ]}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        <Cell fill="#8b5cf6" />
-                        <Cell fill="#10b981" />
-                        <Cell fill="#f59e0b" />
-                        <Cell fill="#3b82f6" />
-                      </Pie>
-                      <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  {dashboardData.revenue.byMethod.length > 0 && (
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={dashboardData.revenue.byMethod}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="total"
+                          nameKey="method"
+                        >
+                          {dashboardData.revenue.byMethod.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={['#8b5cf6', '#10b981', '#f59e0b', '#3b82f6', '#ec4899'][index % 5]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Costs by Category */}
+            {/* Expenses Section */}
             <div>
-              <h3 className="font-semibold mb-3">Costs & Expenses</h3>
+              <h3 className="font-semibold mb-3">Expenses</h3>
               <div className="space-y-2">
-                {workflowData.costCenters.map((center: any) => (
-                  <div key={center.id} className="flex justify-between">
-                    <span className="text-sm">{center.name}</span>
-                    <span className="text-sm font-medium">{formatCurrency(center.spent)}</span>
+                {dashboardData.expenses.byCategory.map((category) => (
+                  <div key={category.category} className="flex justify-between">
+                    <span className="text-sm capitalize">{category.category.replace('-', ' ')}</span>
+                    <span className="text-sm font-medium">{formatCurrency(category.total)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between font-semibold pt-2 border-t">
-                  <span>Total Costs</span>
-                  <span>{formatCurrency(workflowData.costCenters.reduce((sum: number, c: any) => sum + c.spent, 0))}</span>
+                  <span>Total Expenses</span>
+                  <span>{formatCurrency(dashboardData.expenses.total)}</span>
                 </div>
               </div>
             </div>
 
-            {/* Net Profit */}
+            {/* Commissions Section */}
+            <div>
+              <h3 className="font-semibold mb-3">Commissions</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm">Total Commissions</span>
+                  <span className="text-sm font-medium">{formatCurrency(dashboardData.commissions.total)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Paid</span>
+                  <span className="text-sm font-medium">{formatCurrency(dashboardData.commissions.paid)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Pending</span>
+                  <span className="text-sm font-medium">{formatCurrency(dashboardData.commissions.pending)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Net Income */}
             <div className="pt-4 border-t-2">
               <div className="flex justify-between text-xl">
-                <span className="font-bold">Net Profit</span>
-                <span className="font-bold text-green-600">
-                  {formatCurrency(1400000 - workflowData.costCenters.reduce((sum: number, c: any) => sum + c.spent, 0))}
+                <span className="font-bold">Net Income</span>
+                <span className={`font-bold ${dashboardData.totals.netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(dashboardData.totals.netIncome)}
                 </span>
               </div>
             </div>
@@ -212,68 +187,117 @@ const ReportsTab: React.FC<ReportsTabProps> = ({
         </CardContent>
       </Card>
 
-      {/* Additional Metrics */}
+      {/* Monthly Trends */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base sm:text-lg">Monthly Trends</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Revenue vs Expenses over time</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {dashboardData.monthlyData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={dashboardData.monthlyData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                <Legend />
+                <Bar dataKey="revenue" fill="#8b5cf6" name="Revenue" />
+                <Bar dataKey="expenses" fill="#ef4444" name="Expenses" />
+                <Bar dataKey="commissions" fill="#f59e0b" name="Commissions" />
+                <Bar dataKey="netIncome" fill="#10b981" name="Net Income" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-64">
+              <p className="text-muted-foreground">No monthly data available</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Financial Summary Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Currency Exposure */}
+        {/* Accounts Summary */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base sm:text-lg">Currency Exposure</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">Multi-currency risk analysis</CardDescription>
+            <CardTitle className="text-base sm:text-lg">Bank Accounts</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Current account balances</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <RadarChart data={[
-                { currency: 'USD', exposure: 45, risk: 30 },
-                { currency: 'BRL', exposure: 60, risk: 20 },
-                { currency: 'EUR', exposure: 35, risk: 25 },
-                { currency: 'ARS', exposure: 25, risk: 45 },
-              ]}>
-                <PolarGrid />
-                <PolarAngleAxis dataKey="currency" />
-                <PolarRadiusAxis />
-                <Radar name="Exposure" dataKey="exposure" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.6} />
-                <Radar name="Risk" dataKey="risk" stroke="#ef4444" fill="#ef4444" fillOpacity={0.6} />
-                <Legend />
-              </RadarChart>
-            </ResponsiveContainer>
+            <div className="space-y-4">
+              {dashboardData.accounts.length > 0 ? (
+                dashboardData.accounts.map((account) => (
+                  <div key={account.id}>
+                    <div className="flex justify-between items-center mb-2">
+                      <div>
+                        <span className="text-sm font-medium">{account.name}</span>
+                        <p className="text-xs text-muted-foreground">{account.bank_name || account.account_type}</p>
+                      </div>
+                      <span className="text-lg font-bold">{formatCurrency(account.current_balance, account.currency)}</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">No accounts configured</p>
+              )}
+            </div>
           </CardContent>
         </Card>
 
-        {/* Collection Metrics */}
+        {/* Financial Health */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base sm:text-lg">Collection Metrics</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">DSO and delinquency analysis</CardDescription>
+            <CardTitle className="text-base sm:text-lg">Financial Health</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Key performance indicators</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm">Days Sales Outstanding (DSO)</span>
-                  <span className="text-2xl font-bold">32</span>
+                  <span className="text-sm">Revenue Collected</span>
+                  <span className="text-lg font-bold">
+                    {dashboardData.revenue.total > 0
+                      ? `${((dashboardData.revenue.paid / dashboardData.revenue.total) * 100).toFixed(1)}%`
+                      : '0%'}
+                  </span>
                 </div>
-                <Progress value={32} max={60} className="h-2" />
+                <Progress
+                  value={dashboardData.revenue.total > 0 ? (dashboardData.revenue.paid / dashboardData.revenue.total) * 100 : 0}
+                  className="h-2"
+                />
               </div>
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm">Collection Rate</span>
-                  <span className="text-2xl font-bold">87%</span>
+                  <span className="text-sm">Expense Ratio</span>
+                  <span className="text-lg font-bold">
+                    {dashboardData.revenue.total > 0
+                      ? `${((dashboardData.expenses.total / dashboardData.revenue.total) * 100).toFixed(1)}%`
+                      : '0%'}
+                  </span>
                 </div>
-                <Progress value={87} className="h-2 bg-green-100" />
+                <Progress
+                  value={dashboardData.revenue.total > 0 ? (dashboardData.expenses.total / dashboardData.revenue.total) * 100 : 0}
+                  className="h-2"
+                />
               </div>
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm">Delinquency Rate</span>
-                  <span className="text-2xl font-bold text-red-600">8.5%</span>
+                  <span className="text-sm">Profit Margin</span>
+                  <span className={`text-lg font-bold ${
+                    dashboardData.revenue.total > 0 && (dashboardData.totals.netIncome / dashboardData.revenue.total) >= 0.2
+                      ? 'text-green-600'
+                      : 'text-orange-600'
+                  }`}>
+                    {dashboardData.revenue.total > 0
+                      ? `${((dashboardData.totals.netIncome / dashboardData.revenue.total) * 100).toFixed(1)}%`
+                      : '0%'}
+                  </span>
                 </div>
-                <Progress value={8.5} className="h-2 bg-red-100" />
-              </div>
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm">Average Payment Delay</span>
-                  <span className="text-2xl font-bold">5.2 days</span>
-                </div>
-                <Progress value={5.2} max={30} className="h-2" />
+                <Progress
+                  value={dashboardData.revenue.total > 0 ? Math.abs((dashboardData.totals.netIncome / dashboardData.revenue.total) * 100) : 0}
+                  className="h-2"
+                />
               </div>
             </div>
           </CardContent>
