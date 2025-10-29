@@ -187,6 +187,9 @@ const LogisticsPage = () => {
 
   const handleSavePassengers = async (updatedPassengers: any[], tourAssignment?: any) => {
     try {
+      // Remove id and pax_number from passengers array
+      const cleanedPassengers = updatedPassengers.map(({ id, pax_number, ...rest }) => rest);
+
       // Prepare data to send to backend
       const payload = {
         tour_assignment: {
@@ -201,7 +204,7 @@ const LogisticsPage = () => {
           operator: assignedOperator,
           status: tourAssignment?.status
         },
-        passengers: updatedPassengers
+        passengers: cleanedPassengers
       };
 
       // Send to backend
@@ -544,7 +547,7 @@ const LogisticsPage = () => {
                             {drivers
                               .filter((d) => d.status === "available")
                               .map((driver) => (
-                                <SelectItem key={driver.id} value={driver.name}>
+                                <SelectItem key={driver.id} value={driver.id}>
                                   {driver.name}
                                 </SelectItem>
                               ))}
@@ -567,7 +570,7 @@ const LogisticsPage = () => {
                             {guides
                               .filter((g) => g.status === "available" && g.role === "guide")
                               .map((guide) => (
-                                <SelectItem key={guide.id} value={guide.name}>
+                                <SelectItem key={guide.id} value={guide.id}>
                                   {guide.name}
                                 </SelectItem>
                               ))}
@@ -592,10 +595,10 @@ const LogisticsPage = () => {
                                 (g) =>
                                   g.status === "available" &&
                                   g.role === "assistant_guide" &&
-                                  g.name !== selectedOperation.mainGuide
+                                  g.id !== selectedOperation.mainGuide
                               )
                               .map((guide) => (
-                                <SelectItem key={guide.id} value={guide.name}>
+                                <SelectItem key={guide.id} value={guide.id}>
                                   {guide.name}
                                 </SelectItem>
                               ))}
@@ -730,15 +733,19 @@ const LogisticsPage = () => {
                             <div className="text-xs space-y-1">
                               <p className="truncate">
                                 Driver:{" "}
-                                {selectedOperation.mainDriver || "Not assigned"}
+                                {selectedOperation.mainDriver
+                                  ? drivers.find(d => d.id === selectedOperation.mainDriver)?.name || "Not found"
+                                  : "Not assigned"}
                               </p>
                               <p className="truncate">
                                 Guide:{" "}
-                                {selectedOperation.mainGuide || "Not assigned"}
+                                {selectedOperation.mainGuide
+                                  ? guides.find(g => g.id === selectedOperation.mainGuide)?.name || "Not found"
+                                  : "Not assigned"}
                               </p>
                               {selectedOperation.assistantGuide && (
                                 <p className="truncate">
-                                  Assist: {selectedOperation.assistantGuide}
+                                  Assist: {guides.find(g => g.id === selectedOperation.assistantGuide)?.name || "Not found"}
                                 </p>
                               )}
                             </div>
