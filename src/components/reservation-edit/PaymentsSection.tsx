@@ -49,7 +49,7 @@ export const PaymentsSection = ({
               <TableRow className="bg-muted/50">
                 <TableHead className="w-[140px]">Date</TableHead>
                 <TableHead className="w-[150px]">Payment Method</TableHead>
-                {/* <TableHead className="w-[120px]">Total Price</TableHead> */}
+                <TableHead className="w-[120px]">Total Price</TableHead>
                 <TableHead className="w-[100px]">Percentage</TableHead>
                 <TableHead className="w-[120px]">Amount Paid</TableHead>
                 <TableHead className="w-[120px]">Pending</TableHead>
@@ -83,7 +83,7 @@ export const PaymentsSection = ({
                     </TableCell>
 
                     {/* Total Price - only show in first row */}
-                    {/* <TableCell className="align-top py-3">
+                    <TableCell className="align-top py-3">
                       {index === 1 ? (
                         <div className="p-2 bg-green-100 border rounded-md text-center">
                           <span className="font-semibold text-sm">
@@ -91,7 +91,7 @@ export const PaymentsSection = ({
                           </span>
                         </div>
                       ) : null}
-                    </TableCell> */}
+                    </TableCell>
 
                     {/* Percentage */}
                     <TableCell className="align-top py-3">
