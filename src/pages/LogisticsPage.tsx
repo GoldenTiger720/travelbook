@@ -61,7 +61,7 @@ const LogisticsPage = () => {
     useState<TourOperation | null>(null);
   const [assignedOperator, setAssignedOperator] =
     useState<string>("own-operation");
-  const [passengers, setPassengers] = useState<any[]>([]);
+  const [bookingTours, setBookingTours] = useState<any[]>([]);
   const [loadingPassengers, setLoadingPassengers] = useState(false);
 
   useEffect(() => {
@@ -168,10 +168,10 @@ const LogisticsPage = () => {
       setLoadingPassengers(true);
       const data = await logisticsService.getTourPassengers();
 
-      if (data && data.passengers) {
-        setPassengers(data.passengers);
+      if (data && data.booking_tours) {
+        setBookingTours(data.booking_tours);
       } else {
-        setPassengers([]);
+        setBookingTours([]);
       }
     } catch (error) {
       console.error('Failed to load passenger data:', error);
@@ -180,7 +180,7 @@ const LogisticsPage = () => {
         description: "Failed to load passenger data",
         variant: "destructive",
       });
-      setPassengers([]);
+      setBookingTours([]);
     } finally {
       setLoadingPassengers(false);
     }
@@ -192,7 +192,7 @@ const LogisticsPage = () => {
         title: "Success",
         description: "Passenger data saved successfully",
       });
-      setPassengers(updatedPassengers);
+      // Update logic here if needed
     } catch (error) {
       console.error('Failed to save passenger data:', error);
       toast({
@@ -201,6 +201,35 @@ const LogisticsPage = () => {
         variant: "destructive",
       });
     }
+  };
+
+  // Convert booking_tours to passenger list for the selected tour
+  const getPassengersForSelectedTour = () => {
+    if (!selectedOperation) return [];
+
+    const filteredTours = bookingTours.filter(bt => bt.tour_id === selectedOperation.id);
+    const passengers: any[] = [];
+
+    filteredTours.forEach((bookingTour) => {
+      const totalPax = bookingTour.adult_pax + bookingTour.child_pax + bookingTour.infant_pax;
+
+      for (let paxNum = 1; paxNum <= totalPax; paxNum++) {
+        passengers.push({
+          id: `${bookingTour.id}_${paxNum}`,
+          booking_tour_id: bookingTour.id,
+          pax_number: paxNum,
+          rut_id_passport: '',
+          name: '',
+          telephone: '',
+          age: '',
+          gender: '',
+          nationality: bookingTour.destination_id || 'Not Informed',
+          observations: bookingTour.comments || ''
+        });
+      }
+    });
+
+    return passengers;
   };
 
   const handleAssignmentUpdate = (field: string, value: string) => {
@@ -613,9 +642,9 @@ const LogisticsPage = () => {
             </div>
 
             {/* Passenger List Table */}
-            {!loadingPassengers && passengers.length > 0 && selectedOperation && (
+            {!loadingPassengers && selectedOperation && getPassengersForSelectedTour().length > 0 && (
               <PassengerListTable
-                passengers={passengers.filter(p => p.booking_tour_id === selectedOperation.id || p.tour_name === selectedOperation.tourName)}
+                passengers={getPassengersForSelectedTour()}
                 onSave={handleSavePassengers}
               />
             )}
@@ -628,7 +657,7 @@ const LogisticsPage = () => {
               </Card>
             )}
 
-            {!loadingPassengers && selectedOperation && passengers.filter(p => p.booking_tour_id === selectedOperation.id || p.tour_name === selectedOperation.tourName).length === 0 && (
+            {!loadingPassengers && selectedOperation && getPassengersForSelectedTour().length === 0 && (
               <Card>
                 <CardContent className="p-8 text-center">
                   <p className="text-muted-foreground">No passengers found for this tour.</p>
