@@ -30,10 +30,11 @@ interface Passenger {
 
 interface PassengerListTableProps {
   passengers: Passenger[]
-  onSave: (passengers: Passenger[]) => void
+  tourAssignment?: any
+  onSave: (passengers: Passenger[], tourAssignment?: any) => void
 }
 
-const PassengerListTable: React.FC<PassengerListTableProps> = ({ passengers, onSave }) => {
+const PassengerListTable: React.FC<PassengerListTableProps> = ({ passengers, tourAssignment, onSave }) => {
   const [editablePassengers, setEditablePassengers] = useState<Passenger[]>(passengers)
 
   const handleFieldChange = (index: number, field: keyof Passenger, value: string) => {
@@ -43,7 +44,7 @@ const PassengerListTable: React.FC<PassengerListTableProps> = ({ passengers, onS
   }
 
   const handleSave = () => {
-    onSave(editablePassengers)
+    onSave(editablePassengers, tourAssignment)
   }
 
   return (

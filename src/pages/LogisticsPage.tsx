@@ -36,6 +36,7 @@ import {
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { logisticsService } from "@/services/logisticsService";
+import { apiCall } from "@/config/api";
 import {
   TourOperation,
   Vehicle,
@@ -184,13 +185,39 @@ const LogisticsPage = () => {
     }
   };
 
-  const handleSavePassengers = async (updatedPassengers: any[]) => {
+  const handleSavePassengers = async (updatedPassengers: any[], tourAssignment?: any) => {
     try {
+      // Prepare data to send to backend
+      const payload = {
+        tour_assignment: {
+          tour_id: tourAssignment?.tourId,
+          tour_name: tourAssignment?.tourName,
+          date: tourAssignment?.date,
+          departure_time: tourAssignment?.departureTime,
+          main_driver: tourAssignment?.mainDriver,
+          main_guide: tourAssignment?.mainGuide,
+          assistant_guide: tourAssignment?.assistantGuide,
+          vehicle_id: tourAssignment?.vehicleId,
+          operator: assignedOperator,
+          status: tourAssignment?.status
+        },
+        passengers: updatedPassengers
+      };
+
+      // Send to backend
+      const response = await apiCall('/api/logistics/passengers/', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save passenger data');
+      }
+
       toast({
         title: "Success",
         description: "Passenger data saved successfully",
       });
-      // Update logic here if needed
     } catch (error) {
       console.error('Failed to save passenger data:', error);
       toast({
@@ -616,6 +643,7 @@ const LogisticsPage = () => {
             {!loadingPassengers && selectedOperation && getPassengersForSelectedTour().length > 0 && (
               <PassengerListTable
                 passengers={getPassengersForSelectedTour()}
+                tourAssignment={selectedOperation}
                 onSave={handleSavePassengers}
               />
             )}
