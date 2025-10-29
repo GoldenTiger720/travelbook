@@ -140,16 +140,18 @@ const PaymentDetails: React.FC<PaymentDetailsProps> = ({
                     <SelectValue placeholder={t('quotes.select')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="credit-card">{t('quotes.creditCard')}</SelectItem>
-                    <SelectItem value="bank-transfer">{t('quotes.bankTransfer')}</SelectItem>
-                    <SelectItem value="cash-office">{t('quotes.cashOffice')}</SelectItem>
-                    <SelectItem value="mercado-pago">{t('quotes.mercadoPago')}</SelectItem>
-                    <SelectItem value="van-is-broken">{t('quotes.vanIsBroken')}</SelectItem>
-                    <SelectItem value="pix">{t('quotes.pix')}</SelectItem>
-                    <SelectItem value="test">{t('quotes.test')}</SelectItem>
-                    <SelectItem value="transfer">{t('quotes.transfer')}</SelectItem>
-                    <SelectItem value="nubank-transfer">{t('quotes.nubankTransfer')}</SelectItem>
-                    <SelectItem value="wise">{t('quotes.wise')}</SelectItem>
+                    <SelectItem value="pagarme-brl">Pagar.me (BRL)</SelectItem>
+                    <SelectItem value="sicred-pix-brl">Sicred – Pix (BRL)</SelectItem>
+                    <SelectItem value="cash-brl">Cash (BRL)</SelectItem>
+                    <SelectItem value="cash-ars">Cash (ARS)</SelectItem>
+                    <SelectItem value="cash-usd">Cash (USD)</SelectItem>
+                    <SelectItem value="asaas-brl">Asaas (BRL)</SelectItem>
+                    <SelectItem value="santander-ar">Santander (AR)</SelectItem>
+                    <SelectItem value="wise-brl">Wise (BRL)</SelectItem>
+                    <SelectItem value="wise-usd">Wise (USD)</SelectItem>
+                    <SelectItem value="wise-eur">Wise (EUR)</SelectItem>
+                    <SelectItem value="wise-clp">Wise (CLP)</SelectItem>
+                    <SelectItem value="mercado-pago-ar">Mercado Pago (AR)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -142,13 +142,18 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, onDelet
   ]
 
   const paymentMethods: { value: PaymentMethod; label: string }[] = [
-    { value: 'credit-card', label: 'Credit Card' },
-    { value: 'debit-card', label: 'Debit Card' },
-    { value: 'bank-transfer', label: 'Bank Transfer' },
-    { value: 'cash', label: 'Cash' },
-    { value: 'check', label: 'Check' },
-    { value: 'paypal', label: 'PayPal' },
-    { value: 'other', label: 'Other' },
+    { value: 'pagarme-brl', label: 'Pagar.me (BRL)' },
+    { value: 'sicred-pix-brl', label: 'Sicred – Pix (BRL)' },
+    { value: 'cash-brl', label: 'Cash (BRL)' },
+    { value: 'cash-ars', label: 'Cash (ARS)' },
+    { value: 'cash-usd', label: 'Cash (USD)' },
+    { value: 'asaas-brl', label: 'Asaas (BRL)' },
+    { value: 'santander-ar', label: 'Santander (AR)' },
+    { value: 'wise-brl', label: 'Wise (BRL)' },
+    { value: 'wise-usd', label: 'Wise (USD)' },
+    { value: 'wise-eur', label: 'Wise (EUR)' },
+    { value: 'wise-clp', label: 'Wise (CLP)' },
+    { value: 'mercado-pago-ar', label: 'Mercado Pago (AR)' },
   ]
 
   const recurrences: { value: Recurrence; label: string }[] = [

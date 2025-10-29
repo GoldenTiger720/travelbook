@@ -178,13 +178,18 @@ const AddInvoiceDialog: React.FC<AddInvoiceDialogProps> = ({ open, onOpenChange,
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="credit-card">Credit Card</SelectItem>
-                  <SelectItem value="debit-card">Debit Card</SelectItem>
-                  <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="check">Check</SelectItem>
-                  <SelectItem value="paypal">PayPal</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="pagarme-brl">Pagar.me (BRL)</SelectItem>
+                  <SelectItem value="sicred-pix-brl">Sicred – Pix (BRL)</SelectItem>
+                  <SelectItem value="cash-brl">Cash (BRL)</SelectItem>
+                  <SelectItem value="cash-ars">Cash (ARS)</SelectItem>
+                  <SelectItem value="cash-usd">Cash (USD)</SelectItem>
+                  <SelectItem value="asaas-brl">Asaas (BRL)</SelectItem>
+                  <SelectItem value="santander-ar">Santander (AR)</SelectItem>
+                  <SelectItem value="wise-brl">Wise (BRL)</SelectItem>
+                  <SelectItem value="wise-usd">Wise (USD)</SelectItem>
+                  <SelectItem value="wise-eur">Wise (EUR)</SelectItem>
+                  <SelectItem value="wise-clp">Wise (CLP)</SelectItem>
+                  <SelectItem value="mercado-pago-ar">Mercado Pago (AR)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
