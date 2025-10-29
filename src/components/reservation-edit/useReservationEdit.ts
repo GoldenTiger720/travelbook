@@ -48,6 +48,7 @@ export const useReservationEdit = () => {
 
   // Dialog state
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
+  const [paymentModalMode, setPaymentModalMode] = useState<'add' | 'edit'>('add')
   const [isEditCustomerOpen, setIsEditCustomerOpen] = useState(false)
   const [customerToEdit, setCustomerToEdit] = useState<any>(null)
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
@@ -287,6 +288,8 @@ export const useReservationEdit = () => {
     setReceiptFile,
     isPaymentDialogOpen,
     setIsPaymentDialogOpen,
+    paymentModalMode,
+    setPaymentModalMode,
     isEditCustomerOpen,
     setIsEditCustomerOpen,
     customerToEdit,

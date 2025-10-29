@@ -42,6 +42,8 @@ const ReservationEditPage = () => {
     setReceiptFile,
     isPaymentDialogOpen,
     setIsPaymentDialogOpen,
+    paymentModalMode,
+    setPaymentModalMode,
     isEditCustomerOpen,
     setIsEditCustomerOpen,
     customerToEdit,
@@ -563,7 +565,26 @@ const ReservationEditPage = () => {
     }
   }
 
-  const handleOpenPaymentDialog = () => {
+  const handleAddPayment = () => {
+    // Set mode to 'add'
+    setPaymentModalMode('add')
+
+    // Clear/reset payment fields for new payment
+    setPaymentDate(new Date())
+    setPaymentMethod('credit-card')
+    setPaymentPercentage(0)
+    setAmountPaid(0)
+    setPaymentStatus('pending')
+    setReceiptFile(null)
+
+    // Open the dialog
+    setIsPaymentDialogOpen(true)
+  }
+
+  const handleEditPayment = () => {
+    // Set mode to 'edit'
+    setPaymentModalMode('edit')
+
     // Load existing payment data if available
     if (reservation?.paymentDetails) {
       const paymentDetails = reservation.paymentDetails
@@ -630,14 +651,27 @@ const ReservationEditPage = () => {
         }
       }
 
-      // Send PUT request to update payment
-      const response = await apiCall(`/api/reservations/booking/payment/${bookingId}/`, {
-        method: 'PUT',
-        body: JSON.stringify(paymentData)
-      })
+      let response
+
+      if (paymentModalMode === 'add') {
+        // Send POST request to create new payment
+        response = await apiCall(`/api/reservations/booking/payment/`, {
+          method: 'POST',
+          body: JSON.stringify({
+            ...paymentData,
+            bookingId: bookingId
+          })
+        })
+      } else {
+        // Send PUT request to update existing payment
+        response = await apiCall(`/api/reservations/booking/payment/${bookingId}/`, {
+          method: 'PUT',
+          body: JSON.stringify(paymentData)
+        })
+      }
 
       if (!response.ok) {
-        throw new Error('Failed to update payment')
+        throw new Error(`Failed to ${paymentModalMode === 'add' ? 'add' : 'update'} payment`)
       }
 
       // Close dialog
@@ -648,14 +682,14 @@ const ReservationEditPage = () => {
       loadReservationDataFromCache()
 
       toast({
-        title: 'Payment Updated',
-        description: 'Payment details have been saved successfully',
+        title: paymentModalMode === 'add' ? 'Payment Added' : 'Payment Updated',
+        description: `Payment details have been ${paymentModalMode === 'add' ? 'added' : 'saved'} successfully`,
       })
     } catch (error) {
-      console.error('Error updating payment:', error)
+      console.error(`Error ${paymentModalMode === 'add' ? 'adding' : 'updating'} payment:`, error)
       toast({
         title: 'Error',
-        description: 'Failed to update payment details',
+        description: `Failed to ${paymentModalMode === 'add' ? 'add' : 'update'} payment details`,
         variant: 'destructive',
       })
     }
@@ -734,7 +768,8 @@ const ReservationEditPage = () => {
           {/* Payments Section */}
           <PaymentsSection
             reservation={reservation}
-            onOpenPaymentDialog={handleOpenPaymentDialog}
+            onAddPayment={handleAddPayment}
+            onEditPayment={handleEditPayment}
           />
         </div>
 

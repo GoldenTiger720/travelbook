@@ -17,12 +17,14 @@ import { getCurrencySymbol, calculateGrandTotal } from './utils'
 
 interface PaymentsSectionProps {
   reservation: Reservation
-  onOpenPaymentDialog: () => void
+  onAddPayment: () => void
+  onEditPayment: () => void
 }
 
 export const PaymentsSection = ({
   reservation,
-  onOpenPaymentDialog
+  onAddPayment,
+  onEditPayment
 }: PaymentsSectionProps) => {
   return (
     <Card>
@@ -127,7 +129,7 @@ export const PaymentsSection = ({
                     variant="ghost"
                     size="sm"
                     className="h-7 w-7 p-0"
-                    onClick={onOpenPaymentDialog}
+                    onClick={onEditPayment}
                   >
                     <Edit className="w-3 h-3" />
                   </Button>
@@ -150,7 +152,7 @@ export const PaymentsSection = ({
           {/* Action Buttons */}
           <div className="flex justify-end gap-3">
             <Button
-              onClick={onOpenPaymentDialog}
+              onClick={onAddPayment}
               className="bg-indigo-500 hover:bg-indigo-600 text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
