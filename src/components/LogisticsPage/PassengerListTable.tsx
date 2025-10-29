@@ -21,13 +21,11 @@ import {
 interface Passenger {
   id: string
   pax_number: number
-  rut_id_passport: string
   name: string
   telephone: string
   age: string
   gender: string
   nationality: string
-  observations: string
 }
 
 interface PassengerListTableProps {
@@ -59,13 +57,11 @@ const PassengerListTable: React.FC<PassengerListTableProps> = ({ passengers, onS
             <TableHeader>
               <TableRow>
                 <TableHead className="min-w-[60px]">#</TableHead>
-                <TableHead className="min-w-[150px]">RUT/ID/PASSPORT</TableHead>
                 <TableHead className="min-w-[200px]">Name</TableHead>
                 <TableHead className="min-w-[120px]">Telephone</TableHead>
                 <TableHead className="min-w-[80px]">Age</TableHead>
                 <TableHead className="min-w-[100px]">Gender</TableHead>
                 <TableHead className="min-w-[150px]">Nationality</TableHead>
-                <TableHead className="min-w-[200px]">Observations</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -73,13 +69,6 @@ const PassengerListTable: React.FC<PassengerListTableProps> = ({ passengers, onS
                 <TableRow key={passenger.id}>
                   <TableCell className="font-medium">
                     PAX {passenger.pax_number}
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      value={passenger.rut_id_passport}
-                      onChange={(e) => handleFieldChange(index, 'rut_id_passport', e.target.value)}
-                      className="w-full"
-                    />
                   </TableCell>
                   <TableCell>
                     <Input
@@ -146,13 +135,6 @@ const PassengerListTable: React.FC<PassengerListTableProps> = ({ passengers, onS
                         <SelectItem value="Other">Other</SelectItem>
                       </SelectContent>
                     </Select>
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      value={passenger.observations}
-                      onChange={(e) => handleFieldChange(index, 'observations', e.target.value)}
-                      className="w-full"
-                    />
                   </TableCell>
                 </TableRow>
               ))}

@@ -218,13 +218,11 @@ const LogisticsPage = () => {
           id: `${bookingTour.id}_${paxNum}`,
           booking_tour_id: bookingTour.id,
           pax_number: paxNum,
-          rut_id_passport: '',
           name: '',
           telephone: '',
           age: '',
           gender: '',
-          nationality: bookingTour.destination_id || 'Not Informed',
-          observations: bookingTour.comments || ''
+          nationality: bookingTour.destination_id || 'Not Informed'
         });
       }
     });
