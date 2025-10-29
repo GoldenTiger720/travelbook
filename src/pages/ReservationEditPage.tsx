@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { FileText, ArrowLeft, Save } from 'lucide-react'
+import { FileText, ArrowLeft } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { reservationKeys } from '@/hooks/useReservations'
 import { useUpdateCustomer } from '@/hooks/useCustomers'
@@ -613,12 +613,10 @@ const ReservationEditPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto py-6 px-4 max-w-6xl">
-        {/* Header with Save Button */}
+        {/* Header */}
         <ReservationHeader
           reservationNumber={reservation.reservationNumber}
           onBack={() => navigate('/all-reservations')}
-          onSave={handleSave}
-          saving={saving}
         />
 
         {/* Action Buttons */}
@@ -648,20 +646,6 @@ const ReservationEditPage = () => {
             reservation={reservation}
             onOpenPaymentDialog={() => setIsPaymentDialogOpen(true)}
           />
-        </div>
-
-        {/* Bottom Save Button */}
-        <div className="mt-8 flex justify-end gap-3">
-          <Button
-            variant="outline"
-            onClick={() => navigate('/all-reservations')}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={saving} size="lg">
-            <Save className="w-4 h-4 mr-2" />
-            {saving ? 'Saving...' : 'Save Changes'}
-          </Button>
         </div>
 
         {/* Cancel Reservation Dialog */}
