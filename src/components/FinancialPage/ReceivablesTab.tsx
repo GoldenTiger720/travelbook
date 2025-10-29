@@ -43,12 +43,14 @@ interface ReceivablesTabProps {
   receivables: Receivable[]
   formatCurrency: (amount: number, currency?: string) => string
   loading: boolean
+  onAddInvoice: () => void
 }
 
 const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
   receivables,
   formatCurrency,
   loading,
+  onAddInvoice,
 }) => {
   const [searchTerm, setSearchTerm] = React.useState('')
 
@@ -102,7 +104,7 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
             <Download className="w-4 h-4 sm:mr-2" />
             <span className="hidden sm:inline">Export</span>
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={onAddInvoice}>
             <Plus className="w-4 h-4 sm:mr-2" />
             <span className="hidden sm:inline">New Invoice</span>
           </Button>

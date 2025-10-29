@@ -7,6 +7,7 @@ import PayablesTab from '@/components/FinancialPage/PayablesTab'
 import ReportsTab from '@/components/FinancialPage/ReportsTab'
 import { AddExpenseDialog } from '@/components/FinancialPage/AddExpenseDialog'
 import { EditExpenseDialog } from '@/components/FinancialPage/EditExpenseDialog'
+import AddInvoiceDialog, { InvoiceFormData } from '@/components/FinancialPage/AddInvoiceDialog'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Calendar } from '@/components/ui/calendar'
@@ -47,6 +48,7 @@ const FinancialPage = () => {
   const [addExpenseOpen, setAddExpenseOpen] = useState(false)
   const [editExpenseOpen, setEditExpenseOpen] = useState(false)
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
+  const [addInvoiceOpen, setAddInvoiceOpen] = useState(false)
 
   // Fetch financial dashboard data
   const fetchDashboardData = async () => {
@@ -195,6 +197,45 @@ const FinancialPage = () => {
     }
   }
 
+  // Handle add invoice
+  const handleAddInvoice = async (invoiceData: InvoiceFormData) => {
+    try {
+      // Create booking payment via the bookings API
+      const bookingPaymentData = {
+        date: invoiceData.date,
+        method: invoiceData.method,
+        percentage: invoiceData.percentage,
+        amount_paid: invoiceData.amount,
+        status: invoiceData.status,
+        comments: invoiceData.comments || ''
+      }
+
+      await apiCall(`/api/bookings/${invoiceData.bookingId}/payments/`, {
+        method: 'POST',
+        body: JSON.stringify(bookingPaymentData)
+      })
+
+      toast({
+        title: 'Success',
+        description: 'Invoice created successfully'
+      })
+
+      // Refresh data
+      await Promise.all([
+        fetchDashboardData(),
+        fetchReceivables()
+      ])
+    } catch (error) {
+      console.error('Error creating invoice:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to create invoice. Please check if the booking ID exists.',
+        variant: 'destructive'
+      })
+      throw error
+    }
+  }
+
   // Currency formatter
   const formatCurrency = (amount: number, currency?: string) => {
     const curr = currency || selectedCurrency
@@ -332,6 +373,7 @@ const FinancialPage = () => {
             receivables={receivables}
             formatCurrency={formatCurrency}
             loading={loading}
+            onAddInvoice={() => setAddInvoiceOpen(true)}
           />
         </TabsContent>
 
@@ -374,6 +416,13 @@ const FinancialPage = () => {
         expense={selectedExpense}
         onSave={handleEditExpense}
         onDelete={handleDeleteExpense}
+      />
+
+      {/* Invoice Dialog */}
+      <AddInvoiceDialog
+        open={addInvoiceOpen}
+        onOpenChange={setAddInvoiceOpen}
+        onSave={handleAddInvoice}
       />
     </div>
   )
