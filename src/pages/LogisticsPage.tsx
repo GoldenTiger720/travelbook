@@ -46,6 +46,7 @@ import {
   VehicleDistribution,
 } from "@/types/logistics";
 import { useToast } from "@/components/ui/use-toast";
+import PassengerListTable from "@/components/LogisticsPage/PassengerListTable";
 
 const LogisticsPage = () => {
   const { toast } = useToast();
@@ -60,6 +61,8 @@ const LogisticsPage = () => {
     useState<TourOperation | null>(null);
   const [assignedOperator, setAssignedOperator] =
     useState<string>("own-operation");
+  const [passengers, setPassengers] = useState<any[]>([]);
+  const [loadingPassengers, setLoadingPassengers] = useState(false);
 
   useEffect(() => {
     loadBasicData();
@@ -130,7 +133,7 @@ const LogisticsPage = () => {
     }
   };
 
-  const handleTourSelect = (tourId: string) => {
+  const handleTourSelect = async (tourId: string) => {
     setSelectedTour(tourId);
     const selectedTourData = tours.find((tour) => tour.id === tourId);
 
@@ -154,8 +157,53 @@ const LogisticsPage = () => {
         operator: 'own-operation'
       };
       setSelectedOperation(operation);
+
+      // Fetch passenger data for the selected tour
+      await loadPassengerData(tourId);
     } else {
       setSelectedOperation(null);
+      setPassengers([]);
+    }
+  };
+
+  const loadPassengerData = async (tourId: string) => {
+    try {
+      setLoadingPassengers(true);
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      const data = await logisticsService.getTourPassengers(tourId, dateStr, selectedOperator !== 'all' ? selectedOperator : undefined);
+
+      if (data && data.passengers) {
+        setPassengers(data.passengers);
+      } else {
+        setPassengers([]);
+      }
+    } catch (error) {
+      console.error('Failed to load passenger data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load passenger data",
+        variant: "destructive",
+      });
+      setPassengers([]);
+    } finally {
+      setLoadingPassengers(false);
+    }
+  };
+
+  const handleSavePassengers = async (updatedPassengers: any[]) => {
+    try {
+      toast({
+        title: "Success",
+        description: "Passenger data saved successfully",
+      });
+      setPassengers(updatedPassengers);
+    } catch (error) {
+      console.error('Failed to save passenger data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save passenger data",
+        variant: "destructive",
+      });
     }
   };
 
@@ -568,6 +616,21 @@ const LogisticsPage = () => {
               </Card>
             </div>
 
+            {/* Passenger List Table */}
+            {passengers.length > 0 && (
+              <PassengerListTable
+                passengers={passengers}
+                onSave={handleSavePassengers}
+              />
+            )}
+
+            {loadingPassengers && (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <p className="text-muted-foreground">Loading passenger data...</p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Vehicle Assignment & Passenger Distribution */}
             {selectedOperation.vehicleId && (
