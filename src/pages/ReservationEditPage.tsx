@@ -28,7 +28,6 @@ const ReservationEditPage = () => {
   // Separate dialog states for Add vs Edit payment
   const [isAddPaymentDialogOpen, setIsAddPaymentDialogOpen] = useState(false)
   const [isEditPaymentDialogOpen, setIsEditPaymentDialogOpen] = useState(false)
-  const [selectedTourForPayment, setSelectedTourForPayment] = useState('')
 
   const {
     reservation,
@@ -577,11 +576,9 @@ const ReservationEditPage = () => {
     // Clear/reset payment fields for new payment
     setPaymentDate(new Date())
     setPaymentMethod('credit-card')
-    setPaymentPercentage(100)
     setAmountPaid(0)
     setPaymentStatus('pending')
     setReceiptFile(null)
-    setSelectedTourForPayment('')
 
     // Open the Add Payment dialog
     setIsAddPaymentDialogOpen(true)
@@ -686,7 +683,7 @@ const ReservationEditPage = () => {
   }
 
   const handleSaveAddPayment = async () => {
-    if (!reservation || !selectedTourForPayment) return
+    if (!reservation) return
 
     // Extract the base booking ID by removing any "-tour-X" suffix
     const bookingId = reservationId?.replace(/-tour-\d+$/, '') || reservationId
@@ -758,10 +755,6 @@ const ReservationEditPage = () => {
       variant: 'destructive'
     })
   }
-
-  // Filter tours without payment status (unpaid tours)
-  // A tour is considered unpaid if it doesn't have associated payment details
-  const unpaidTours = allToursForBooking.filter(tour => !tour.paymentDetails || tour.paymentDetails.status === 'pending')
 
   if (loading) {
     return (
@@ -850,21 +843,16 @@ const ReservationEditPage = () => {
         <AddPaymentDialog
           isOpen={isAddPaymentDialogOpen}
           onOpenChange={setIsAddPaymentDialogOpen}
-          unpaidTours={unpaidTours}
           paymentDate={paymentDate}
           setPaymentDate={setPaymentDate}
           paymentMethod={paymentMethod}
           setPaymentMethod={setPaymentMethod}
-          paymentPercentage={paymentPercentage}
-          setPaymentPercentage={setPaymentPercentage}
           amountPaid={amountPaid}
           setAmountPaid={setAmountPaid}
           paymentStatus={paymentStatus}
           setPaymentStatus={setPaymentStatus}
           receiptFile={receiptFile}
           setReceiptFile={setReceiptFile}
-          selectedTourId={selectedTourForPayment}
-          setSelectedTourId={setSelectedTourForPayment}
           currency={reservation.pricing.currency}
           onSave={handleSaveAddPayment}
         />
