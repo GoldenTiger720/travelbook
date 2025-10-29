@@ -59,6 +59,7 @@ const LogisticsPage = () => {
   const [selectedOperation, setSelectedOperation] =
     useState<TourOperation | null>(null);
   const [bookingTours, setBookingTours] = useState<any[]>([]);
+  const [logisticsSettings, setLogisticsSettings] = useState<any[]>([]);
   const [loadingPassengers, setLoadingPassengers] = useState(false);
 
   useEffect(() => {
@@ -66,6 +67,13 @@ const LogisticsPage = () => {
     loadPassengerData();
     loadStoredPassengerList();
   }, []);
+
+  // Re-apply tour selection when date or logistics settings change
+  useEffect(() => {
+    if (selectedTour) {
+      handleTourSelect(selectedTour);
+    }
+  }, [selectedDate, logisticsSettings]);
 
   const loadBasicData = async () => {
     try {
@@ -137,22 +145,30 @@ const LogisticsPage = () => {
     const selectedTourData = tours.find((tour) => tour.id === tourId);
 
     if (selectedTourData) {
+      // Check if there's a stored logistics setting for this tour and date
+      const storedSetting = logisticsSettings.find((setting) => {
+        const settingDate = new Date(setting.date);
+        const isSameDate = settingDate.toDateString() === selectedDate.toDateString();
+        const isSameTour = setting.tour_id === tourId;
+        return isSameDate && isSameTour;
+      });
+
       // Create a TourOperation object from the selected tour
       const operation: TourOperation = {
-        id: selectedTourData.id,
+        id: storedSetting?.id || selectedTourData.id,
         date: selectedDate,
         tourId: selectedTourData.id,
         tourName: selectedTourData.name,
-        tourCode: selectedTourData.name, // Using name as code for now
-        mainDriver: undefined,
-        mainGuide: undefined,
-        assistantGuide: undefined,
-        departureTime: selectedTourData.departure_time,
+        tourCode: selectedTourData.name,
+        mainDriver: storedSetting?.main_driver_id || undefined,
+        mainGuide: storedSetting?.main_guide_id || undefined,
+        assistantGuide: storedSetting?.assistant_guide_id || undefined,
+        departureTime: storedSetting?.departure_time || selectedTourData.departure_time,
         expectedWaitingTime: 15,
-        vehicleId: undefined,
+        vehicleId: storedSetting?.vehicle_id || undefined,
         reservations: [],
         totalPassengers: 0,
-        status: 'planning',
+        status: storedSetting?.status || 'planning',
         operator: 'own-operation'
       };
       setSelectedOperation(operation);
@@ -190,9 +206,7 @@ const LogisticsPage = () => {
 
       if (data && data.logistics_settings) {
         console.log('Stored passenger list loaded:', data);
-        // You can add additional logic here to use this data
-        // For example, you might want to populate the passenger table
-        // or update the UI based on previously saved logistics settings
+        setLogisticsSettings(data.logistics_settings);
       }
     } catch (error) {
       console.error('Failed to load stored passenger list:', error);
@@ -249,6 +263,29 @@ const LogisticsPage = () => {
   const getPassengersForSelectedTour = () => {
     if (!selectedOperation) return [];
 
+    // First check if there's a stored logistics setting with passengers
+    const storedSetting = logisticsSettings.find((setting) => {
+      const settingDate = new Date(setting.date);
+      const isSameDate = settingDate.toDateString() === selectedDate.toDateString();
+      const isSameTour = setting.tour_id === selectedOperation.tourId;
+      return isSameDate && isSameTour;
+    });
+
+    // If stored passengers exist, return them (they're already editable)
+    if (storedSetting && storedSetting.passengers && storedSetting.passengers.length > 0) {
+      return storedSetting.passengers.map((p: any) => ({
+        id: p.id,
+        booking_tour_id: p.booking_tour_id,
+        pax_number: p.pax_number || 0,
+        name: p.name || '',
+        telephone: p.telephone || '',
+        age: p.age || '',
+        gender: p.gender || '',
+        nationality: p.nationality || 'Not Informed'
+      }));
+    }
+
+    // Otherwise, generate empty passenger list from booking_tours
     const filteredTours = bookingTours.filter(bt => bt.tour_id === selectedOperation.id);
     const passengers: any[] = [];
 
