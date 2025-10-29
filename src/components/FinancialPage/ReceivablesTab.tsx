@@ -115,77 +115,65 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[100px]">Invoice ID</TableHead>
-                  <TableHead className="min-w-[150px]">Client</TableHead>
-                  <TableHead className="min-w-[120px]">Reservation</TableHead>
-                  <TableHead className="min-w-[120px]">Total Amount</TableHead>
-                  <TableHead className="min-w-[150px]">Installments</TableHead>
-                  <TableHead className="min-w-[100px]">Next Due</TableHead>
+                  <TableHead className="min-w-[100px]">ID</TableHead>
+                  <TableHead className="min-w-[150px]">Customer</TableHead>
+                  <TableHead className="min-w-[120px]">Booking ID</TableHead>
+                  <TableHead className="min-w-[120px]">Amount</TableHead>
+                  <TableHead className="min-w-[100px]">Due Date</TableHead>
+                  <TableHead className="min-w-[100px]">Payment Method</TableHead>
                   <TableHead className="min-w-[100px]">Status</TableHead>
                   <TableHead className="min-w-[80px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {receivablesWithInstallments.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.id}</TableCell>
-                    <TableCell>{item.client}</TableCell>
-                    <TableCell>
-                      <span className="text-blue-600 hover:underline cursor-pointer">
-                        {item.reservationId}
-                      </span>
-                    </TableCell>
-                    <TableCell>{formatCurrency(item.totalAmount, item.currency)}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        {item.installments.map((inst: any) => (
-                          <Badge
-                            key={inst.id}
-                            variant={
-                              inst.status === 'paid' ? 'success' :
-                              inst.status === 'overdue' ? 'destructive' :
-                              'default'
-                            }
-                            className="text-xs"
-                          >
-                            {inst.id}/{item.installments.length}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {item.installments.find((i: any) => i.status === 'pending')?.dueDate || 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={
-                        item.installments.some((i: any) => i.status === 'overdue') ? 'destructive' :
-                        item.installments.every((i: any) => i.status === 'paid') ? 'success' :
-                        'default'
-                      }>
-                        {item.installments.some((i: any) => i.status === 'overdue') ? 'overdue' :
-                         item.installments.every((i: any) => i.status === 'paid') ? 'paid' :
-                         'partial'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>View Details</DropdownMenuItem>
-                          <DropdownMenuItem>Edit Installments</DropdownMenuItem>
-                          <DropdownMenuItem>Send Reminder</DropdownMenuItem>
-                          <DropdownMenuItem>Record Payment</DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600">Write Off</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                {filteredReceivables.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                      {searchTerm ? 'No receivables found matching your search.' : 'No receivables found.'}
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredReceivables.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">#{item.id}</TableCell>
+                      <TableCell>{item.customerName}</TableCell>
+                      <TableCell>
+                        <span className="text-blue-600 hover:underline cursor-pointer">
+                          {item.bookingId}
+                        </span>
+                      </TableCell>
+                      <TableCell>{formatCurrency(item.amount, item.currency)}</TableCell>
+                      <TableCell>{item.dueDate}</TableCell>
+                      <TableCell className="capitalize">{item.method}</TableCell>
+                      <TableCell>
+                        <Badge variant={
+                          item.status === 'paid' ? 'success' :
+                          item.status === 'overdue' ? 'destructive' :
+                          item.status === 'pending' ? 'default' :
+                          'secondary'
+                        }>
+                          {item.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>View Details</DropdownMenuItem>
+                            <DropdownMenuItem>Record Payment</DropdownMenuItem>
+                            <DropdownMenuItem>Send Reminder</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-red-600">Mark as Overdue</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
