@@ -165,6 +165,32 @@ class LogisticsService {
     }
   }
 
+  async getTourPassengers(tourId?: string, date?: string, operator?: string): Promise<any> {
+    try {
+      const params = new URLSearchParams()
+      if (tourId) params.append('tour_id', tourId)
+      if (date) params.append('date', date)
+      if (operator) params.append('operator', operator)
+
+      const queryString = params.toString()
+      const url = `/api/logistics/tours/passenger/${queryString ? `?${queryString}` : ''}`
+
+      const response = await apiCall(url, {
+        method: 'GET',
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error('Error fetching tour passengers:', error)
+      throw error
+    }
+  }
+
   generateWhatsAppMessage(vehicleDistribution: VehicleDistribution): string {
     const message = `🚐 *${vehicleDistribution.vehicleName}* - Passenger List\n\n` +
       `👥 Total Passengers: ${vehicleDistribution.assignedPassengers}/${vehicleDistribution.capacity}\n\n` +
