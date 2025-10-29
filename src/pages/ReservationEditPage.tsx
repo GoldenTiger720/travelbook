@@ -563,6 +563,41 @@ const ReservationEditPage = () => {
     }
   }
 
+  const handleOpenPaymentDialog = () => {
+    // Load existing payment data if available
+    if (reservation?.paymentDetails) {
+      const paymentDetails = reservation.paymentDetails
+
+      // Set payment date
+      if (paymentDetails.date) {
+        setPaymentDate(new Date(paymentDetails.date))
+      }
+
+      // Set payment method
+      if (paymentDetails.method) {
+        setPaymentMethod(paymentDetails.method)
+      }
+
+      // Set payment percentage
+      if (paymentDetails.percentage !== undefined) {
+        setPaymentPercentage(paymentDetails.percentage)
+      }
+
+      // Set amount paid
+      if (paymentDetails.amountPaid !== undefined) {
+        setAmountPaid(paymentDetails.amountPaid)
+      }
+
+      // Set payment status
+      if (paymentDetails.status) {
+        setPaymentStatus(paymentDetails.status)
+      }
+    }
+
+    // Open the dialog
+    setIsPaymentDialogOpen(true)
+  }
+
   const handleSavePayment = () => {
     setIsPaymentDialogOpen(false)
     toast({
@@ -644,7 +679,7 @@ const ReservationEditPage = () => {
           {/* Payments Section */}
           <PaymentsSection
             reservation={reservation}
-            onOpenPaymentDialog={() => setIsPaymentDialogOpen(true)}
+            onOpenPaymentDialog={handleOpenPaymentDialog}
           />
         </div>
 
