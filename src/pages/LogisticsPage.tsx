@@ -26,11 +26,9 @@ import {
 } from "@/components/ui/dialog";
 import {
   Car,
-  Clock,
   Users,
   CalendarIcon,
   DollarSign,
-  CheckCircle,
   Settings,
   Send,
   FileText,
@@ -228,6 +226,22 @@ const LogisticsPage = () => {
     });
 
     return passengers;
+  };
+
+  // Calculate total PAX for selected tour
+  const getTotalPaxForSelectedTour = () => {
+    if (!selectedOperation) return 0;
+
+    const filteredTours = bookingTours.filter(bt => bt.tour_id === selectedOperation.id);
+    return filteredTours.reduce((sum, bt) => sum + bt.adult_pax + bt.child_pax, 0);
+  };
+
+  // Calculate total value for selected tour
+  const getTotalValueForSelectedTour = () => {
+    if (!selectedOperation) return 0;
+
+    const filteredTours = bookingTours.filter(bt => bt.tour_id === selectedOperation.id);
+    return filteredTours.reduce((sum, bt) => sum + bt.subtotal, 0);
   };
 
   const handleAssignmentUpdate = (field: string, value: string) => {
@@ -568,15 +582,15 @@ const LogisticsPage = () => {
             </Card>
 
             {/* Passenger Summary */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-2 lg:gap-3 w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 lg:gap-4 w-full">
               <Card className="overflow-hidden">
-                <CardContent className="p-2 sm:p-3">
-                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-2 text-center sm:text-left">
-                    <Users className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 text-center sm:text-left">
+                    <Users className="w-5 h-5 text-blue-500 flex-shrink-0" />
                     <div className="min-w-0">
-                      <p className="text-xs sm:text-sm font-medium truncate">Total PAX</p>
-                      <p className="text-base sm:text-lg font-bold">
-                        {selectedOperation.totalPassengers}
+                      <p className="text-sm sm:text-base font-medium truncate">Total PAX</p>
+                      <p className="text-xl sm:text-2xl font-bold">
+                        {getTotalPaxForSelectedTour()}
                       </p>
                     </div>
                   </div>
@@ -584,54 +598,13 @@ const LogisticsPage = () => {
               </Card>
 
               <Card className="overflow-hidden">
-                <CardContent className="p-2 sm:p-3">
-                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-2 text-center sm:text-left">
-                    <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 text-center sm:text-left">
+                    <DollarSign className="w-5 h-5 text-green-600 flex-shrink-0" />
                     <div className="min-w-0">
-                      <p className="text-xs sm:text-sm font-medium truncate">Confirmed</p>
-                      <p className="text-base sm:text-lg font-bold">
-                        {
-                          selectedOperation.reservations.filter(
-                            (r) => r.status === "confirmed"
-                          ).length
-                        }
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="overflow-hidden">
-                <CardContent className="p-2 sm:p-3">
-                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-2 text-center sm:text-left">
-                    <Clock className="w-4 h-4 text-yellow-500 flex-shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-xs sm:text-sm font-medium truncate">Pending</p>
-                      <p className="text-base sm:text-lg font-bold">
-                        {
-                          selectedOperation.reservations.filter(
-                            (r) => r.status === "pending"
-                          ).length
-                        }
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="overflow-hidden">
-                <CardContent className="p-2 sm:p-3">
-                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-2 text-center sm:text-left">
-                    <DollarSign className="w-4 h-4 text-green-600 flex-shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-xs sm:text-sm font-medium truncate">Total Value</p>
-                      <p className="text-sm sm:text-lg font-bold truncate">
-                        {formatCurrency(
-                          selectedOperation.reservations.reduce(
-                            (sum, r) => sum + r.totalValue,
-                            0
-                          )
-                        )}
+                      <p className="text-sm sm:text-base font-medium truncate">Total Value</p>
+                      <p className="text-xl sm:text-2xl font-bold truncate">
+                        {formatCurrency(getTotalValueForSelectedTour())}
                       </p>
                     </div>
                   </div>
