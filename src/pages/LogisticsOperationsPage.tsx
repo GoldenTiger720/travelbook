@@ -566,9 +566,9 @@ const LogisticsOperationsPage = () => {
   }
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden px-4 lg:px-6 py-4 space-y-4">
+    <div className="w-full overflow-x-hidden py-4 space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-4 lg:px-6">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold">Logistics / Operations</h1>
           <p className="text-sm text-muted-foreground">
@@ -597,6 +597,7 @@ const LogisticsOperationsPage = () => {
 
       {/* Conflicts Alert */}
       {conflicts.length > 0 && (
+        <div className="px-4 lg:px-6">
         <Card className="border-orange-200 bg-orange-50">
           <CardContent className="pt-4">
             <div className="flex items-start gap-3">
@@ -612,9 +613,11 @@ const LogisticsOperationsPage = () => {
             </div>
           </CardContent>
         </Card>
+        </div>
       )}
 
       {/* Filters */}
+      <div className="px-4 lg:px-6">
       <Card>
         <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
           <CardHeader className="pb-3">
@@ -711,9 +714,10 @@ const LogisticsOperationsPage = () => {
           </CollapsibleContent>
         </Collapsible>
       </Card>
+      </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 px-4 lg:px-6">
         <Card>
           <CardContent className="pt-4">
             <div className="text-2xl font-bold">{filteredReservations.length}</div>
@@ -747,7 +751,7 @@ const LogisticsOperationsPage = () => {
       </div>
 
       {/* Main Table */}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden mx-4 lg:mx-6">
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <CardTitle className="text-base">
@@ -783,8 +787,8 @@ const LogisticsOperationsPage = () => {
               No reservations found for this date
             </div>
           ) : (
-            <div className="overflow-x-auto max-w-full">
-              <Table>
+            <div className="overflow-x-auto w-full">
+              <Table className="min-w-full">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">
