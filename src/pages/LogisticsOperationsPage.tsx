@@ -315,8 +315,20 @@ const LogisticsOperationsPage = () => {
     if (!changes) return
 
     try {
-      // API call to update reservation
-      // await reservationService.updateReservation(reservationId, changes)
+      // API call to update reservation logistics
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reservations/${reservationId}/`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        },
+        body: JSON.stringify(changes)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to update reservation')
+      }
 
       toast({
         title: 'Changes Saved',
@@ -334,10 +346,10 @@ const LogisticsOperationsPage = () => {
 
       // Refresh data
       refetch()
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error',
-        description: 'Failed to save changes',
+        description: error.message || 'Failed to save changes',
         variant: 'destructive'
       })
     }
@@ -360,7 +372,19 @@ const LogisticsOperationsPage = () => {
 
     try {
       // Update status to RECONFIRMED
-      // await reservationService.updateReservation(reservationId, { status: 'reconfirmed' })
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reservations/${reservationId}/status/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        },
+        body: JSON.stringify({ status: 'reconfirmed' })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to reconfirm reservation')
+      }
 
       toast({
         title: 'Reservation Reconfirmed',
@@ -368,37 +392,80 @@ const LogisticsOperationsPage = () => {
       })
 
       refetch()
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error',
-        description: 'Failed to reconfirm reservation',
+        description: error.message || 'Failed to reconfirm reservation',
         variant: 'destructive'
       })
     }
   }
 
   // Generate service order
-  const generateServiceOrder = (reservationIds: string[]) => {
-    // Logic to generate PDF service order
-    toast({
-      title: 'Service Order Generated',
-      description: `Generated service orders for ${reservationIds.length} reservation(s)`
-    })
+  const generateServiceOrder = async (reservationIds: string[]) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reservations/service-orders/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        },
+        body: JSON.stringify({ reservation_ids: reservationIds })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to generate service orders')
+      }
+
+      const data = await response.json()
+
+      toast({
+        title: 'Service Order Generated',
+        description: `Generated service orders for ${reservationIds.length} reservation(s)`
+      })
+
+      setServiceOrderDialog(false)
+
+      // If PDF URL is returned, open it
+      if (data.pdf_url) {
+        window.open(data.pdf_url, '_blank')
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to generate service orders',
+        variant: 'destructive'
+      })
+    }
   }
 
   // Send confirmation emails
   const sendConfirmationEmails = async (reservationIds: string[]) => {
     try {
-      // API call to send emails
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reservations/send-confirmations/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        },
+        body: JSON.stringify({ reservation_ids: reservationIds })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to send confirmation emails')
+      }
+
       toast({
         title: 'Emails Sent',
         description: `Confirmation emails sent for ${reservationIds.length} reservation(s)`
       })
       setConfirmEmailDialog(false)
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error',
-        description: 'Failed to send confirmation emails',
+        description: error.message || 'Failed to send confirmation emails',
         variant: 'destructive'
       })
     }
@@ -874,11 +941,11 @@ const LogisticsOperationsPage = () => {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => navigate(`/reservations/${reservation.id}`)}>
+                                    <DropdownMenuItem onClick={() => navigate(`/reservations/${reservation.id}/edit`)}>
                                       <Eye className="w-3 h-3 mr-2" />
                                       View Details
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => navigate(`/reservations/edit/${reservation.id}`)}>
+                                    <DropdownMenuItem onClick={() => navigate(`/reservations/${reservation.id}/edit`)}>
                                       <Edit className="w-3 h-3 mr-2" />
                                       Edit Reservation
                                     </DropdownMenuItem>
