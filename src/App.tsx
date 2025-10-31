@@ -25,6 +25,7 @@ import SalesCommissionsPage from "./pages/SalesCommissionsPage";
 import ServicesPage from "./pages/ServicesPage";
 import ToursPage from "./pages/ToursPage";
 import LogisticsPage from "./pages/LogisticsPage";
+import LogisticsOperationsPage from "./pages/LogisticsOperationsPage";
 import ReportsPage from "./pages/ReportsPage";
 import SettingsPage from "./pages/SettingsPage";
 import SupportPage from "./pages/SupportPage";
@@ -229,7 +230,8 @@ const MainLayout = () => {
                   <Route path="/sales-commissions" element={<SalesCommissionsPage />} />
                   <Route path="/services" element={<ServicesPage />} />
                   <Route path="/tours" element={<ToursPage />} />
-                  <Route path="/logistics" element={<LogisticsPage />} />
+                  <Route path="/logistics" element={<LogisticsOperationsPage />} />
+                  <Route path="/logistics-old" element={<LogisticsPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/support" element={<SupportPage />} />
                   <Route path="/settings" element={<SettingsPage />} />

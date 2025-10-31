@@ -222,6 +222,7 @@ const AllReservationsPage = () => {
   const getStatusBadge = (status: Reservation['status']) => {
     const variants: Record<Reservation['status'], { className: string; labelKey: string }> = {
       confirmed: { className: 'bg-green-100 text-green-800', labelKey: 'allReservations.confirmed' },
+      reconfirmed: { className: 'bg-green-600 text-white', labelKey: 'allReservations.reconfirmed' },
       pending: { className: 'bg-yellow-100 text-yellow-800', labelKey: 'allReservations.pending' },
       cancelled: { className: 'bg-red-100 text-red-800', labelKey: 'allReservations.cancelled' },
       completed: { className: 'bg-blue-100 text-blue-800', labelKey: 'allReservations.completed' },

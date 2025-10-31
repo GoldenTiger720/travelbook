@@ -19,7 +19,7 @@ export interface Reservation {
   reservationNumber: string
   operationDate: Date
   saleDate: Date
-  status: 'confirmed' | 'pending' | 'cancelled' | 'completed' | 'no-show'
+  status: 'confirmed' | 'pending' | 'cancelled' | 'completed' | 'no-show' | 'reconfirmed'
   paymentStatus: 'paid' | 'pending' | 'partial' | 'refunded' | 'overdue'
   client: {
     id?: string
