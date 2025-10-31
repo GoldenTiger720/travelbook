@@ -63,8 +63,10 @@ export interface Reservation {
   email: string
   phone: string
   operator?: string
-  guide?: string
-  driver?: string
+  guide?: string // User ID for API calls
+  guideName?: string // User name for display
+  driver?: string // User ID for API calls
+  driverName?: string // User name for display
   externalAgency?: string
   purchaseOrderNumber?: string
   notes?: string

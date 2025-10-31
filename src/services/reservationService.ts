@@ -85,9 +85,11 @@ class ReservationService {
         salesperson: backendReservation.fullName || 'Unknown',
         email: backendReservation.email || '',
         phone: backendReservation.phone || '',
-        operator: tour.operator !== 'own-operation' ? tour.operator : undefined,
-        guide: undefined, // Not present in backend data
-        driver: undefined, // Not present in backend data
+        operator: tour.operatorName || (tour.operator !== 'own-operation' ? tour.operator : undefined),
+        guide: tour.mainGuideId || undefined, // Store ID for API calls
+        guideName: tour.mainGuideName || undefined, // Store name for display
+        driver: tour.mainDriverId || undefined, // Store ID for API calls
+        driverName: tour.mainDriverName || undefined, // Store name for display
         externalAgency: undefined, // Not present in backend data
         purchaseOrderNumber: undefined, // Not present in backend data
         notes: tour.comments || '',

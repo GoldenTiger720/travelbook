@@ -290,9 +290,17 @@ const LogisticsOperationsPage = () => {
       return
     }
 
+    // For driver and guide fields, use the ID instead of the name
+    let valueToEdit = currentValue
+    if (field === 'driver' && reservation) {
+      valueToEdit = reservation.driver || currentValue
+    } else if (field === 'guide' && reservation) {
+      valueToEdit = reservation.guide || currentValue
+    }
+
     setEditingCells(prev => ({
       ...prev,
-      [`${reservationId}-${field}`]: currentValue
+      [`${reservationId}-${field}`]: valueToEdit
     }))
   }
 
@@ -530,7 +538,9 @@ const LogisticsOperationsPage = () => {
               </>
             )}
             {options.map((opt: any) => (
-              <SelectItem key={opt.id} value={opt.name}>{opt.name}</SelectItem>
+              <SelectItem key={opt.id} value={field === 'operator' ? opt.name : opt.id}>
+                {opt.full_name || opt.name || opt}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -611,9 +621,9 @@ const LogisticsOperationsPage = () => {
       case 'operator':
         return reservation.operator
       case 'driver':
-        return reservation.driver
+        return reservation.driverName || reservation.driver
       case 'guide':
-        return reservation.guide
+        return reservation.guideName || reservation.guide
       case 'status':
         return reservation.status
       case 'paymentStatus':
