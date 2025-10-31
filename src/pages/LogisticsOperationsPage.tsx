@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { apiCall } from '@/config/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -320,12 +321,8 @@ const LogisticsOperationsPage = () => {
 
     try {
       // API call to update reservation logistics - use bookingId instead of id
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reservations/${reservation.bookingId}/`, {
+      const response = await apiCall(`/api/reservations/${reservation.bookingId}/`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        },
         body: JSON.stringify(changes)
       })
 
@@ -376,12 +373,8 @@ const LogisticsOperationsPage = () => {
 
     try {
       // Update status to RECONFIRMED - use bookingId instead of id
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reservations/${reservation.bookingId}/status/`, {
+      const response = await apiCall(`/api/reservations/${reservation.bookingId}/status/`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        },
         body: JSON.stringify({ status: 'reconfirmed' })
       })
 
@@ -408,12 +401,8 @@ const LogisticsOperationsPage = () => {
   // Generate service order
   const generateServiceOrder = async (reservationIds: string[]) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reservations/service-orders/`, {
+      const response = await apiCall('/api/reservations/service-orders/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        },
         body: JSON.stringify({ reservation_ids: reservationIds })
       })
 
@@ -447,12 +436,8 @@ const LogisticsOperationsPage = () => {
   // Send confirmation emails
   const sendConfirmationEmails = async (reservationIds: string[]) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reservations/send-confirmations/`, {
+      const response = await apiCall('/api/reservations/send-confirmations/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        },
         body: JSON.stringify({ reservation_ids: reservationIds })
       })
 
