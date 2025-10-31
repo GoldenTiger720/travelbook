@@ -253,8 +253,11 @@ const LogisticsOperationsPage = () => {
       }
     })
 
-    setConflicts(detected)
-  }, [filteredReservations])
+    // Only update if conflicts actually changed
+    if (JSON.stringify(detected) !== JSON.stringify(conflicts)) {
+      setConflicts(detected)
+    }
+  }, [filteredReservations, conflicts])
 
   // Save column preferences
   const saveColumnPreferences = (newColumns: ColumnConfig[]) => {
@@ -534,7 +537,7 @@ const LogisticsOperationsPage = () => {
       case 'tour':
         return reservation.tour.name
       case 'operationDate':
-        return reservation.operationDate
+        return format(new Date(reservation.operationDate), 'MMM dd, yyyy')
       case 'passengers':
         return `${reservation.passengers.adults}/${reservation.passengers.children}/${reservation.passengers.infants}`
       case 'hotel':
