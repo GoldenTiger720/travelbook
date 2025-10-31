@@ -747,13 +747,13 @@ const LogisticsOperationsPage = () => {
       </div>
 
       {/* Main Table */}
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <CardTitle className="text-base">
               Reservations for {format(selectedDate, 'MMMM dd, yyyy')}
             </CardTitle>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button
                 size="sm"
                 variant="outline"
@@ -775,7 +775,7 @@ const LogisticsOperationsPage = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">Loading...</div>
           ) : filteredReservations.length === 0 ? (
@@ -783,7 +783,7 @@ const LogisticsOperationsPage = () => {
               No reservations found for this date
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-w-full">
               <Table>
                 <TableHeader>
                   <TableRow>
