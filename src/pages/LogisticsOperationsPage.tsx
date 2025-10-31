@@ -59,7 +59,8 @@ import {
   Columns,
   RefreshCw,
   Save,
-  Mail
+  Mail,
+  Loader2
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
@@ -128,6 +129,12 @@ const LogisticsOperationsPage = () => {
   const [serviceOrderDialog, setServiceOrderDialog] = useState(false)
   const [selectedReservations, setSelectedReservations] = useState<Set<string>>(new Set())
   const [confirmEmailDialog, setConfirmEmailDialog] = useState(false)
+
+  // Loading states for different operations
+  const [savingReservations, setSavingReservations] = useState<Set<string>>(new Set())
+  const [reconfirmingReservations, setReconfirmingReservations] = useState<Set<string>>(new Set())
+  const [generatingServiceOrders, setGeneratingServiceOrders] = useState(false)
+  const [sendingEmails, setSendingEmails] = useState(false)
 
   // Fetch reservations using React Query
   const { data: allReservations = [], isLoading, refetch } = useReservations()
@@ -327,6 +334,9 @@ const LogisticsOperationsPage = () => {
     const reservation = filteredReservations.find(r => r.id === reservationId)
     if (!reservation) return
 
+    // Add to saving set
+    setSavingReservations(prev => new Set(prev).add(reservationId))
+
     try {
       // API call to update reservation logistics - use bookingId instead of id
       const response = await apiCall(`/api/reservations/${reservation.bookingId}/`, {
@@ -354,12 +364,19 @@ const LogisticsOperationsPage = () => {
       setEditingCells({})
 
       // Refresh data
-      refetch()
+      await refetch()
     } catch (error: any) {
       toast({
         title: 'Error',
         description: error.message || 'Failed to save changes',
         variant: 'destructive'
+      })
+    } finally {
+      // Remove from saving set
+      setSavingReservations(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(reservationId)
+        return newSet
       })
     }
   }
@@ -379,6 +396,9 @@ const LogisticsOperationsPage = () => {
       return
     }
 
+    // Add to reconfirming set
+    setReconfirmingReservations(prev => new Set(prev).add(reservationId))
+
     try {
       // Update status to RECONFIRMED - use bookingId instead of id
       const response = await apiCall(`/api/reservations/${reservation.bookingId}/status/`, {
@@ -396,18 +416,26 @@ const LogisticsOperationsPage = () => {
         description: 'This reservation is now locked and cannot be edited by sales staff'
       })
 
-      refetch()
+      await refetch()
     } catch (error: any) {
       toast({
         title: 'Error',
         description: error.message || 'Failed to reconfirm reservation',
         variant: 'destructive'
       })
+    } finally {
+      // Remove from reconfirming set
+      setReconfirmingReservations(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(reservationId)
+        return newSet
+      })
     }
   }
 
   // Generate service order
   const generateServiceOrder = async (reservationIds: string[]) => {
+    setGeneratingServiceOrders(true)
     try {
       const response = await apiCall('/api/reservations/service-orders/', {
         method: 'POST',
@@ -438,11 +466,14 @@ const LogisticsOperationsPage = () => {
         description: error.message || 'Failed to generate service orders',
         variant: 'destructive'
       })
+    } finally {
+      setGeneratingServiceOrders(false)
     }
   }
 
   // Send confirmation emails
   const sendConfirmationEmails = async (reservationIds: string[]) => {
+    setSendingEmails(true)
     try {
       const response = await apiCall('/api/reservations/send-confirmations/', {
         method: 'POST',
@@ -465,6 +496,8 @@ const LogisticsOperationsPage = () => {
         description: error.message || 'Failed to send confirmation emails',
         variant: 'destructive'
       })
+    } finally {
+      setSendingEmails(false)
     }
   }
 
@@ -918,9 +951,14 @@ const LogisticsOperationsPage = () => {
                                     size="sm"
                                     variant="default"
                                     onClick={() => saveChanges(reservation.id)}
+                                    disabled={savingReservations.has(reservation.id)}
                                   >
-                                    <Save className="w-3 h-3 mr-1" />
-                                    Save
+                                    {savingReservations.has(reservation.id) ? (
+                                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                    ) : (
+                                      <Save className="w-3 h-3 mr-1" />
+                                    )}
+                                    {savingReservations.has(reservation.id) ? 'Saving...' : 'Save'}
                                   </Button>
                                 )}
                                 {reservation.status === 'confirmed' && (
@@ -928,14 +966,23 @@ const LogisticsOperationsPage = () => {
                                     size="sm"
                                     variant="outline"
                                     onClick={() => reconfirmReservation(reservation.id)}
+                                    disabled={reconfirmingReservations.has(reservation.id)}
                                   >
-                                    <CheckCircle2 className="w-3 h-3 mr-1" />
-                                    Reconfirm
+                                    {reconfirmingReservations.has(reservation.id) ? (
+                                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                    ) : (
+                                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                                    )}
+                                    {reconfirmingReservations.has(reservation.id) ? 'Processing...' : 'Reconfirm'}
                                   </Button>
                                 )}
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button size="sm" variant="ghost">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      disabled={savingReservations.has(reservation.id) || reconfirmingReservations.has(reservation.id)}
+                                    >
                                       <Settings className="w-3 h-3" />
                                     </Button>
                                   </DropdownMenuTrigger>
@@ -949,12 +996,26 @@ const LogisticsOperationsPage = () => {
                                       Edit Reservation
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => generateServiceOrder([reservation.bookingId])}>
-                                      <FileText className="w-3 h-3 mr-2" />
+                                    <DropdownMenuItem
+                                      onClick={() => generateServiceOrder([reservation.bookingId])}
+                                      disabled={generatingServiceOrders}
+                                    >
+                                      {generatingServiceOrders ? (
+                                        <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                                      ) : (
+                                        <FileText className="w-3 h-3 mr-2" />
+                                      )}
                                       Generate Service Order
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => sendConfirmationEmails([reservation.bookingId])}>
-                                      <Mail className="w-3 h-3 mr-2" />
+                                    <DropdownMenuItem
+                                      onClick={() => sendConfirmationEmails([reservation.bookingId])}
+                                      disabled={sendingEmails}
+                                    >
+                                      {sendingEmails ? (
+                                        <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                                      ) : (
+                                        <Mail className="w-3 h-3 mr-2" />
+                                      )}
                                       Send Confirmation
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
@@ -1032,15 +1093,19 @@ const LogisticsOperationsPage = () => {
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setServiceOrderDialog(false)}>
+            <Button variant="outline" onClick={() => setServiceOrderDialog(false)} disabled={generatingServiceOrders}>
               Cancel
             </Button>
-            <Button onClick={() => {
-              generateServiceOrder(Array.from(selectedReservations))
-              setServiceOrderDialog(false)
-            }}>
-              <Download className="w-4 h-4 mr-2" />
-              Generate PDFs
+            <Button
+              onClick={() => generateServiceOrder(Array.from(selectedReservations))}
+              disabled={generatingServiceOrders}
+            >
+              {generatingServiceOrders ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 mr-2" />
+              )}
+              {generatingServiceOrders ? 'Generating...' : 'Generate PDFs'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1061,12 +1126,19 @@ const LogisticsOperationsPage = () => {
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmEmailDialog(false)}>
+            <Button variant="outline" onClick={() => setConfirmEmailDialog(false)} disabled={sendingEmails}>
               Cancel
             </Button>
-            <Button onClick={() => sendConfirmationEmails(Array.from(selectedReservations))}>
-              <Send className="w-4 h-4 mr-2" />
-              Send Emails
+            <Button
+              onClick={() => sendConfirmationEmails(Array.from(selectedReservations))}
+              disabled={sendingEmails}
+            >
+              {sendingEmails ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4 mr-2" />
+              )}
+              {sendingEmails ? 'Sending...' : 'Send Emails'}
             </Button>
           </DialogFooter>
         </DialogContent>
