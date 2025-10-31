@@ -570,11 +570,40 @@ const LogisticsOperationsPage = () => {
                 <SelectItem value="own-operator">Own operator</SelectItem>
               </>
             )}
-            {options.map((opt: any) => (
-              <SelectItem key={opt.id} value={field === 'operator' ? opt.name : opt.id}>
-                {opt.full_name || opt.name || opt}
-              </SelectItem>
-            ))}
+            {options
+              .filter((opt: any) => {
+                // Filter out options with empty/invalid IDs or names
+                if (field === 'operator') {
+                  const value = opt.name || opt
+                  return value && String(value).trim() !== ''
+                }
+                // For driver and guide
+                const value = opt.id
+                return value && String(value).trim() !== ''
+              })
+              .map((opt: any) => {
+                // Determine the value to use
+                let valueToUse: string
+                if (field === 'operator') {
+                  valueToUse = String(opt.name || opt)
+                } else {
+                  valueToUse = String(opt.id)
+                }
+
+                // Double-check value is not empty after stringification
+                if (!valueToUse || valueToUse.trim() === '') {
+                  console.warn(`Skipping option with empty value:`, opt)
+                  return null
+                }
+
+                const displayName = opt.fullName || opt.full_name || opt.name || opt
+                return (
+                  <SelectItem key={opt.id || opt.name || opt} value={valueToUse}>
+                    {displayName}
+                  </SelectItem>
+                )
+              })
+              .filter(Boolean)}
           </SelectContent>
         </Select>
       )

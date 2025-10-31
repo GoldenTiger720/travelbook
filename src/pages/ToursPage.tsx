@@ -634,13 +634,13 @@ const ToursPage = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {isLoadingDestinations ? (
-                    <SelectItem value="" disabled>Loading destinations...</SelectItem>
+                    <SelectItem value="_loading" disabled>Loading destinations...</SelectItem>
                   ) : destinations.length > 0 ? (
                     destinations.map(dest => (
                       <SelectItem key={dest.id} value={dest.id}>{dest.name}</SelectItem>
                     ))
                   ) : (
-                    <SelectItem value="" disabled>No destinations available</SelectItem>
+                    <SelectItem value="_empty" disabled>No destinations available</SelectItem>
                   )}
                 </SelectContent>
               </Select>
@@ -782,13 +782,13 @@ const ToursPage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {isLoadingDestinations ? (
-                      <SelectItem value="" disabled>Loading destinations...</SelectItem>
+                      <SelectItem value="_loading" disabled>Loading destinations...</SelectItem>
                     ) : destinations.length > 0 ? (
                       destinations.map(dest => (
                         <SelectItem key={dest.id} value={dest.id}>{dest.name}</SelectItem>
                       ))
                     ) : (
-                      <SelectItem value="" disabled>No destinations available</SelectItem>
+                      <SelectItem value="_empty" disabled>No destinations available</SelectItem>
                     )}
                   </SelectContent>
                 </Select>
