@@ -39,6 +39,7 @@ class ReservationService {
 
       return {
         id: tours.length > 1 ? `${backendReservation.id}-tour-${index}` : backendReservation.id,
+        bookingId: backendReservation.id, // Always store the original booking ID
         reservationNumber: backendReservation.id.split('-')[0].toUpperCase(), // Generate reservation number from id
         operationDate: new Date(tour.date),
         saleDate: new Date(backendReservation.paymentDetails?.date || backendReservation.createdAt || new Date()),

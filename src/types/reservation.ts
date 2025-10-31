@@ -16,6 +16,7 @@ export interface PaymentDetails {
 
 export interface Reservation {
   id: string
+  bookingId: string // Original booking ID without tour suffix (for API calls)
   reservationNumber: string
   operationDate: Date
   saleDate: Date

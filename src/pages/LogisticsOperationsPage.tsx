@@ -314,9 +314,13 @@ const LogisticsOperationsPage = () => {
     const changes = pendingChanges[reservationId]
     if (!changes) return
 
+    // Find the reservation to get the bookingId (without tour suffix)
+    const reservation = filteredReservations.find(r => r.id === reservationId)
+    if (!reservation) return
+
     try {
-      // API call to update reservation logistics
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reservations/${reservationId}/`, {
+      // API call to update reservation logistics - use bookingId instead of id
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reservations/${reservation.bookingId}/`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -371,8 +375,8 @@ const LogisticsOperationsPage = () => {
     }
 
     try {
-      // Update status to RECONFIRMED
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reservations/${reservationId}/status/`, {
+      // Update status to RECONFIRMED - use bookingId instead of id
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reservations/${reservation.bookingId}/status/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -941,20 +945,20 @@ const LogisticsOperationsPage = () => {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => navigate(`/reservations/${reservation.id}/edit`)}>
+                                    <DropdownMenuItem onClick={() => navigate(`/reservations/${reservation.bookingId}/edit`)}>
                                       <Eye className="w-3 h-3 mr-2" />
                                       View Details
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => navigate(`/reservations/${reservation.id}/edit`)}>
+                                    <DropdownMenuItem onClick={() => navigate(`/reservations/${reservation.bookingId}/edit`)}>
                                       <Edit className="w-3 h-3 mr-2" />
                                       Edit Reservation
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => generateServiceOrder([reservation.id])}>
+                                    <DropdownMenuItem onClick={() => generateServiceOrder([reservation.bookingId])}>
                                       <FileText className="w-3 h-3 mr-2" />
                                       Generate Service Order
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => sendConfirmationEmails([reservation.id])}>
+                                    <DropdownMenuItem onClick={() => sendConfirmationEmails([reservation.bookingId])}>
                                       <Mail className="w-3 h-3 mr-2" />
                                       Send Confirmation
                                     </DropdownMenuItem>
