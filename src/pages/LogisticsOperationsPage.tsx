@@ -467,6 +467,12 @@ const LogisticsOperationsPage = () => {
             <SelectValue placeholder={`Select ${field}`} />
           </SelectTrigger>
           <SelectContent>
+            {field === 'operator' && (
+              <>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="own-operator">Own operator</SelectItem>
+              </>
+            )}
             {options.map((opt: any) => (
               <SelectItem key={opt.id} value={opt.name}>{opt.name}</SelectItem>
             ))}
