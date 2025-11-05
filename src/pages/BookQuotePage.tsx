@@ -706,14 +706,48 @@ const BookQuotePage = () => {
       return
     }
 
-    // Create comprehensive booking data for conversion to confirmed reservation
+    // Create comprehensive booking data
     const fullBookingData = createStructuredBookingData(tourBookings)
 
-    // Prepare payment data to send to the backend for booking conversion
-    const paymentData = convertToPaymentData(fullBookingData)
+    // Validate booking data before submission
+    const validation = validateBookingData(fullBookingData)
+    if (!validation.isValid) {
+      Swal.fire({
+        title: 'Validation Error',
+        html: validation.errors.join('<br>'),
+        icon: 'error',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ef4444'
+      })
+      return
+    }
 
-    // Send payment data to the backend to convert quotation to confirmed reservation
-    createBookingPaymentMutation.mutate(paymentData, {
+    // Show progress modal
+    Swal.fire({
+      title: 'Processing Booking',
+      html: 'Please wait while we process your booking...',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading()
+      }
+    })
+
+    // Convert to the format expected by the booking service
+    const bookingData = convertToBookingData(fullBookingData)
+
+    // First, create the booking (same as Save quotation)
+    createBookingMutation.mutate(bookingData, {
+      onSuccess: (newBooking) => {
+        // Mark quotation as saved
+        setIsQuotationSaved(true)
+
+        // Prepare payment data to send to the backend for booking conversion
+        const paymentData = convertToPaymentData(fullBookingData)
+
+        // Then send payment data to convert quotation to confirmed reservation
+        createBookingPaymentMutation.mutate(paymentData, {
       onSuccess: (response) => {
 
         // Show success message with details
@@ -796,6 +830,29 @@ const BookQuotePage = () => {
 
         Swal.fire({
           title: 'Booking Conversion Failed',
+          text: errorMessage,
+          icon: 'error',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#ef4444'
+        })
+      }
+    })
+      },
+      onError: (error) => {
+        console.error("Booking creation error:", error)
+
+        // Close the loading modal
+        Swal.close()
+
+        let errorMessage = 'Failed to create booking'
+        if ((error as any)?.response?.data?.message) {
+          errorMessage = (error as any).response.data.message
+        } else if (error?.message) {
+          errorMessage = error.message
+        }
+
+        Swal.fire({
+          title: 'Booking Failed',
           text: errorMessage,
           icon: 'error',
           confirmButtonText: 'OK',

@@ -338,10 +338,10 @@ const PaymentDetails: React.FC<PaymentDetailsProps> = ({
                 <Button
                   type="button"
                   className="w-full bg-green-500 hover:bg-green-600 text-white py-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={tourBookings.length === 0 || !isQuotationSaved || createBookingPaymentMutation.isPending}
+                  disabled={tourBookings.length === 0 || createBookingPaymentMutation.isPending || createBookingMutation.isPending}
                   onClick={onBookReservation}
                 >
-                  {createBookingPaymentMutation.isPending ? "Processing..." : t('quotes.reserve')}
+                  {(createBookingPaymentMutation.isPending || createBookingMutation.isPending) ? "Processing..." : t('quotes.reserve')}
                 </Button>
 
                 <div className={`flex items-center gap-2 p-3 rounded-lg ${isQuotationSaved ? 'bg-green-100' : 'bg-gray-100'}`}>
