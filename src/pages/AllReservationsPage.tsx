@@ -130,7 +130,7 @@ const AllReservationsPage = () => {
     
     // Salesperson filter
     if (filters.salesperson && filters.salesperson !== 'all') {
-      filtered = filtered.filter(r => r.salesperson === filters.salesperson)
+      filtered = filtered.filter(r => r.salespersonId === filters.salesperson)
     }
     
     // Tour filter

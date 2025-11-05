@@ -82,7 +82,8 @@ class ReservationService {
           totalAmount: tourSpecificAmount,
           currency: backendReservation.currency || 'CLP'
         },
-        salesperson: backendReservation.fullName || 'Unknown',
+        salespersonId: backendReservation.sales_person_id || undefined, // Store ID for API calls
+        salesperson: backendReservation.fullName || 'Unknown', // Store name for display
         email: backendReservation.email || '',
         phone: backendReservation.phone || '',
         operator: tour.operatorName || (tour.operator !== 'own-operation' ? tour.operator : undefined),

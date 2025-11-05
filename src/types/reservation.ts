@@ -59,7 +59,8 @@ export interface Reservation {
     totalAmount: number
     currency: string
   }
-  salesperson: string
+  salespersonId?: string // User ID for API calls
+  salesperson: string // User name for display
   email: string
   phone: string
   operator?: string
