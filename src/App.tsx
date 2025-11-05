@@ -34,6 +34,8 @@ import SignUpPage from "./pages/SignUpPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import TermsPage from "./pages/TermsPage";
 import NotFound from "./pages/NotFound";
+import PendingApprovalPage from "./pages/PendingApprovalPage";
+import { isUserPendingApproval } from "./lib/utils/userApproval";
 
 const MainLayout = () => {
   const { language, setLanguage, t } = useLanguage();
@@ -54,6 +56,14 @@ const MainLayout = () => {
       return;
     }
   }, [navigate]);
+
+  // Redirect to pending approval page if user is not approved
+  useEffect(() => {
+    if (currentUser && isUserPendingApproval(currentUser)) {
+      navigate('/pending-approval');
+      return;
+    }
+  }, [currentUser, navigate]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -85,6 +95,11 @@ const MainLayout = () => {
         </div>
       </div>
     );
+  }
+
+  // Don't render main layout if user is pending approval
+  if (isUserPendingApproval(currentUser)) {
+    return null;
   }
 
   const languages = [
@@ -258,6 +273,7 @@ const AppContent = () => {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/quotes/share/:shareId" element={<SharedQuotePage />} />
+        <Route path="/pending-approval" element={<PendingApprovalPage />} />
         <Route path="/*" element={<MainLayout />} />
       </Routes>
     </BrowserRouter>

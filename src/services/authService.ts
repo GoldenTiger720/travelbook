@@ -30,6 +30,8 @@ export interface BackendUser {
   phone: string | null;
   company: string | null;
   isVerified: boolean;
+  isSuperuser: boolean;
+  role: string | null;
   dateJoined: string;
   avatar: string | null;
   bio: string | null;
