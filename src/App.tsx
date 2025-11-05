@@ -35,6 +35,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import TermsPage from "./pages/TermsPage";
 import NotFound from "./pages/NotFound";
 import PendingApprovalPage from "./pages/PendingApprovalPage";
+import MyProfilePage from "./pages/MyProfilePage";
 import { isUserPendingApproval } from "./lib/utils/userApproval";
 
 const MainLayout = () => {
@@ -208,6 +209,7 @@ const MainLayout = () => {
                             <button
                               onClick={() => {
                                 setIsUserMenuOpen(false);
+                                navigate('/my-profile');
                               }}
                               className="flex items-center gap-3 w-full px-3 py-2 text-sm hover:bg-accent transition-colors rounded-md"
                             >
@@ -234,6 +236,7 @@ const MainLayout = () => {
               <main className="flex-1 p-6 bg-gradient-to-br from-background to-muted/20">
                 <Routes>
                   <Route path="/" element={<DashboardPage />} />
+                  <Route path="/my-profile" element={<MyProfilePage />} />
                   <Route path="/reservation-calendar" element={<ReservationsPage />} />
                   <Route path="/all-reservations" element={<AllReservationsPage />} />
                   <Route path="/reservations/:reservationId/edit" element={<ReservationEditPage />} />
