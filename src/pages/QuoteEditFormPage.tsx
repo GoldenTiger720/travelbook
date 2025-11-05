@@ -101,13 +101,19 @@ const QuoteEditFormPage = () => {
   const [paymentStatus, setPaymentStatus] = useState<string>("pending");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
+  // Helper function to get first day of current month
+  const getFirstDayOfMonth = () => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  };
+
   // State for new tour being added (when not editing existing tour)
   const [newTourData, setNewTourData] = useState<any>({
     destination: "",
     destinationId: "",
     tourId: "",
     tourName: "",
-    date: new Date(),
+    date: getFirstDayOfMonth(), // Set to first day of current month
     operator: "",
     pickupAddress: "",
     pickupTime: "",
@@ -358,8 +364,51 @@ const QuoteEditFormPage = () => {
     }
   };
 
+  // Helper function to check time overlap (returns conflicting tours if any)
+  const checkTimeOverlap = (newPickupTime: string, newDate: Date): any[] => {
+    if (!newPickupTime || !formData?.tours) return [];
+
+    // Parse new pickup time to minutes
+    const [newHours, newMinutes] = newPickupTime.split(':').map(Number);
+    const newTimeInMinutes = newHours * 60 + newMinutes;
+
+    const conflicts: any[] = [];
+
+    // Check against all existing tours on the same date
+    formData.tours.forEach((tour: any) => {
+      if (!tour.pickupTime) return;
+
+      // Check if tours are on the same date
+      const tourDate = new Date(tour.date);
+      const isSameDate =
+        tourDate.getDate() === newDate.getDate() &&
+        tourDate.getMonth() === newDate.getMonth() &&
+        tourDate.getFullYear() === newDate.getFullYear();
+
+      if (!isSameDate) return;
+
+      // Parse existing tour pickup time
+      const [tourHours, tourMinutes] = tour.pickupTime.split(':').map(Number);
+      const tourTimeInMinutes = tourHours * 60 + tourMinutes;
+
+      // Calculate time difference in minutes
+      const timeDifference = Math.abs(newTimeInMinutes - tourTimeInMinutes);
+
+      // Check if times overlap or are within 2 hours (120 minutes)
+      if (timeDifference === 0 || timeDifference < 120) {
+        conflicts.push({
+          tourName: tour.tourName,
+          pickupTime: tour.pickupTime,
+          timeDifference: timeDifference,
+        });
+      }
+    });
+
+    return conflicts;
+  };
+
   // Handle updating or adding the tour
-  const handleUpdateTour = () => {
+  const handleUpdateTour = async () => {
     if (editingTourIndex >= 0) {
       // Editing existing tour - data is already updated in real-time via handleTourBookingChange
       setEditingTourIndex(-1);
@@ -390,6 +439,49 @@ const QuoteEditFormPage = () => {
           variant: "destructive",
         });
         return;
+      }
+
+      // Check for time conflicts if pickup time is set
+      if (newTourData.pickupTime) {
+        const conflicts = checkTimeOverlap(newTourData.pickupTime, newTourData.date);
+
+        if (conflicts.length > 0) {
+          // Build conflict message
+          const conflictMessages = conflicts.map(conflict => {
+            const timeDiffHours = Math.floor(conflict.timeDifference / 60);
+            const timeDiffMinutes = conflict.timeDifference % 60;
+            const timeDiffText = timeDiffHours > 0
+              ? `${timeDiffHours}h ${timeDiffMinutes}m`
+              : `${timeDiffMinutes}m`;
+
+            return `• ${conflict.tourName} at ${conflict.pickupTime} (${timeDiffText} difference)`;
+          }).join('<br>');
+
+          // Show Sweet Alert warning
+          const result = await Swal.fire({
+            title: 'Time Conflict Warning',
+            html: `
+              <div style="text-align: left;">
+                <p style="margin-bottom: 10px;">The pickup time overlaps or is within 2 hours of the following tour(s):</p>
+                <div style="margin: 15px 0; padding: 10px; background: #fff3cd; border-radius: 5px;">
+                  ${conflictMessages}
+                </div>
+                <p style="margin-top: 10px;">Do you want to add this tour anyway?</p>
+              </div>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Add Tour',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#f59e0b',
+            cancelButtonColor: '#6b7280',
+          });
+
+          // If user cancelled, stop the process
+          if (!result.isConfirmed) {
+            return;
+          }
+        }
       }
 
       // Calculate subtotal
@@ -425,24 +517,8 @@ const QuoteEditFormPage = () => {
         tours: [...(prev.tours || []), newTour],
       }));
 
-      // Reset new tour data
-      setNewTourData({
-        destination: "",
-        destinationId: "",
-        tourId: "",
-        tourName: "",
-        date: new Date(),
-        operator: "",
-        pickupAddress: "",
-        pickupTime: "",
-        adultPax: 0,
-        adultPrice: 0,
-        childPax: 0,
-        childPrice: 0,
-        infantPax: 0,
-        infantPrice: 0,
-        comments: "",
-      });
+      // DO NOT reset ANY form fields - keep ALL existing values including tour selection
+      // This allows users to quickly add multiple similar tours without re-entering data
 
       toast({
         title: "Tour Added",

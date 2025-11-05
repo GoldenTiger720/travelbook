@@ -78,6 +78,12 @@ interface DestinationsApiResponse {
 }
 
 
+// Helper function to get first day of current month
+const getFirstDayOfMonth = () => {
+  const now = new Date()
+  return new Date(now.getFullYear(), now.getMonth(), 1)
+}
+
 const BookQuotePage = () => {
   const navigate = useNavigate()
   const { t } = useLanguage()
@@ -90,7 +96,7 @@ const BookQuotePage = () => {
   const [apiDestinations, setApiDestinations] = useState<Destination[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [editingTourId, setEditingTourId] = useState<string | null>(null)
-  
+
   // Booking options state
   const [includePayment, setIncludePayment] = useState(false)
   const [copyComments, setCopyComments] = useState(true)
@@ -98,7 +104,7 @@ const BookQuotePage = () => {
   const [validUntilDate, setValidUntilDate] = useState<Date | undefined>(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))
   const [quotationComments, setQuotationComments] = useState("")
   const [sendQuotationAccess, setSendQuotationAccess] = useState(true)
-  
+
   // Payment details state
   const [paymentDate, setPaymentDate] = useState<Date | undefined>(new Date())
   const [paymentMethod, setPaymentMethod] = useState("")
@@ -107,7 +113,7 @@ const BookQuotePage = () => {
   const [paymentComments, setPaymentComments] = useState("")
   const [paymentStatus, setPaymentStatus] = useState("")
   const [receiptFile, setReceiptFile] = useState<File | null>(null)
-  
+
   // Customer data
   const [formData, setFormData] = useState({
     salesperson: "",
@@ -129,7 +135,7 @@ const BookQuotePage = () => {
   // Current tour being added/edited
   const [currentTour, setCurrentTour] = useState({
     tourId: "",
-    date: undefined as Date | undefined,
+    date: getFirstDayOfMonth(), // Set to first day of current month
     pickupAddress: "",
     pickupTime: "",
     adultPax: 1,
@@ -356,6 +362,49 @@ const BookQuotePage = () => {
     return tourBookings.reduce((total, tour) => total + tour.subtotal, 0)
   }
 
+  // Helper function to check time overlap (returns conflicting tours if any)
+  const checkTimeOverlap = (newPickupTime: string, newDate: Date): any[] => {
+    if (!newPickupTime || !tourBookings) return []
+
+    // Parse new pickup time to minutes
+    const [newHours, newMinutes] = newPickupTime.split(':').map(Number)
+    const newTimeInMinutes = newHours * 60 + newMinutes
+
+    const conflicts: any[] = []
+
+    // Check against all existing tours on the same date
+    tourBookings.forEach((tour: any) => {
+      if (!tour.pickupTime) return
+
+      // Check if tours are on the same date
+      const tourDate = new Date(tour.date)
+      const isSameDate =
+        tourDate.getDate() === newDate.getDate() &&
+        tourDate.getMonth() === newDate.getMonth() &&
+        tourDate.getFullYear() === newDate.getFullYear()
+
+      if (!isSameDate) return
+
+      // Parse existing tour pickup time
+      const [tourHours, tourMinutes] = tour.pickupTime.split(':').map(Number)
+      const tourTimeInMinutes = tourHours * 60 + tourMinutes
+
+      // Calculate time difference in minutes
+      const timeDifference = Math.abs(newTimeInMinutes - tourTimeInMinutes)
+
+      // Check if times overlap or are within 2 hours (120 minutes)
+      if (timeDifference === 0 || timeDifference < 120) {
+        conflicts.push({
+          tourName: tour.tourName,
+          pickupTime: tour.pickupTime,
+          timeDifference: timeDifference,
+        })
+      }
+    })
+
+    return conflicts
+  }
+
   // Create structured booking data using utility function
   const createStructuredBookingData = (bookings: TourBooking[]) => {
     const paymentData = {
@@ -393,6 +442,47 @@ const BookQuotePage = () => {
         confirmButtonColor: '#ef4444'
       })
       return
+    }
+
+    // Check for time conflicts if pickup time is set
+    if (currentTour.pickupTime) {
+      const conflicts = checkTimeOverlap(currentTour.pickupTime, currentTour.date)
+
+      if (conflicts.length > 0) {
+        const conflictMessages = conflicts.map(conflict => {
+          const timeDiffHours = Math.floor(conflict.timeDifference / 60)
+          const timeDiffMinutes = conflict.timeDifference % 60
+          const timeDiffText = timeDiffHours > 0
+            ? `${timeDiffHours}h ${timeDiffMinutes}m`
+            : `${timeDiffMinutes}m`
+
+          return `• ${conflict.tourName} at ${conflict.pickupTime} (${timeDiffText} difference)`
+        }).join('<br>')
+
+        // Show Sweet Alert warning
+        const result = await Swal.fire({
+          title: 'Time Conflict Warning',
+          html: `
+            <div style="text-align: left;">
+              <p style="margin-bottom: 12px;">The pickup time you selected overlaps or is within 2 hours of the following tour(s):</p>
+              <div style="padding: 12px; background-color: #fef3c7; border-radius: 6px; margin-bottom: 12px;">
+                ${conflictMessages}
+              </div>
+              <p style="font-size: 14px; color: #6b7280;">Do you still want to add this tour?</p>
+            </div>
+          `,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Yes, Add Tour',
+          cancelButtonText: 'Cancel',
+          confirmButtonColor: '#f59e0b',
+          cancelButtonColor: '#6b7280',
+        })
+
+        if (!result.isConfirmed) {
+          return
+        }
+      }
     }
 
     // First try to find tour in availableTours array
@@ -460,21 +550,7 @@ const BookQuotePage = () => {
     // Reset quotation saved state when tours are modified
     setIsQuotationSaved(false)
 
-    // Reset form after adding/updating tour (no API call here)
-    setCurrentTour({
-      tourId: "",
-      date: undefined,
-      pickupAddress: "",
-      pickupTime: "",
-      adultPax: 1,
-      adultPrice: 0,
-      childPax: 0,
-      childPrice: 0,
-      infantPax: 0,
-      infantPrice: 0,
-      operator: "own-operation",
-      comments: ""
-    })
+    // DO NOT reset ANY form fields - keep ALL existing values including tour selection
   }
 
   const editTour = (tour: TourBooking) => {
