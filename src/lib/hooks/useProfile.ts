@@ -4,13 +4,15 @@ import { apiCall, API_ENDPOINTS } from '@/config/api';
 import { queryKeys } from '@/lib/react-query';
 import { BackendUser } from '@/services/authService';
 
-// Profile update data interface
+// Profile update data interface (fullName and phone only)
 export interface UpdateProfileData {
   fullName: string;
   phone?: string;
-  avatar?: string; // Base64 encoded image
-  language?: string;
-  timezone?: string;
+}
+
+// Avatar update data interface
+export interface UpdateAvatarData {
+  avatar: string; // Base64 encoded image
 }
 
 // Password change data interface
@@ -20,7 +22,7 @@ export interface ChangePasswordData {
   confirm_password: string;
 }
 
-// Update profile function
+// Update profile function (fullName and phone only)
 const updateProfile = async (data: UpdateProfileData): Promise<BackendUser> => {
   const response = await apiCall(API_ENDPOINTS.USER.PROFILE, {
     method: 'PUT',
@@ -30,6 +32,28 @@ const updateProfile = async (data: UpdateProfileData): Promise<BackendUser> => {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.message || 'Failed to update profile');
+  }
+
+  const result = await response.json();
+
+  // Update localStorage with new user data
+  if (result) {
+    localStorage.setItem('user', JSON.stringify(result));
+  }
+
+  return result;
+};
+
+// Update avatar function (avatar only)
+const updateAvatar = async (data: UpdateAvatarData): Promise<BackendUser> => {
+  const response = await apiCall(API_ENDPOINTS.USER.AVATAR, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update avatar');
   }
 
   const result = await response.json();
@@ -70,7 +94,7 @@ const changePassword = async (data: ChangePasswordData): Promise<{ message: stri
   return response.json();
 };
 
-// Hook for updating profile
+// Hook for updating profile (fullName and phone)
 export const useUpdateProfile = () => {
   const queryClient = useQueryClient();
 
@@ -83,6 +107,28 @@ export const useUpdateProfile = () => {
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to update profile', {
+        style: {
+          background: '#ef4444',
+          color: 'white',
+        },
+      });
+    },
+  });
+};
+
+// Hook for updating avatar
+export const useUpdateAvatar = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<BackendUser, Error, UpdateAvatarData>({
+    mutationFn: updateAvatar,
+    onSuccess: (data) => {
+      // Invalidate auth queries to refresh user data
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.user() });
+      toast.success('Avatar updated successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update avatar', {
         style: {
           background: '#ef4444',
           color: 'white',

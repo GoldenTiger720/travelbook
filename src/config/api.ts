@@ -24,9 +24,8 @@ export const API_ENDPOINTS = {
   // User endpoints
   USER: {
     PROFILE: '/api/user/profile',
-    UPDATE_PROFILE: '/api/user/profile/update',
+    AVATAR: '/api/user/profile/avatar',
     CHANGE_PASSWORD: '/api/user/change-password',
-    UPLOAD_AVATAR: '/api/user/avatar',
   },
   
   // Reservations endpoints

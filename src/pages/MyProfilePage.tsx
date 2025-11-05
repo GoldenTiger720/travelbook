@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useCurrentUser } from '@/lib/hooks/useAuth';
-import { useUpdateProfile, useChangePassword } from '@/lib/hooks/useProfile';
+import { useUpdateProfile, useUpdateAvatar, useChangePassword } from '@/lib/hooks/useProfile';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,13 +24,12 @@ import {
   Eye,
   EyeOff,
 } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
 
 const MyProfilePage = () => {
   const { data: currentUser } = useCurrentUser();
-  const { t } = useLanguage();
   const updateProfileMutation = useUpdateProfile();
+  const updateAvatarMutation = useUpdateAvatar();
   const changePasswordMutation = useChangePassword();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -114,9 +113,8 @@ const MyProfilePage = () => {
     reader.onloadend = async () => {
       const base64String = reader.result as string;
       try {
-        await updateProfileMutation.mutateAsync({
-          fullName: currentUser.fullName,
-          phone: currentUser.phone || undefined,
+        // Send only avatar to PUT /api/user/profile/avatar/
+        await updateAvatarMutation.mutateAsync({
           avatar: base64String,
         });
       } catch (error) {
