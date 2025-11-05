@@ -18,6 +18,7 @@ import {
   CancelReservationDialog,
   EditPaymentDialog,
   AddPaymentDialog,
+  TermsAcceptanceDialog,
   useReservationEdit,
   calculateGrandTotal
 } from '@/components/reservation-edit'
@@ -28,6 +29,7 @@ const ReservationEditPage = () => {
   // Separate dialog states for Add vs Edit payment
   const [isAddPaymentDialogOpen, setIsAddPaymentDialogOpen] = useState(false)
   const [isEditPaymentDialogOpen, setIsEditPaymentDialogOpen] = useState(false)
+  const [isTermsDialogOpen, setIsTermsDialogOpen] = useState(false)
 
   const {
     reservation,
@@ -579,7 +581,7 @@ const ReservationEditPage = () => {
     // Clear/reset payment fields for new payment
     setPaymentDate(new Date())
     setPaymentMethod('credit-card')
-    setPaymentPercentage(0)
+    setPaymentPercentage(100)  // Default to 100%
     setAmountPaid(0)
     setTotalPrice(0)
     setPaymentStatus('pending')
@@ -605,9 +607,11 @@ const ReservationEditPage = () => {
         setPaymentMethod(paymentToEdit.method)
       }
 
-      // Set payment percentage
+      // Set payment percentage (default to 100 if not set)
       if (paymentToEdit.percentage !== undefined) {
         setPaymentPercentage(paymentToEdit.percentage)
+      } else {
+        setPaymentPercentage(100)  // Default to 100% if not specified
       }
 
       // Set amount paid
@@ -788,11 +792,7 @@ const ReservationEditPage = () => {
   }
 
   const handleTermsConditions = () => {
-    toast({
-      title: 'Terms and Conditions',
-      description: 'Terms and conditions not yet accepted',
-      variant: 'destructive'
-    })
+    setIsTermsDialogOpen(true)
   }
 
   if (loading) {
@@ -842,6 +842,7 @@ const ReservationEditPage = () => {
           onShare={handleShare}
           onSendEmail={handleSendEmail}
           onPrint={handlePrint}
+          termsAccepted={reservation?.acceptTerm || false}
         />
 
         <div className="space-y-6">
@@ -928,6 +929,22 @@ const ReservationEditPage = () => {
           customer={customerToEdit}
           onSubmit={handleSaveCustomer}
           isPending={updateCustomerMutation.isPending}
+        />
+
+        {/* Terms Acceptance Dialog */}
+        <TermsAcceptanceDialog
+          open={isTermsDialogOpen}
+          onOpenChange={setIsTermsDialogOpen}
+          acceptanceInfo={
+            reservation?.acceptTermDetails ||
+            (reservation?.acceptTerm ? {
+              accepted: true,
+              email: null,
+              ip: null,
+              name: null,
+              date: null
+            } : null)
+          }
         />
 
         {/* Tour Add/Edit Modal */}

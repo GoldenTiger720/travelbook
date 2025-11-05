@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { CalendarIcon } from 'lucide-react'
 import { getCurrencySymbol } from './utils'
+import authService from '@/services/authService'
 
 interface AddPaymentDialogProps {
   isOpen: boolean
@@ -58,6 +59,9 @@ export const AddPaymentDialog = ({
   currency,
   onSave
 }: AddPaymentDialogProps) => {
+  // Check if user has permission to change payment status
+  const currentUser = authService.getCurrentUser()
+  const canChangePaymentStatus = currentUser?.role === 'Finance' || currentUser?.role === 'Administrator' || currentUser?.isSuperuser
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -201,9 +205,13 @@ export const AddPaymentDialog = ({
             )}
           </div>
           <div className="space-y-2">
-            <Label>Status</Label>
-            <Select value={paymentStatus} onValueChange={setPaymentStatus}>
-              <SelectTrigger>
+            <Label>Status {!canChangePaymentStatus && <span className="text-muted-foreground text-xs">(Read-only - Finance/Admin role required)</span>}</Label>
+            <Select
+              value={paymentStatus}
+              onValueChange={setPaymentStatus}
+              disabled={!canChangePaymentStatus}
+            >
+              <SelectTrigger disabled={!canChangePaymentStatus}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

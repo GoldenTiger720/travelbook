@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { User, AlertCircle, Share2, Send, Printer } from 'lucide-react'
+import { User, AlertCircle, CheckCircle, Share2, Send, Printer } from 'lucide-react'
 
 interface ActionButtonsProps {
   onOpenCustomerDialog: () => void
@@ -7,6 +7,7 @@ interface ActionButtonsProps {
   onShare: () => void
   onSendEmail: () => void
   onPrint: () => void
+  termsAccepted?: boolean
 }
 
 export const ActionButtons = ({
@@ -14,7 +15,8 @@ export const ActionButtons = ({
   onTermsConditions,
   onShare,
   onSendEmail,
-  onPrint
+  onPrint,
+  termsAccepted = false
 }: ActionButtonsProps) => {
   return (
     <div className="mb-6 flex flex-wrap gap-3">
@@ -26,11 +28,20 @@ export const ActionButtons = ({
         Modify customer data
       </Button>
       <Button
-        className="bg-red-500 hover:bg-red-600 text-white"
+        className={termsAccepted ? "bg-green-500 hover:bg-green-600 text-white" : "bg-red-500 hover:bg-red-600 text-white"}
         onClick={onTermsConditions}
       >
-        <AlertCircle className="w-4 h-4 mr-2" />
-        Terms and conditions not yet accepted
+        {termsAccepted ? (
+          <>
+            <CheckCircle className="w-4 h-4 mr-2" />
+            Terms and conditions accepted
+          </>
+        ) : (
+          <>
+            <AlertCircle className="w-4 h-4 mr-2" />
+            Terms and conditions not yet accepted
+          </>
+        )}
       </Button>
       <Button
         className="bg-blue-500 hover:bg-blue-600 text-white"

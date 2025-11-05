@@ -7,6 +7,7 @@ export { PaymentsSection } from './PaymentsSection'
 export { CancelReservationDialog } from './CancelReservationDialog'
 export { EditPaymentDialog } from './EditPaymentDialog'
 export { AddPaymentDialog } from './AddPaymentDialog'
+export { TermsAcceptanceDialog } from './TermsAcceptanceDialog'
 
 // Hooks
 export { useReservationEdit } from './useReservationEdit'

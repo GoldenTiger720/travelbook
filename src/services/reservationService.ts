@@ -95,6 +95,8 @@ class ReservationService {
         notes: tour.comments || '',
         paymentDetails: backendReservation.paymentDetails || undefined, // Legacy single payment
         payments: backendReservation.allPayments || undefined, // All payments array
+        acceptTerm: backendReservation.acceptTerm || false, // Whether customer accepted terms
+        acceptTermDetails: backendReservation.acceptTermDetails || undefined, // Details of acceptance
         createdAt: new Date(backendReservation.createdAt || new Date()),
         updatedAt: new Date(backendReservation.updatedAt || new Date())
       }

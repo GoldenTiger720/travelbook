@@ -108,7 +108,7 @@ const BookQuotePage = () => {
   // Payment details state
   const [paymentDate, setPaymentDate] = useState<Date | undefined>(new Date())
   const [paymentMethod, setPaymentMethod] = useState("")
-  const [paymentPercentage, setPaymentPercentage] = useState(50)
+  const [paymentPercentage, setPaymentPercentage] = useState(100)  // Default to 100%
   const [amountPaid, setAmountPaid] = useState(0)
   const [paymentComments, setPaymentComments] = useState("")
   const [paymentStatus, setPaymentStatus] = useState("")

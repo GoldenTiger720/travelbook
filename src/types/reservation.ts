@@ -72,6 +72,14 @@ export interface Reservation {
   notes?: string
   paymentDetails?: PaymentDetails // Legacy: single payment (kept for backward compatibility)
   payments?: PaymentDetails[] // New: multiple payments support
+  acceptTerm?: boolean // Whether customer accepted terms
+  acceptTermDetails?: { // Details of when terms were accepted
+    email?: string | null
+    ip?: string | null
+    name?: string | null
+    date?: string | null
+    accepted: boolean
+  }
   createdAt: Date
   updatedAt: Date
 }
