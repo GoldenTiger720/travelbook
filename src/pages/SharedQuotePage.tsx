@@ -31,9 +31,10 @@ export function SharedQuotePage() {
   const [acceptingTerms, setAcceptingTerms] = useState(false)
   const [customerEmail, setCustomerEmail] = useState("")
   const [sendingEmail, setSendingEmail] = useState(false)
+  const [hasAlreadyAccepted, setHasAlreadyAccepted] = useState(false)
 
   // Fetch quote data from backend API
-  const { data: apiResponse, isLoading: loading, error } = useQuery<BookingResponse | ApiResponse>({
+  const { data: apiResponse, isLoading: loading } = useQuery<BookingResponse | ApiResponse>({
     queryKey: ['shared-booking', shareId],
     queryFn: async () => {
       if (!shareId) throw new Error('No share ID provided')
@@ -56,7 +57,9 @@ export function SharedQuotePage() {
   const booking = (apiResponse as ApiResponse)?.data || (apiResponse as BookingResponse) // Handle both nested and direct response structures
 
   useEffect(() => {
-    if (booking?.termsAccepted?.accepted) {
+    // Check if terms have already been accepted using the acceptTerm field
+    if ((booking as any)?.acceptTerm === true) {
+      setHasAlreadyAccepted(true)
       setTermsAccepted(true)
     }
     if (booking?.customer?.email) {
@@ -65,19 +68,28 @@ export function SharedQuotePage() {
   }, [booking])
 
   const handleAcceptTerms = async () => {
-    if (!booking || !termsAccepted) return
+    if (!booking || !termsAccepted || !shareId) return
 
     setAcceptingTerms(true)
     try {
-      // TODO: Implement backend call to accept terms
-      // const success = await bookingService.acceptTerms(booking.id, customerEmail || booking.customer.email)
+      // Call the backend to accept terms
+      const result = await bookingService.acceptQuoteTerms(shareId, customerEmail || booking.customer?.email)
 
-      // For now, show success message
-      toast({
-        title: "✅ Terms Accepted Successfully!",
-        description: "Thank you for accepting the terms. Our team will contact you soon to finalize your booking.",
-        duration: 5000,
-      })
+      if (result.success) {
+        setHasAlreadyAccepted(true)
+        toast({
+          title: "✅ Terms Accepted Successfully!",
+          description: "Thank you for accepting the terms. Our team will contact you soon to finalize your booking.",
+          duration: 5000,
+        })
+      } else {
+        toast({
+          title: "Failed to accept terms",
+          description: result.message || "There was an error accepting the terms. Please try again.",
+          variant: "destructive",
+          duration: 4000,
+        })
+      }
     } catch (error) {
       console.error("Failed to accept terms:", error)
       toast({
@@ -201,8 +213,8 @@ export function SharedQuotePage() {
   }
 
   const isExpired = booking.validUntil && new Date(booking.validUntil) < new Date()
-  const totalAmount = booking.pricing?.amount || 0
-  const currency = booking.pricing?.currency || 'USD'
+  const totalAmount = (booking as any)?.pricing?.amount || 0
+  const currency = (booking as any)?.pricing?.currency || 'USD'
 
   return (
     <div className="min-h-screen bg-white">
@@ -214,7 +226,7 @@ export function SharedQuotePage() {
           {isExpired && (
             <p className="text-sm text-red-600 mt-1">⚠️ This quote expired on {format(new Date(booking.validUntil!), "MMMM d, yyyy")}</p>
           )}
-          {booking.termsAccepted?.accepted && (
+          {hasAlreadyAccepted && (
             <p className="text-sm text-green-600 mt-1">✅ Terms accepted - Our team will contact you soon</p>
           )}
         </div>
@@ -238,12 +250,12 @@ export function SharedQuotePage() {
               <div>
                 <span className="text-gray-600">Created:</span>
                 <span className="ml-2 font-medium">
-                  {format(new Date(booking.createdAt), "MMM dd, yyyy")}
+                  {format(new Date((booking as any).createdAt || new Date()), "MMM dd, yyyy")}
                 </span>
               </div>
               <div>
                 <span className="text-gray-600">Agent:</span>
-                <span className="ml-2 font-medium">{booking.assignedTo}</span>
+                <span className="ml-2 font-medium">{(booking as any).assignedTo || 'N/A'}</span>
               </div>
             </div>
           </div>
@@ -356,23 +368,23 @@ export function SharedQuotePage() {
           </div>
 
           {/* Accommodation */}
-          {(booking.tourDetails?.hotel || booking.tourDetails?.room) && (
+          {((booking as any).tourDetails?.hotel || (booking as any).tourDetails?.room) && (
             <div className="border rounded-lg overflow-hidden">
               <div className="bg-gray-100 px-4 py-2 border-b">
                 <h2 className="text-lg font-semibold text-gray-900">Accommodation</h2>
               </div>
               <div className="p-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  {booking.tourDetails.hotel && (
+                  {(booking as any).tourDetails.hotel && (
                     <div>
                       <span className="text-gray-600">Hotel:</span>
-                      <span className="ml-2 font-medium">{booking.tourDetails.hotel}</span>
+                      <span className="ml-2 font-medium">{(booking as any).tourDetails.hotel}</span>
                     </div>
                   )}
-                  {booking.tourDetails.room && (
+                  {(booking as any).tourDetails.room && (
                     <div>
                       <span className="text-gray-600">Room:</span>
-                      <span className="ml-2 font-medium">{booking.tourDetails.room}</span>
+                      <span className="ml-2 font-medium">{(booking as any).tourDetails.room}</span>
                     </div>
                   )}
                 </div>
@@ -386,9 +398,9 @@ export function SharedQuotePage() {
               <h2 className="text-lg font-semibold text-gray-900">Investment Summary</h2>
             </div>
             <div className="p-4">
-              {booking.pricing?.breakdown && booking.pricing.breakdown.length > 0 && (
+              {(booking as any).pricing?.breakdown && (booking as any).pricing.breakdown.length > 0 && (
                 <div className="space-y-2 mb-4">
-                  {booking.pricing.breakdown.map((item: any, index: number) => (
+                  {(booking as any).pricing.breakdown.map((item: any, index: number) => (
                     <div key={index} className="flex justify-between text-sm">
                       <span className="text-gray-600">{item.item} x{item.quantity}</span>
                       <span className="font-medium">{currency} {item.total?.toLocaleString()}</span>
@@ -406,17 +418,17 @@ export function SharedQuotePage() {
           </div>
 
           {/* Additional Information */}
-          {(booking.additionalNotes || booking.quotationComments) && (
+          {((booking as any).additionalNotes || booking.quotationComments) && (
             <div className="border rounded-lg overflow-hidden">
               <div className="bg-gray-100 px-4 py-2 border-b">
                 <h2 className="text-lg font-semibold text-gray-900">Additional Information</h2>
               </div>
               <div className="p-4">
                 <div className="space-y-3 text-sm">
-                  {booking.additionalNotes && (
+                  {(booking as any).additionalNotes && (
                     <div>
                       <span className="text-gray-600 font-medium">Notes:</span>
-                      <p className="mt-1">{booking.additionalNotes}</p>
+                      <p className="mt-1">{(booking as any).additionalNotes}</p>
                     </div>
                   )}
                   {booking.quotationComments && (
@@ -454,7 +466,7 @@ export function SharedQuotePage() {
           </div>
 
           {/* Terms & Conditions */}
-          {!isExpired && !booking.termsAccepted?.accepted && (
+          {!isExpired && !hasAlreadyAccepted && (
             <div className="border rounded-lg overflow-hidden">
               <div className="bg-gray-100 px-4 py-2 border-b">
                 <h2 className="text-lg font-semibold text-gray-900">Terms & Conditions</h2>

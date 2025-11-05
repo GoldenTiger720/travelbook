@@ -233,6 +233,42 @@ class BookingService {
     }
   }
 
+  // Accept terms for a shared quote
+  async acceptQuoteTerms(shareId: string, email?: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${API_BASE_URL}/api/quotes/share/${shareId}/accept/`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: data.message || 'Failed to accept terms'
+        }
+      }
+
+      return {
+        success: true,
+        message: data.message || 'Terms accepted successfully'
+      }
+    } catch (error) {
+      console.error('Error accepting quote terms:', error)
+      return {
+        success: false,
+        message: 'Network error occurred while accepting terms'
+      }
+    }
+  }
+
   async updateBooking(id: string, bookingData: Partial<BookingData>): Promise<BookingResponse> {
     try {
       // Format the data to match the backend expectations
