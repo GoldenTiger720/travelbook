@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
+import { useTourOperators } from '@/hooks/useTourOperators'
 
 interface Destination {
   id: string
@@ -83,6 +84,9 @@ const TourModal: React.FC<TourModalProps> = ({
 
   const [filteredTours, setFilteredTours] = useState<Tour[]>([])
   const [saving, setSaving] = useState(false)
+
+  // Fetch active tour operators
+  const { data: operators = [], isLoading: operatorsLoading } = useTourOperators(true) // Only active operators
 
   // Initialize form data when modal opens
   useEffect(() => {
@@ -290,9 +294,21 @@ const TourModal: React.FC<TourModalProps> = ({
                   <SelectValue placeholder="Select operator" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="own-operation">Own Operation</SelectItem>
-                  <SelectItem value="others">Others</SelectItem>
+                  {operatorsLoading ? (
+                    <SelectItem value="loading" disabled>Loading operators...</SelectItem>
+                  ) : (
+                    operators.map((operator) => (
+                      <SelectItem key={operator.id} value={operator.name}>
+                        {operator.name}
+                      </SelectItem>
+                    ))
+                  )}
+                  {!operatorsLoading && operators.length === 0 && (
+                    <SelectItem value="no-operators" disabled>
+                      No operators available
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>

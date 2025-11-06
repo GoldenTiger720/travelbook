@@ -5,6 +5,7 @@ import html2pdf from "html2pdf.js"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import TourCatalogTab from "@/components/ToursPage/TourCatalogTab"
+import TourOperatorsManagement from "@/components/ToursPage/TourOperatorsManagement"
 import DailyAvailabilityTab from "@/components/ToursPage/DailyAvailabilityTab"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -14,7 +15,8 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import {
   Calendar,
-  MapPin
+  MapPin,
+  Users
 } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { tourService, CreateTourData, Tour } from "@/services/tourService"
@@ -552,11 +554,16 @@ const ToursPage = () => {
 
       {/* Main Content with Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3 sm:space-y-4">
-        <TabsList className="grid w-full grid-cols-2 h-auto">
+        <TabsList className="grid w-full grid-cols-3 h-auto">
           <TabsTrigger value="catalog" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 text-xs sm:text-sm">
             <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
             <span className="hidden xs:inline">{t('tours.tourCatalog')}</span>
             <span className="xs:hidden">Catalog</span>
+          </TabsTrigger>
+          <TabsTrigger value="operators" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 text-xs sm:text-sm">
+            <Users className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden xs:inline">Tour Operators</span>
+            <span className="xs:hidden">Operators</span>
           </TabsTrigger>
           <TabsTrigger value="availability" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 text-xs sm:text-sm">
             <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -590,6 +597,11 @@ const ToursPage = () => {
             onExportTours={handleExportTours}
           />
           )}
+        </TabsContent>
+
+        {/* Tour Operators Management Tab */}
+        <TabsContent value="operators" className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
+          <TourOperatorsManagement />
         </TabsContent>
 
         {/* Daily Availability Tab */}
