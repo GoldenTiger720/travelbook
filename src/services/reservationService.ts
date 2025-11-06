@@ -122,10 +122,11 @@ class ReservationService {
 
       // Store the raw data for filter options
       if (basicData.success && basicData.data) {
-        // Store users and tours data in sessionStorage for filter options
+        // Store users, tours, and tour operators data in sessionStorage for filter options
         sessionStorage.setItem('reservationFilterData', JSON.stringify({
           users: basicData.data.users || [],
-          tours: basicData.data.tours || []
+          tours: basicData.data.tours || [],
+          tourOperators: basicData.data.tourOperators || []
         }))
       }
 
@@ -198,6 +199,7 @@ class ReservationService {
         return {
           users: [],
           tours: [],
+          tourOperators: [],
           salespersons: [],
           guides: [],
           drivers: [],
@@ -208,10 +210,12 @@ class ReservationService {
       const filterData = JSON.parse(filterDataString)
       const users = filterData.users || []
       const tours = filterData.tours || []
+      const tourOperators = filterData.tourOperators || []
 
       return {
         users,
         tours,
+        tourOperators,
         salespersons: users.filter((u: any) => u.role === 'salesperson'),
         guides: users.filter((u: any) => u.role === 'guide' || u.role === 'assistant_guide'),
         drivers: users.filter((u: any) => u.role === 'driver'),
@@ -222,6 +226,7 @@ class ReservationService {
       return {
         users: [],
         tours: [],
+        tourOperators: [],
         salespersons: [],
         guides: [],
         drivers: [],

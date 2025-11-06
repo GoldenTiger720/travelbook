@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useMemo } from "react"
 import { format } from "date-fns"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -27,6 +27,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Tour, TourBooking } from "@/types/tour"
+import { reservationService } from "@/services/reservationService"
 
 interface DestinationTour {
   id: string
@@ -112,6 +113,12 @@ const TourSelection: React.FC<TourSelectionProps> = ({
 }) => {
   const { t } = useLanguage()
 
+  // Get tour operators from the filter options
+  const tourOperators = useMemo(() => {
+    const filterOptions = reservationService.getFilterOptions()
+    return filterOptions.tourOperators || []
+  }, [])
+
   return (
     <>
       {/* Tour Selection Form */}
@@ -191,14 +198,17 @@ const TourSelection: React.FC<TourSelectionProps> = ({
                   <SelectValue placeholder={t('quotes.selectOperator')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="own-operation">
                     <div className="flex items-center gap-2">
                       <Building className="w-4 h-4" />
                       {t('quotes.ownOperation')}
                     </div>
                   </SelectItem>
-                  <SelectItem value="others">Others</SelectItem>
+                  {tourOperators.map((operator: any) => (
+                    <SelectItem key={operator.id} value={operator.name}>
+                      {operator.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

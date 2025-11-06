@@ -83,7 +83,7 @@ const AllReservationsPage = () => {
         id: u.id,
         name: u.fullName
       })),
-      operators: [], // Not available in current API
+      operators: options.tourOperators || [], // Now available from API
       guides: options.guides.map((u: any) => ({
         id: u.id,
         name: u.fullName
@@ -148,9 +148,12 @@ const AllReservationsPage = () => {
       filtered = filtered.filter(r => r.driver === filters.driver)
     }
     
-    // Operator filter
+    // Operator filter - compare by name since r.operator contains the operator name
     if (filters.operator && filters.operator !== 'all') {
-      filtered = filtered.filter(r => r.operator === filters.operator)
+      const selectedOperator = filterOptions.operators.find((op: any) => op.id === filters.operator)
+      if (selectedOperator) {
+        filtered = filtered.filter(r => r.operator === selectedOperator.name)
+      }
     }
     
     // External agency filter
