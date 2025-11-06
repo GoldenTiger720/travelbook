@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils'
 import { Reservation } from '@/types/reservation'
 import { format } from 'date-fns'
 import { reservationService } from '@/services/reservationService'
-import { MapPin, Eye, Mail, Edit, Plus } from 'lucide-react'
+import { MapPin, Edit, Plus } from 'lucide-react'
 
 interface ReservationsTableProps {
   reservation: Reservation
@@ -84,12 +84,6 @@ export const ReservationsTable = ({
                     </div>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <span className="font-mono">{tourReservation.reservationNumber}</span>
-                      <Button variant="ghost" size="sm" className="h-4 w-4 p-0">
-                        <Eye className="h-3 w-3" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-4 w-4 p-0">
-                        <Mail className="h-3 w-3" />
-                      </Button>
                     </div>
                     <div className="text-xs flex items-start gap-1">
                       <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
