@@ -499,12 +499,11 @@ const ReservationEditPage = () => {
 
   const handleShare = () => {
     if (!reservation) return
-    const link = window.location.href
-    navigator.clipboard.writeText(link)
-    toast({
-      title: 'Link Copied',
-      description: 'Reservation link copied to clipboard',
-    })
+    // Extract base booking ID (remove -tour-X suffix if present)
+    const baseBookingId = reservation.id.replace(/-tour-\d+$/, '')
+    // Open the purchase order page in a new tab
+    const purchaseOrderUrl = `/reservations/${baseBookingId}/purchase-order`
+    window.open(purchaseOrderUrl, '_blank')
   }
 
   const handleOpenCustomerDialog = () => {

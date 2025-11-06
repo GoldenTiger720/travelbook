@@ -15,6 +15,7 @@ import DashboardPage from "./pages/DashboardPage";
 import ReservationsPage from "./pages/ReservationsPage";
 import AllReservationsPage from "./pages/AllReservationsPage";
 import ReservationEditPage from "./pages/ReservationEditPage";
+import ReservationReportPage from "./pages/ReservationReportPage";
 import BookQuotePage from "./pages/BookQuotePage";
 import QuotesPage from "./pages/QuotesPage";
 import QuoteEditFormPage from "./pages/QuoteEditFormPage";
@@ -276,6 +277,7 @@ const AppContent = () => {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/quotes/share/:shareId" element={<SharedQuotePage />} />
+        <Route path="/reservations/:reservationId/purchase-order" element={<ReservationReportPage />} />
         <Route path="/pending-approval" element={<PendingApprovalPage />} />
         <Route path="/*" element={<MainLayout />} />
       </Routes>
