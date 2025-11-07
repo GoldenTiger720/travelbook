@@ -5,33 +5,53 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
-import { Separator } from '@/components/ui/separator'
 import { apiCall } from '@/config/api'
 import {
   DollarSign,
   Save,
+  CreditCard,
+  Building2,
+  FileText,
+  Plus,
+  Trash2,
+  Upload,
+  Download,
 } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
+
+interface PaymentMethod {
+  id: string
+  name: string
+  taxRate: number
+  bankSlipFee: number
+  cashFee: number
+}
+
+interface BankAccount {
+  id: string
+  accountName: string
+  currency: string
+}
 
 interface SystemSettings {
   baseCurrency: string
   taxRate: number
-  commissionRate: number
-  paymentTerms: number
-  paymentMethods: {
-    [key: string]: boolean
-  }
+  paymentMethods: PaymentMethod[]
+  bankAccounts: BankAccount[]
+  termsAndConditions: string
+  termsFileUrl: string
+  termsFileName: string
 }
 
 interface BackendSystemSettings {
   id?: string
   base_currency: string
   tax_rate: string
-  commission_rate: string
-  payment_terms: number
-  payment_methods: {
-    [key: string]: boolean
-  }
+  payment_methods?: PaymentMethod[]
+  bank_accounts?: BankAccount[]
+  terms_and_conditions?: string
+  terms_file_url?: string
+  terms_file_name?: string
   created_by?: string
   created_at?: string
   updated_at?: string
@@ -43,17 +63,29 @@ const SystemTab: React.FC = () => {
   const [settings, setSettings] = useState<SystemSettings>({
     baseCurrency: 'USD',
     taxRate: 8.5,
-    commissionRate: 10,
-    paymentTerms: 30,
-    paymentMethods: {
-      'Credit Card': true,
-      'Bank Transfer': true,
-      'Cash': true,
-      'Check': false,
-      'PayPal': true,
-      'Cryptocurrency': false
-    }
+    paymentMethods: [],
+    bankAccounts: [],
+    termsAndConditions: '',
+    termsFileUrl: '',
+    termsFileName: ''
   })
+
+  // Payment Method form state
+  const [newPaymentMethod, setNewPaymentMethod] = useState({
+    name: '',
+    taxRate: 0,
+    bankSlipFee: 0,
+    cashFee: 0
+  })
+
+  // Bank Account form state
+  const [newBankAccount, setNewBankAccount] = useState({
+    accountName: '',
+    currency: 'USD'
+  })
+
+  // File upload state
+  const [uploadingFile, setUploadingFile] = useState(false)
 
   // Load system settings on component mount
   useEffect(() => {
@@ -76,9 +108,11 @@ const SystemTab: React.FC = () => {
             ...prevSettings,
             baseCurrency: data.base_currency || prevSettings.baseCurrency,
             taxRate: parseFloat(data.tax_rate) || prevSettings.taxRate,
-            commissionRate: parseFloat(data.commission_rate) || prevSettings.commissionRate,
-            paymentTerms: data.payment_terms || prevSettings.paymentTerms,
-            paymentMethods: data.payment_methods || prevSettings.paymentMethods
+            paymentMethods: data.payment_methods || prevSettings.paymentMethods,
+            bankAccounts: data.bank_accounts || prevSettings.bankAccounts,
+            termsAndConditions: data.terms_and_conditions || prevSettings.termsAndConditions,
+            termsFileUrl: data.terms_file_url || prevSettings.termsFileUrl,
+            termsFileName: data.terms_file_name || prevSettings.termsFileName
           }))
         }
 
@@ -100,9 +134,11 @@ const SystemTab: React.FC = () => {
       const backendPayload = {
         base_currency: settings.baseCurrency,
         tax_rate: settings.taxRate.toString(),
-        commission_rate: settings.commissionRate.toString(),
-        payment_terms: settings.paymentTerms,
-        payment_methods: settings.paymentMethods
+        payment_methods: settings.paymentMethods,
+        bank_accounts: settings.bankAccounts,
+        terms_and_conditions: settings.termsAndConditions,
+        terms_file_url: settings.termsFileUrl,
+        terms_file_name: settings.termsFileName
       }
 
       const response = await apiCall('/api/settings/system/', {
@@ -131,14 +167,95 @@ const SystemTab: React.FC = () => {
     }))
   }
 
-  const updatePaymentMethod = (method: string, enabled: boolean) => {
+  // Payment Method handlers
+  const addPaymentMethod = () => {
+    if (!newPaymentMethod.name) {
+      toast.error('Please enter a payment method name')
+      return
+    }
+    const paymentMethod: PaymentMethod = {
+      id: Date.now().toString(),
+      name: newPaymentMethod.name,
+      taxRate: newPaymentMethod.taxRate,
+      bankSlipFee: newPaymentMethod.bankSlipFee,
+      cashFee: newPaymentMethod.cashFee
+    }
     setSettings(prev => ({
       ...prev,
-      paymentMethods: {
-        ...prev.paymentMethods,
-        [method]: enabled
-      }
+      paymentMethods: [...prev.paymentMethods, paymentMethod]
     }))
+    setNewPaymentMethod({ name: '', taxRate: 0, bankSlipFee: 0, cashFee: 0 })
+    toast.success('Payment method added')
+  }
+
+  const removePaymentMethod = (id: string) => {
+    setSettings(prev => ({
+      ...prev,
+      paymentMethods: prev.paymentMethods.filter(pm => pm.id !== id)
+    }))
+    toast.success('Payment method removed')
+  }
+
+  // Bank Account handlers
+  const addBankAccount = () => {
+    if (!newBankAccount.accountName) {
+      toast.error('Please enter an account name')
+      return
+    }
+    const bankAccount: BankAccount = {
+      id: Date.now().toString(),
+      accountName: newBankAccount.accountName,
+      currency: newBankAccount.currency
+    }
+    setSettings(prev => ({
+      ...prev,
+      bankAccounts: [...prev.bankAccounts, bankAccount]
+    }))
+    setNewBankAccount({ accountName: '', currency: 'USD' })
+    toast.success('Bank account added')
+  }
+
+  const removeBankAccount = (id: string) => {
+    setSettings(prev => ({
+      ...prev,
+      bankAccounts: prev.bankAccounts.filter(ba => ba.id !== id)
+    }))
+    toast.success('Bank account removed')
+  }
+
+  // File upload handler
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setUploadingFile(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await apiCall('/api/settings/upload-terms/', {
+        method: 'POST',
+        body: formData,
+        headers: {} // Let browser set Content-Type with boundary for multipart/form-data
+      })
+
+      if (!response.ok) {
+        throw new Error('File upload failed')
+      }
+
+      const data = await response.json()
+      setSettings(prev => ({
+        ...prev,
+        termsFileUrl: data.file_url,
+        termsFileName: file.name
+      }))
+      toast.success('File uploaded successfully')
+    } catch (error) {
+      console.error('Error uploading file:', error)
+      toast.error('Failed to upload file')
+    } finally {
+      setUploadingFile(false)
+    }
   }
 
   if (isLoadingSettings) {
@@ -195,42 +312,250 @@ const SystemTab: React.FC = () => {
                 step="0.1"
               />
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Payment Methods Section */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <CreditCard className="w-5 h-5 text-blue-600" />
+            <span className="truncate">Payment Methods</span>
+          </CardTitle>
+          <CardDescription className="text-sm">
+            Add and manage payment methods with applicable fees
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Add Payment Method Form */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 p-4 bg-muted/30 rounded-lg">
             <div className="space-y-2">
-              <Label htmlFor="commissionRate">Base Commission Rate (%)</Label>
+              <Label htmlFor="paymentMethodName">Payment Method</Label>
+              <Select
+                value={newPaymentMethod.name}
+                onValueChange={(value) => setNewPaymentMethod(prev => ({ ...prev, name: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Credit Card">Credit Card</SelectItem>
+                  <SelectItem value="Debit Card">Debit Card</SelectItem>
+                  <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="Cash">Cash</SelectItem>
+                  <SelectItem value="Check">Check</SelectItem>
+                  <SelectItem value="PayPal">PayPal</SelectItem>
+                  <SelectItem value="PIX">PIX</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="paymentTaxRate">Tax Rate (%)</Label>
               <Input
-                id="commissionRate"
+                id="paymentTaxRate"
                 type="number"
-                value={settings.commissionRate}
-                onChange={(e) => updateSetting('commissionRate', parseFloat(e.target.value) || 0)}
+                value={newPaymentMethod.taxRate}
+                onChange={(e) => setNewPaymentMethod(prev => ({ ...prev, taxRate: parseFloat(e.target.value) || 0 }))}
                 step="0.1"
+                placeholder="0.0"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="paymentTerms">Default Payment Terms (days)</Label>
+              <Label htmlFor="bankSlipFee">Bank Slip Fee (%)</Label>
               <Input
-                id="paymentTerms"
+                id="bankSlipFee"
                 type="number"
-                value={settings.paymentTerms}
-                onChange={(e) => updateSetting('paymentTerms', parseInt(e.target.value) || 0)}
+                value={newPaymentMethod.bankSlipFee}
+                onChange={(e) => setNewPaymentMethod(prev => ({ ...prev, bankSlipFee: parseFloat(e.target.value) || 0 }))}
+                step="0.1"
+                placeholder="0.0"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cashFee">Cash Fee (%)</Label>
+              <Input
+                id="cashFee"
+                type="number"
+                value={newPaymentMethod.cashFee}
+                onChange={(e) => setNewPaymentMethod(prev => ({ ...prev, cashFee: parseFloat(e.target.value) || 0 }))}
+                step="0.1"
+                placeholder="0.0"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="invisible">Add</Label>
+              <Button onClick={addPaymentMethod} className="w-full">
+                <Plus className="w-4 h-4 mr-2" />
+                Add
+              </Button>
             </div>
           </div>
 
-          <Separator />
-
-          <div className="space-y-4">
-            <h3 className="text-base sm:text-lg font-semibold">Payment Methods</h3>
-            <div className="grid grid-cols-1 gap-3 sm:gap-4">
-              {Object.entries(settings.paymentMethods).map(([method, enabled]) => (
-                <div key={method} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                  <span className="font-medium text-sm sm:text-base">{method}</span>
-                  <Switch
-                    checked={enabled}
-                    onCheckedChange={(checked) => updatePaymentMethod(method, checked)}
-                  />
-                </div>
-              ))}
+          {/* Payment Methods List */}
+          {settings.paymentMethods.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Configured Payment Methods</h4>
+              <div className="space-y-2">
+                {settings.paymentMethods.map((method) => (
+                  <div key={method.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
+                    <div className="grid grid-cols-4 gap-4 flex-1">
+                      <span className="font-medium text-sm">{method.name}</span>
+                      <span className="text-sm text-muted-foreground">Tax: {method.taxRate}%</span>
+                      <span className="text-sm text-muted-foreground">Bank Slip: {method.bankSlipFee}%</span>
+                      <span className="text-sm text-muted-foreground">Cash: {method.cashFee}%</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removePaymentMethod(method.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Bank Account Registration Section */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Building2 className="w-5 h-5 text-purple-600" />
+            <span className="truncate">Bank Account Registration</span>
+          </CardTitle>
+          <CardDescription className="text-sm">
+            Add and manage bank accounts with their currencies
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Add Bank Account Form */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
+            <div className="space-y-2">
+              <Label htmlFor="accountName">Account Name</Label>
+              <Input
+                id="accountName"
+                value={newBankAccount.accountName}
+                onChange={(e) => setNewBankAccount(prev => ({ ...prev, accountName: e.target.value }))}
+                placeholder="e.g., Sicredi, Cash"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="accountCurrency">Currency</Label>
+              <Select
+                value={newBankAccount.currency}
+                onValueChange={(value) => setNewBankAccount(prev => ({ ...prev, currency: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="EUR">EUR</SelectItem>
+                  <SelectItem value="BRL">BRL</SelectItem>
+                  <SelectItem value="ARS">ARS</SelectItem>
+                  <SelectItem value="GBP">GBP</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="invisible">Add</Label>
+              <Button onClick={addBankAccount} className="w-full">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Account
+              </Button>
+            </div>
+          </div>
+
+          {/* Bank Accounts List */}
+          {settings.bankAccounts.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Registered Bank Accounts</h4>
+              <div className="space-y-2">
+                {settings.bankAccounts.map((account) => (
+                  <div key={account.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <span className="font-medium text-sm">{account.accountName}</span>
+                      <span className="text-sm text-muted-foreground">-</span>
+                      <span className="text-sm font-mono bg-muted px-2 py-1 rounded">{account.currency}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeBankAccount(account.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Terms and Policies Configuration Section */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <FileText className="w-5 h-5 text-orange-600" />
+            <span className="truncate">Terms and Policies Configuration</span>
+          </CardTitle>
+          <CardDescription className="text-sm">
+            Set terms and conditions with optional file upload
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="termsAndConditions">Terms and Conditions</Label>
+            <Textarea
+              id="termsAndConditions"
+              value={settings.termsAndConditions}
+              onChange={(e) => updateSetting('termsAndConditions', e.target.value)}
+              placeholder="Enter your terms and conditions here..."
+              rows={8}
+              className="resize-none"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="termsFile">Upload Terms Document</Label>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <Input
+                  id="termsFile"
+                  type="file"
+                  onChange={handleFileUpload}
+                  disabled={uploadingFile}
+                  accept=".pdf,.doc,.docx"
+                  className="cursor-pointer"
+                />
+              </div>
+              {settings.termsFileName && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">{settings.termsFileName}</span>
+                  {settings.termsFileUrl && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(settings.termsFileUrl, '_blank')}
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+            {uploadingFile && (
+              <p className="text-sm text-muted-foreground">Uploading file...</p>
+            )}
           </div>
         </CardContent>
       </Card>
