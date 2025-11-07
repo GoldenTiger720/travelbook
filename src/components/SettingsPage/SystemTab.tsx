@@ -44,6 +44,13 @@ interface FinancialConfig {
   taxRate: number
 }
 
+interface ExchangeRate {
+  id: string
+  from_currency: string
+  to_currency: string
+  rate: number
+}
+
 interface SystemSettings {
   baseCurrency: string
   taxRate: number
@@ -117,6 +124,20 @@ const SystemTab: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadingFile, setUploadingFile] = useState(false)
 
+  // Exchange Rate state
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRate[]>([])
+  const [editingExchangeRate, setEditingExchangeRate] = useState<ExchangeRate | null>(null)
+  const [newExchangeRate, setNewExchangeRate] = useState({
+    from_currency: 'USD',
+    to_currency: 'BRL',
+    rate: 0
+  })
+
+  // Loading states for Exchange Rate
+  const [isAddingExchangeRate, setIsAddingExchangeRate] = useState(false)
+  const [isUpdatingExchangeRate, setIsUpdatingExchangeRate] = useState(false)
+  const [isDeletingExchangeRate, setIsDeletingExchangeRate] = useState<string | null>(null)
+
   // Sort state for Financial Configuration
   const [financialSortField, setFinancialSortField] = useState<keyof FinancialConfig | ''>('')
   const [financialSortDirection, setFinancialSortDirection] = useState<'asc' | 'desc'>('asc')
@@ -132,6 +153,10 @@ const SystemTab: React.FC = () => {
   // Sort state for Terms and Policies
   const [termsSortField, setTermsSortField] = useState<keyof TermsConfigItem | ''>('')
   const [termsSortDirection, setTermsSortDirection] = useState<'asc' | 'desc'>('asc')
+
+  // Sort state for Exchange Rate
+  const [exchangeRateSortField, setExchangeRateSortField] = useState<keyof ExchangeRate | ''>('')
+  const [exchangeRateSortDirection, setExchangeRateSortDirection] = useState<'asc' | 'desc'>('asc')
 
   // Load all settings on component mount
   useEffect(() => {
@@ -197,6 +222,21 @@ const SystemTab: React.FC = () => {
           setTermsConfigs(configs)
         }
 
+        // Load Exchange Rates
+        const exchangeRateResponse = await apiCall('/api/settings/system/exchange-rate/', {
+          method: 'GET'
+        })
+        if (exchangeRateResponse.ok) {
+          const exchangeRateData = await exchangeRateResponse.json()
+          const rates = Array.isArray(exchangeRateData) ? exchangeRateData.map((item: any) => ({
+            id: item.id,
+            from_currency: item.from_currency,
+            to_currency: item.to_currency,
+            rate: parseFloat(item.rate)
+          })) : []
+          setExchangeRates(rates)
+        }
+
       } catch (error) {
         console.error('Error loading system settings:', error)
         toast.error('Failed to load some settings. Using default values.')
@@ -242,6 +282,15 @@ const SystemTab: React.FC = () => {
     } else {
       setTermsSortField(field)
       setTermsSortDirection('asc')
+    }
+  }
+
+  const handleExchangeRateSort = (field: keyof ExchangeRate) => {
+    if (exchangeRateSortField === field) {
+      setExchangeRateSortDirection(exchangeRateSortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setExchangeRateSortField(field)
+      setExchangeRateSortDirection('asc')
     }
   }
 
@@ -295,6 +344,16 @@ const SystemTab: React.FC = () => {
     if (aValue === undefined || bValue === undefined) return 0
     if (aValue < bValue) return termsSortDirection === 'asc' ? -1 : 1
     if (aValue > bValue) return termsSortDirection === 'asc' ? 1 : -1
+    return 0
+  })
+
+  const sortedExchangeRates = [...exchangeRates].sort((a, b) => {
+    if (!exchangeRateSortField) return 0
+    const aValue = a[exchangeRateSortField]
+    const bValue = b[exchangeRateSortField]
+    if (aValue === undefined || bValue === undefined) return 0
+    if (aValue < bValue) return exchangeRateSortDirection === 'asc' ? -1 : 1
+    if (aValue > bValue) return exchangeRateSortDirection === 'asc' ? 1 : -1
     return 0
   })
 
@@ -659,6 +718,98 @@ const SystemTab: React.FC = () => {
     }
   }
 
+  // ===== Exchange Rate Handlers =====
+  const addExchangeRate = async () => {
+    if (!newExchangeRate.from_currency || !newExchangeRate.to_currency) {
+      toast.error('Please select currencies')
+      return
+    }
+
+    if (newExchangeRate.rate <= 0) {
+      toast.error('Please enter a valid exchange rate')
+      return
+    }
+
+    setIsAddingExchangeRate(true)
+    try {
+      const response = await apiCall('/api/settings/system/exchange-rate/', {
+        method: 'POST',
+        body: JSON.stringify(newExchangeRate)
+      })
+
+      if (!response.ok) throw new Error('Failed to add exchange rate')
+
+      const data = await response.json()
+      setExchangeRates(prev => [...prev, {
+        id: data.id,
+        from_currency: data.from_currency,
+        to_currency: data.to_currency,
+        rate: parseFloat(data.rate)
+      }])
+
+      setNewExchangeRate({ from_currency: 'USD', to_currency: 'BRL', rate: 0 })
+      toast.success('Exchange rate added successfully!')
+    } catch (error) {
+      console.error('Error adding exchange rate:', error)
+      toast.error('Failed to add exchange rate')
+    } finally {
+      setIsAddingExchangeRate(false)
+    }
+  }
+
+  const updateExchangeRate = async (id: string) => {
+    if (!editingExchangeRate) return
+
+    setIsUpdatingExchangeRate(true)
+    try {
+      const response = await apiCall(`/api/settings/system/exchange-rate/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          from_currency: editingExchangeRate.from_currency,
+          to_currency: editingExchangeRate.to_currency,
+          rate: editingExchangeRate.rate
+        })
+      })
+
+      if (!response.ok) throw new Error('Failed to update exchange rate')
+
+      const data = await response.json()
+      setExchangeRates(prev => prev.map(er => er.id === id ? {
+        id: data.id,
+        from_currency: data.from_currency,
+        to_currency: data.to_currency,
+        rate: parseFloat(data.rate)
+      } : er))
+
+      setEditingExchangeRate(null)
+      toast.success('Exchange rate updated successfully!')
+    } catch (error) {
+      console.error('Error updating exchange rate:', error)
+      toast.error('Failed to update exchange rate')
+    } finally {
+      setIsUpdatingExchangeRate(false)
+    }
+  }
+
+  const deleteExchangeRate = async (id: string) => {
+    setIsDeletingExchangeRate(id)
+    try {
+      const response = await apiCall(`/api/settings/system/exchange-rate/${id}/`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) throw new Error('Failed to delete exchange rate')
+
+      setExchangeRates(prev => prev.filter(er => er.id !== id))
+      toast.success('Exchange rate deleted successfully!')
+    } catch (error) {
+      console.error('Error deleting exchange rate:', error)
+      toast.error('Failed to delete exchange rate')
+    } finally {
+      setIsDeletingExchangeRate(null)
+    }
+  }
+
   if (isLoadingSettings) {
     return (
       <div className="space-y-4 sm:space-y-6">
@@ -835,6 +986,223 @@ const SystemTab: React.FC = () => {
                                   className="text-red-600 hover:text-red-700"
                                 >
                                   {isDeletingFinancial === config.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                  )}
+                                </Button>
+                              </div>
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Exchange Rate Section */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <DollarSign className="w-5 h-5 text-purple-600" />
+            <span className="truncate">Current Exchange Rate</span>
+          </CardTitle>
+          <CardDescription className="text-sm">
+            Manually record currency exchange rates for financial consolidations and reports
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Add Exchange Rate Form */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label>From Currency</Label>
+              <Select
+                value={newExchangeRate.from_currency}
+                onValueChange={(value) => setNewExchangeRate(prev => ({ ...prev, from_currency: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="EUR">EUR</SelectItem>
+                  <SelectItem value="BRL">BRL</SelectItem>
+                  <SelectItem value="ARS">ARS</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>To Currency</Label>
+              <Select
+                value={newExchangeRate.to_currency}
+                onValueChange={(value) => setNewExchangeRate(prev => ({ ...prev, to_currency: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="EUR">EUR</SelectItem>
+                  <SelectItem value="BRL">BRL</SelectItem>
+                  <SelectItem value="ARS">ARS</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Exchange Rate</Label>
+              <Input
+                type="number"
+                step="0.000001"
+                placeholder="e.g., 5.50"
+                value={newExchangeRate.rate || ''}
+                onChange={(e) => setNewExchangeRate(prev => ({ ...prev, rate: parseFloat(e.target.value) || 0 }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="invisible">Add</Label>
+              <Button onClick={addExchangeRate} disabled={isAddingExchangeRate} className="w-full">
+                {isAddingExchangeRate ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4 mr-2" />
+                )}
+                {isAddingExchangeRate ? 'Adding...' : 'Add Rate'}
+              </Button>
+            </div>
+          </div>
+
+          {/* Exchange Rate Table */}
+          {exchangeRates.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Current Exchange Rates</h4>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th
+                        className="text-left p-3 text-sm font-medium cursor-pointer hover:bg-muted transition-colors select-none"
+                        onClick={() => handleExchangeRateSort('from_currency')}
+                      >
+                        From Currency
+                        {getSortIcon('from_currency', exchangeRateSortField, exchangeRateSortDirection)}
+                      </th>
+                      <th
+                        className="text-left p-3 text-sm font-medium cursor-pointer hover:bg-muted transition-colors select-none"
+                        onClick={() => handleExchangeRateSort('to_currency')}
+                      >
+                        To Currency
+                        {getSortIcon('to_currency', exchangeRateSortField, exchangeRateSortDirection)}
+                      </th>
+                      <th
+                        className="text-left p-3 text-sm font-medium cursor-pointer hover:bg-muted transition-colors select-none"
+                        onClick={() => handleExchangeRateSort('rate')}
+                      >
+                        Rate
+                        {getSortIcon('rate', exchangeRateSortField, exchangeRateSortDirection)}
+                      </th>
+                      <th className="text-right p-3 text-sm font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedExchangeRates.map((exchangeRate) => (
+                      <tr key={exchangeRate.id} className="border-t">
+                        {editingExchangeRate?.id === exchangeRate.id ? (
+                          <>
+                            <td className="p-3">
+                              <Select
+                                value={editingExchangeRate.from_currency}
+                                onValueChange={(value) => setEditingExchangeRate(prev => prev ? { ...prev, from_currency: value } : null)}
+                              >
+                                <SelectTrigger className="h-8">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="USD">USD</SelectItem>
+                                  <SelectItem value="EUR">EUR</SelectItem>
+                                  <SelectItem value="BRL">BRL</SelectItem>
+                                  <SelectItem value="ARS">ARS</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </td>
+                            <td className="p-3">
+                              <Select
+                                value={editingExchangeRate.to_currency}
+                                onValueChange={(value) => setEditingExchangeRate(prev => prev ? { ...prev, to_currency: value } : null)}
+                              >
+                                <SelectTrigger className="h-8">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="USD">USD</SelectItem>
+                                  <SelectItem value="EUR">EUR</SelectItem>
+                                  <SelectItem value="BRL">BRL</SelectItem>
+                                  <SelectItem value="ARS">ARS</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </td>
+                            <td className="p-3">
+                              <Input
+                                type="number"
+                                step="0.000001"
+                                value={editingExchangeRate.rate}
+                                onChange={(e) => setEditingExchangeRate(prev => prev ? { ...prev, rate: parseFloat(e.target.value) || 0 } : null)}
+                                className="h-8"
+                              />
+                            </td>
+                            <td className="p-3">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => updateExchangeRate(exchangeRate.id)}
+                                  disabled={isUpdatingExchangeRate}
+                                  className="text-green-600 hover:text-green-700"
+                                >
+                                  {isUpdatingExchangeRate ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Save className="w-4 h-4" />
+                                  )}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setEditingExchangeRate(null)}
+                                  className="text-gray-600 hover:text-gray-700"
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="p-3 font-medium">{exchangeRate.from_currency}</td>
+                            <td className="p-3 font-medium">{exchangeRate.to_currency}</td>
+                            <td className="p-3">{exchangeRate.rate.toFixed(6)}</td>
+                            <td className="p-3">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setEditingExchangeRate(exchangeRate)}
+                                  className="text-blue-600 hover:text-blue-700"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => deleteExchangeRate(exchangeRate.id)}
+                                  disabled={isDeletingExchangeRate === exchangeRate.id}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  {isDeletingExchangeRate === exchangeRate.id ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
                                   ) : (
                                     <Trash2 className="w-4 h-4" />
