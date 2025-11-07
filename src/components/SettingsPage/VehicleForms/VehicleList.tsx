@@ -26,6 +26,9 @@ import {
   CheckCircle,
   XCircle,
   ExternalLink,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react'
 import type { Vehicle } from '@/types/vehicle'
 import { useDeleteVehicle } from '@/lib/hooks/useVehicles'
@@ -39,6 +42,43 @@ interface VehicleListProps {
 
 const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onEditVehicle, isLoading = false }) => {
   const deleteVehicleMutation = useDeleteVehicle()
+
+  // Sort state
+  const [sortField, setSortField] = React.useState<keyof Vehicle | ''>('')
+  const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc')
+
+  // Sort handler
+  const handleSort = (field: keyof Vehicle) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  // Sort icon helper
+  const getSortIcon = (field: string) => {
+    if (field !== sortField) {
+      return <ArrowUpDown className="w-4 h-4 ml-1 inline" />
+    }
+    return sortDirection === 'asc' ? (
+      <ArrowUp className="w-4 h-4 ml-1 inline" />
+    ) : (
+      <ArrowDown className="w-4 h-4 ml-1 inline" />
+    )
+  }
+
+  // Sort vehicles
+  const sortedVehicles = [...vehicles].sort((a, b) => {
+    if (!sortField) return 0
+    const aValue = a[sortField]
+    const bValue = b[sortField]
+    if (aValue === undefined || bValue === undefined) return 0
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
+    return 0
+  })
 
   const getStatusBadge = (status: boolean) => {
     return status ? (
@@ -186,18 +226,60 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onEditVehicle, isLo
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Vehicle</TableHead>
-              <TableHead>License Plate</TableHead>
-              <TableHead>Brand/Model</TableHead>
-              <TableHead className="text-center">Capacity</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Created</TableHead>
+              <TableHead
+                className="cursor-pointer hover:bg-muted transition-colors select-none"
+                onClick={() => handleSort('vehicle_name')}
+              >
+                Vehicle
+                {getSortIcon('vehicle_name')}
+              </TableHead>
+              <TableHead
+                className="cursor-pointer hover:bg-muted transition-colors select-none"
+                onClick={() => handleSort('license_plate')}
+              >
+                License Plate
+                {getSortIcon('license_plate')}
+              </TableHead>
+              <TableHead
+                className="cursor-pointer hover:bg-muted transition-colors select-none"
+                onClick={() => handleSort('brand')}
+              >
+                Brand/Model
+                {getSortIcon('brand')}
+              </TableHead>
+              <TableHead
+                className="text-center cursor-pointer hover:bg-muted transition-colors select-none"
+                onClick={() => handleSort('capacity')}
+              >
+                Capacity
+                {getSortIcon('capacity')}
+              </TableHead>
+              <TableHead
+                className="cursor-pointer hover:bg-muted transition-colors select-none"
+                onClick={() => handleSort('external_vehicle')}
+              >
+                Type
+                {getSortIcon('external_vehicle')}
+              </TableHead>
+              <TableHead
+                className="cursor-pointer hover:bg-muted transition-colors select-none"
+                onClick={() => handleSort('status')}
+              >
+                Status
+                {getSortIcon('status')}
+              </TableHead>
+              <TableHead
+                className="cursor-pointer hover:bg-muted transition-colors select-none"
+                onClick={() => handleSort('created_at')}
+              >
+                Created
+                {getSortIcon('created_at')}
+              </TableHead>
               <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {vehicles.map((vehicle) => (
+            {sortedVehicles.map((vehicle) => (
               <TableRow key={vehicle.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
@@ -268,7 +350,7 @@ const VehicleList: React.FC<VehicleListProps> = ({ vehicles, onEditVehicle, isLo
 
       {/* Mobile Card View */}
       <div className="lg:hidden divide-y divide-border">
-        {vehicles.map((vehicle) => (
+        {sortedVehicles.map((vehicle) => (
           <div key={vehicle.id} className="p-4 space-y-3">
             {/* Header with vehicle name and actions */}
             <div className="flex items-start justify-between gap-3">

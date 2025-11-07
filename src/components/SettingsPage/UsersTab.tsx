@@ -38,6 +38,9 @@ import {
   Mail,
   Phone,
   Check,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import {
@@ -100,6 +103,32 @@ const UsersTab: React.FC = () => {
     status: 'Active'
   })
 
+  // Sort state
+  const [sortField, setSortField] = useState<keyof User | ''>('')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+
+  // Sort handler
+  const handleSort = (field: keyof User) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  // Sort icon helper
+  const getSortIcon = (field: string) => {
+    if (field !== sortField) {
+      return <ArrowUpDown className="w-4 h-4 ml-1 inline" />
+    }
+    return sortDirection === 'asc' ? (
+      <ArrowUp className="w-4 h-4 ml-1 inline" />
+    ) : (
+      <ArrowDown className="w-4 h-4 ml-1 inline" />
+    )
+  }
+
   // Filter users based on search and filters
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -109,6 +138,17 @@ const UsersTab: React.FC = () => {
     const matchesStatus = statusFilter === "all" || user.status === statusFilter || !user.status // Include users without status when "all" is selected
 
     return matchesSearch && matchesRole && matchesStatus
+  })
+
+  // Sort filtered users
+  const sortedAndFilteredUsers = [...filteredUsers].sort((a, b) => {
+    if (!sortField) return 0
+    const aValue = a[sortField]
+    const bValue = b[sortField]
+    if (aValue === undefined || bValue === undefined) return 0
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
+    return 0
   })
 
   // Handle create user
@@ -379,15 +419,39 @@ const UsersTab: React.FC = () => {
             <Table className="w-full table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[28%]">User</TableHead>
-                  <TableHead className="w-[32%]">Contact</TableHead>
-                  <TableHead className="w-[20%]">Role</TableHead>
-                  <TableHead className="w-[12%] text-right">Commission</TableHead>
+                  <TableHead
+                    className="w-[28%] cursor-pointer hover:bg-muted transition-colors select-none"
+                    onClick={() => handleSort('full_name')}
+                  >
+                    User
+                    {getSortIcon('full_name')}
+                  </TableHead>
+                  <TableHead
+                    className="w-[32%] cursor-pointer hover:bg-muted transition-colors select-none"
+                    onClick={() => handleSort('email')}
+                  >
+                    Contact
+                    {getSortIcon('email')}
+                  </TableHead>
+                  <TableHead
+                    className="w-[20%] cursor-pointer hover:bg-muted transition-colors select-none"
+                    onClick={() => handleSort('role')}
+                  >
+                    Role
+                    {getSortIcon('role')}
+                  </TableHead>
+                  <TableHead
+                    className="w-[12%] text-right cursor-pointer hover:bg-muted transition-colors select-none"
+                    onClick={() => handleSort('commission')}
+                  >
+                    Commission
+                    {getSortIcon('commission')}
+                  </TableHead>
                   <TableHead className="w-[8%] text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map((user) => (
+                {sortedAndFilteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
                       <div className="flex items-center gap-2 min-w-0">
@@ -464,7 +528,7 @@ const UsersTab: React.FC = () => {
 
           {/* Mobile Card View */}
           <div className="lg:hidden divide-y divide-border">
-            {filteredUsers.map((user) => (
+            {sortedAndFilteredUsers.map((user) => (
               <div key={user.id} className="p-4 sm:p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0 flex-1">

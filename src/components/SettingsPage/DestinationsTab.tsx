@@ -33,6 +33,9 @@ import {
   Edit,
   Trash2,
   Map,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react'
 import { destinationService, CreateDestinationData, UpdateDestinationData, Destination } from '@/services/destinationService'
 
@@ -60,6 +63,32 @@ const DestinationsTab: React.FC = () => {
   const [destinations, setDestinations] = useState<Destination[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingDestinations, setIsLoadingDestinations] = useState(true)
+
+  // Sort state
+  const [sortField, setSortField] = useState<keyof Destination | ''>('')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+
+  // Sort handler
+  const handleSort = (field: keyof Destination) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  // Sort icon helper
+  const getSortIcon = (field: string) => {
+    if (field !== sortField) {
+      return <ArrowUpDown className="w-4 h-4 ml-1 inline" />
+    }
+    return sortDirection === 'asc' ? (
+      <ArrowUp className="w-4 h-4 ml-1 inline" />
+    ) : (
+      <ArrowDown className="w-4 h-4 ml-1 inline" />
+    )
+  }
 
   // Form data states
   const [createFormData, setCreateFormData] = useState<CreateDestinationData>({
@@ -97,6 +126,17 @@ const DestinationsTab: React.FC = () => {
     const matchesRegion = regionFilter === "all" || destination.region === regionFilter
 
     return matchesSearch && matchesStatus && matchesRegion
+  })
+
+  // Sort filtered destinations
+  const sortedAndFilteredDestinations = [...filteredDestinations].sort((a, b) => {
+    if (!sortField) return 0
+    const aValue = a[sortField]
+    const bValue = b[sortField]
+    if (aValue === undefined || bValue === undefined) return 0
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
+    return 0
   })
 
   // Handle create destination
@@ -362,15 +402,39 @@ const DestinationsTab: React.FC = () => {
             <Table className="min-w-[500px] w-full">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[200px]">Destination</TableHead>
-                  <TableHead className="min-w-[150px]">Country/Region</TableHead>
-                  <TableHead className="min-w-[100px]">Language</TableHead>
-                  <TableHead className="min-w-[120px]">Created Date</TableHead>
+                  <TableHead
+                    className="min-w-[200px] cursor-pointer hover:bg-muted transition-colors select-none"
+                    onClick={() => handleSort('name')}
+                  >
+                    Destination
+                    {getSortIcon('name')}
+                  </TableHead>
+                  <TableHead
+                    className="min-w-[150px] cursor-pointer hover:bg-muted transition-colors select-none"
+                    onClick={() => handleSort('country')}
+                  >
+                    Country/Region
+                    {getSortIcon('country')}
+                  </TableHead>
+                  <TableHead
+                    className="min-w-[100px] cursor-pointer hover:bg-muted transition-colors select-none"
+                    onClick={() => handleSort('language')}
+                  >
+                    Language
+                    {getSortIcon('language')}
+                  </TableHead>
+                  <TableHead
+                    className="min-w-[120px] cursor-pointer hover:bg-muted transition-colors select-none"
+                    onClick={() => handleSort('created_at')}
+                  >
+                    Created Date
+                    {getSortIcon('created_at')}
+                  </TableHead>
                   <TableHead className="text-center min-w-[80px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDestinations.map((destination) => (
+                {sortedAndFilteredDestinations.map((destination) => (
                   <TableRow key={destination.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -439,7 +503,7 @@ const DestinationsTab: React.FC = () => {
 
           {/* Mobile Card View */}
           <div className="lg:hidden divide-y divide-border px-2 sm:px-3 overflow-x-hidden w-full max-w-full box-border">
-            {filteredDestinations.map((destination) => (
+            {sortedAndFilteredDestinations.map((destination) => (
               <div key={destination.id} className="p-2 sm:p-3 space-y-2 sm:space-y-3 w-full max-w-full overflow-hidden box-border">
                 {/* Header with destination name and actions */}
                 <div className="flex items-start justify-between gap-2 w-full max-w-full min-w-0 overflow-hidden">

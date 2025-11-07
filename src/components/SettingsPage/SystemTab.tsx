@@ -18,6 +18,9 @@ import {
   Download,
   Edit,
   Loader2,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -114,6 +117,22 @@ const SystemTab: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadingFile, setUploadingFile] = useState(false)
 
+  // Sort state for Financial Configuration
+  const [financialSortField, setFinancialSortField] = useState<keyof FinancialConfig | ''>('')
+  const [financialSortDirection, setFinancialSortDirection] = useState<'asc' | 'desc'>('asc')
+
+  // Sort state for Payment Methods
+  const [paymentSortField, setPaymentSortField] = useState<keyof PaymentMethod | ''>('')
+  const [paymentSortDirection, setPaymentSortDirection] = useState<'asc' | 'desc'>('asc')
+
+  // Sort state for Bank Accounts
+  const [bankSortField, setBankSortField] = useState<keyof BankAccount | ''>('')
+  const [bankSortDirection, setBankSortDirection] = useState<'asc' | 'desc'>('asc')
+
+  // Sort state for Terms and Policies
+  const [termsSortField, setTermsSortField] = useState<keyof TermsConfigItem | ''>('')
+  const [termsSortDirection, setTermsSortDirection] = useState<'asc' | 'desc'>('asc')
+
   // Load all settings on component mount
   useEffect(() => {
     const loadAllSettings = async () => {
@@ -188,6 +207,96 @@ const SystemTab: React.FC = () => {
 
     loadAllSettings()
   }, [])
+
+  // ===== Sort Handlers =====
+  const handleFinancialSort = (field: keyof FinancialConfig) => {
+    if (financialSortField === field) {
+      setFinancialSortDirection(financialSortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setFinancialSortField(field)
+      setFinancialSortDirection('asc')
+    }
+  }
+
+  const handlePaymentSort = (field: keyof PaymentMethod) => {
+    if (paymentSortField === field) {
+      setPaymentSortDirection(paymentSortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setPaymentSortField(field)
+      setPaymentSortDirection('asc')
+    }
+  }
+
+  const handleBankSort = (field: keyof BankAccount) => {
+    if (bankSortField === field) {
+      setBankSortDirection(bankSortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setBankSortField(field)
+      setBankSortDirection('asc')
+    }
+  }
+
+  const handleTermsSort = (field: keyof TermsConfigItem) => {
+    if (termsSortField === field) {
+      setTermsSortDirection(termsSortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setTermsSortField(field)
+      setTermsSortDirection('asc')
+    }
+  }
+
+  // Sort icon helper
+  const getSortIcon = (field: string, currentField: string, direction: 'asc' | 'desc') => {
+    if (field !== currentField) {
+      return <ArrowUpDown className="w-4 h-4 ml-1 inline" />
+    }
+    return direction === 'asc' ? (
+      <ArrowUp className="w-4 h-4 ml-1 inline" />
+    ) : (
+      <ArrowDown className="w-4 h-4 ml-1 inline" />
+    )
+  }
+
+  // Sorted data arrays
+  const sortedFinancialConfigs = [...financialConfigs].sort((a, b) => {
+    if (!financialSortField) return 0
+    const aValue = a[financialSortField]
+    const bValue = b[financialSortField]
+    if (aValue === undefined || bValue === undefined) return 0
+    if (aValue < bValue) return financialSortDirection === 'asc' ? -1 : 1
+    if (aValue > bValue) return financialSortDirection === 'asc' ? 1 : -1
+    return 0
+  })
+
+  const sortedPaymentMethods = [...paymentMethods].sort((a, b) => {
+    if (!paymentSortField) return 0
+    const aValue = a[paymentSortField]
+    const bValue = b[paymentSortField]
+    if (aValue === undefined || bValue === undefined) return 0
+    if (aValue < bValue) return paymentSortDirection === 'asc' ? -1 : 1
+    if (aValue > bValue) return paymentSortDirection === 'asc' ? 1 : -1
+    return 0
+  })
+
+  const sortedBankAccounts = [...bankAccounts].sort((a, b) => {
+    if (!bankSortField) return 0
+    const aValue = a[bankSortField]
+    const bValue = b[bankSortField]
+    if (aValue === undefined || bValue === undefined) return 0
+    if (aValue < bValue) return bankSortDirection === 'asc' ? -1 : 1
+    if (aValue > bValue) return bankSortDirection === 'asc' ? 1 : -1
+    return 0
+  })
+
+  const sortedTermsConfigs = [...termsConfigs].sort((a, b) => {
+    if (!termsSortField) return 0
+    const aValue = a[termsSortField]
+    const bValue = b[termsSortField]
+    if (aValue === undefined || bValue === undefined) return 0
+    if (aValue < bValue) return termsSortDirection === 'asc' ? -1 : 1
+    if (aValue > bValue) return termsSortDirection === 'asc' ? 1 : -1
+    return 0
+  })
 
   // ===== Financial Configuration Handlers =====
   const addFinancialConfig = async () => {
@@ -629,13 +738,25 @@ const SystemTab: React.FC = () => {
                 <table className="w-full">
                   <thead className="bg-muted/50">
                     <tr>
-                      <th className="text-left p-3 text-sm font-medium">Base Currency</th>
-                      <th className="text-left p-3 text-sm font-medium">Tax Rate (%)</th>
+                      <th
+                        className="text-left p-3 text-sm font-medium cursor-pointer hover:bg-muted transition-colors select-none"
+                        onClick={() => handleFinancialSort('baseCurrency')}
+                      >
+                        Base Currency
+                        {getSortIcon('baseCurrency', financialSortField, financialSortDirection)}
+                      </th>
+                      <th
+                        className="text-left p-3 text-sm font-medium cursor-pointer hover:bg-muted transition-colors select-none"
+                        onClick={() => handleFinancialSort('taxRate')}
+                      >
+                        Tax Rate (%)
+                        {getSortIcon('taxRate', financialSortField, financialSortDirection)}
+                      </th>
                       <th className="text-right p-3 text-sm font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {financialConfigs.map((config) => (
+                    {sortedFinancialConfigs.map((config) => (
                       <tr key={config.id} className="border-t">
                         {editingFinancialConfig?.id === config.id ? (
                           <>
@@ -823,15 +944,39 @@ const SystemTab: React.FC = () => {
                 <table className="w-full">
                   <thead className="bg-muted/50">
                     <tr>
-                      <th className="text-left p-3 text-sm font-medium">Payment Method</th>
-                      <th className="text-left p-3 text-sm font-medium">Tax Rate (%)</th>
-                      <th className="text-left p-3 text-sm font-medium">Bank Slip Fee (%)</th>
-                      <th className="text-left p-3 text-sm font-medium">Cash Fee (%)</th>
+                      <th
+                        className="text-left p-3 text-sm font-medium cursor-pointer hover:bg-muted transition-colors select-none"
+                        onClick={() => handlePaymentSort('name')}
+                      >
+                        Payment Method
+                        {getSortIcon('name', paymentSortField, paymentSortDirection)}
+                      </th>
+                      <th
+                        className="text-left p-3 text-sm font-medium cursor-pointer hover:bg-muted transition-colors select-none"
+                        onClick={() => handlePaymentSort('taxRate')}
+                      >
+                        Tax Rate (%)
+                        {getSortIcon('taxRate', paymentSortField, paymentSortDirection)}
+                      </th>
+                      <th
+                        className="text-left p-3 text-sm font-medium cursor-pointer hover:bg-muted transition-colors select-none"
+                        onClick={() => handlePaymentSort('bankSlipFee')}
+                      >
+                        Bank Slip Fee (%)
+                        {getSortIcon('bankSlipFee', paymentSortField, paymentSortDirection)}
+                      </th>
+                      <th
+                        className="text-left p-3 text-sm font-medium cursor-pointer hover:bg-muted transition-colors select-none"
+                        onClick={() => handlePaymentSort('cashFee')}
+                      >
+                        Cash Fee (%)
+                        {getSortIcon('cashFee', paymentSortField, paymentSortDirection)}
+                      </th>
                       <th className="text-right p-3 text-sm font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {paymentMethods.map((method) => (
+                    {sortedPaymentMethods.map((method) => (
                       <tr key={method.id} className="border-t">
                         {editingPaymentMethod?.id === method.id ? (
                           <>
@@ -1015,13 +1160,25 @@ const SystemTab: React.FC = () => {
                 <table className="w-full">
                   <thead className="bg-muted/50">
                     <tr>
-                      <th className="text-left p-3 text-sm font-medium">Account Name</th>
-                      <th className="text-left p-3 text-sm font-medium">Currency</th>
+                      <th
+                        className="text-left p-3 text-sm font-medium cursor-pointer hover:bg-muted transition-colors select-none"
+                        onClick={() => handleBankSort('accountName')}
+                      >
+                        Account Name
+                        {getSortIcon('accountName', bankSortField, bankSortDirection)}
+                      </th>
+                      <th
+                        className="text-left p-3 text-sm font-medium cursor-pointer hover:bg-muted transition-colors select-none"
+                        onClick={() => handleBankSort('currency')}
+                      >
+                        Currency
+                        {getSortIcon('currency', bankSortField, bankSortDirection)}
+                      </th>
                       <th className="text-right p-3 text-sm font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {bankAccounts.map((account) => (
+                    {sortedBankAccounts.map((account) => (
                       <tr key={account.id} className="border-t">
                         {editingBankAccount?.id === account.id ? (
                           <>
@@ -1189,13 +1346,25 @@ const SystemTab: React.FC = () => {
                 <table className="w-full">
                   <thead className="bg-muted/50">
                     <tr>
-                      <th className="text-left p-3 text-sm font-medium">Terms and Conditions</th>
-                      <th className="text-left p-3 text-sm font-medium">File</th>
+                      <th
+                        className="text-left p-3 text-sm font-medium cursor-pointer hover:bg-muted transition-colors select-none"
+                        onClick={() => handleTermsSort('termsAndConditions')}
+                      >
+                        Terms and Conditions
+                        {getSortIcon('termsAndConditions', termsSortField, termsSortDirection)}
+                      </th>
+                      <th
+                        className="text-left p-3 text-sm font-medium cursor-pointer hover:bg-muted transition-colors select-none"
+                        onClick={() => handleTermsSort('termsFileName')}
+                      >
+                        File
+                        {getSortIcon('termsFileName', termsSortField, termsSortDirection)}
+                      </th>
                       <th className="text-right p-3 text-sm font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {termsConfigs.map((config) => (
+                    {sortedTermsConfigs.map((config) => (
                       <tr key={config.id} className="border-t">
                         {editingTermsConfig?.id === config.id ? (
                           <>
