@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { bookingService, type BookingResponse } from "@/services/bookingService"
+import { apiCall } from "@/config/api"
 
 // API Response structure for public booking endpoint
 interface ApiResponse {
@@ -10,6 +11,14 @@ interface ApiResponse {
   data: BookingResponse
   shareableLink: string
   timestamp: string
+}
+
+// Terms config structure
+interface TermsConfig {
+  id: string
+  terms_and_conditions: string
+  terms_file_url: string
+  terms_file_name: string
 }
 import { format } from "date-fns"
 import { Button } from "@/components/ui/button"
@@ -50,6 +59,19 @@ export function SharedQuotePage() {
       return failureCount < 2 // Only retry once
     },
     staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+  })
+
+  // Fetch terms and conditions from backend
+  const { data: termsConfig } = useQuery<TermsConfig[]>({
+    queryKey: ['terms-config'],
+    queryFn: async () => {
+      const response = await apiCall('/api/settings/system/terms/', {
+        method: 'GET'
+      })
+      if (!response.ok) throw new Error('Failed to fetch terms')
+      return response.json()
+    },
+    staleTime: 1000 * 60 * 10, // Consider data fresh for 10 minutes
   })
 
   // Extract booking data from the API response structure
@@ -473,12 +495,42 @@ export function SharedQuotePage() {
               </div>
               <div className="p-4">
                 <div className="space-y-4">
-                  <div className="text-sm text-gray-600 space-y-1">
-                    <p>• Prices are subject to availability at the time of booking</p>
-                    <p>• Payment terms apply as discussed with your travel consultant</p>
-                    <p>• Cancellation policies vary by service provider</p>
-                    <p>• Travel insurance is recommended for your protection</p>
+                  {/* Display terms from database */}
+                  <div className="text-sm text-gray-600">
+                    {termsConfig && termsConfig.length > 0 && termsConfig[0].terms_and_conditions ? (
+                      <div className="whitespace-pre-wrap">{termsConfig[0].terms_and_conditions}</div>
+                    ) : (
+                      <div className="space-y-1">
+                        <p>• Prices are subject to availability at the time of booking</p>
+                        <p>• Payment terms apply as discussed with your travel consultant</p>
+                        <p>• Cancellation policies vary by service provider</p>
+                        <p>• Travel insurance is recommended for your protection</p>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Download terms file button */}
+                  {termsConfig && termsConfig.length > 0 && termsConfig[0].terms_file_url && termsConfig[0].terms_file_name && (
+                    <div>
+                      <Button
+                        onClick={() => {
+                          const link = document.createElement('a')
+                          link.href = termsConfig[0].terms_file_url
+                          link.download = termsConfig[0].terms_file_name
+                          link.target = '_blank'
+                          document.body.appendChild(link)
+                          link.click()
+                          document.body.removeChild(link)
+                        }}
+                        variant="outline"
+                        className="w-full text-sm"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Terms & Conditions ({termsConfig[0].terms_file_name})
+                      </Button>
+                    </div>
+                  )}
+
                   <div className="space-y-3">
                     <div>
                       <Label htmlFor="customer-email" className="text-sm">Confirm your email</Label>
