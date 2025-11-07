@@ -208,10 +208,13 @@ export const apiCall = async (
 ): Promise<Response> => {
   const url = buildUrl(endpoint);
 
+  // Don't set Content-Type header for FormData - browser will set it automatically with boundary
+  const isFormData = options.body instanceof FormData;
+
   const config: RequestInit = {
     ...options,
     headers: {
-      ...API_CONFIG.HEADERS,
+      ...(isFormData ? {} : API_CONFIG.HEADERS),
       ...options.headers,
     },
   };
