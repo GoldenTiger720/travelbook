@@ -215,11 +215,11 @@ const UsersTab: React.FC = () => {
       assistant_guide: { color: "bg-blue-600", label: "Assistant guide" },
       guide: { color: "bg-green-500", label: "Main guide" },
       driver: { color: "bg-orange-500", label: "Driver" },
-      supplier: { color: "bg-yellow-600", label: "Supplier" }
+      supplier: { color: "bg-yellow-600", label: "Operator" }
     }
-    
+
     const config = roleConfig[role as keyof typeof roleConfig] || { color: "bg-gray-500", label: role }
-    
+
     return (
       <Badge className={`${config.color} text-white hover:${config.color}/80 text-xs px-1.5 py-0`}>
         {config.label}
@@ -597,7 +597,7 @@ const UsersTab: React.FC = () => {
                   <SelectItem value="assistant_guide">Assistant guide</SelectItem>
                   <SelectItem value="guide">Main guide</SelectItem>
                   <SelectItem value="driver">Driver</SelectItem>
-                  <SelectItem value="supplier">Supplier</SelectItem>
+                  <SelectItem value="supplier">Operator</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -692,7 +692,7 @@ const UsersTab: React.FC = () => {
                     <SelectItem value="assistant_guide">Assistant guide</SelectItem>
                     <SelectItem value="guide">Main guide</SelectItem>
                     <SelectItem value="driver">Driver</SelectItem>
-                    <SelectItem value="supplier">Supplier</SelectItem>
+                    <SelectItem value="supplier">Operator</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
