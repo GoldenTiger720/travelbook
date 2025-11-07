@@ -594,9 +594,6 @@ const SystemTab: React.FC = () => {
                   <SelectItem value="EUR">EUR - Euro</SelectItem>
                   <SelectItem value="BRL">BRL - Brazilian Real</SelectItem>
                   <SelectItem value="ARS">ARS - Argentine Peso</SelectItem>
-                  <SelectItem value="GBP">GBP - British Pound</SelectItem>
-                  <SelectItem value="COP">COP - Colombian Peso</SelectItem>
-                  <SelectItem value="PEN">PEN - Peruvian Sol</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -655,9 +652,6 @@ const SystemTab: React.FC = () => {
                                   <SelectItem value="EUR">EUR</SelectItem>
                                   <SelectItem value="BRL">BRL</SelectItem>
                                   <SelectItem value="ARS">ARS</SelectItem>
-                                  <SelectItem value="GBP">GBP</SelectItem>
-                                  <SelectItem value="COP">COP</SelectItem>
-                                  <SelectItem value="PEN">PEN</SelectItem>
                                 </SelectContent>
                               </Select>
                             </td>
@@ -997,7 +991,6 @@ const SystemTab: React.FC = () => {
                   <SelectItem value="EUR">EUR</SelectItem>
                   <SelectItem value="BRL">BRL</SelectItem>
                   <SelectItem value="ARS">ARS</SelectItem>
-                  <SelectItem value="GBP">GBP</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1052,7 +1045,6 @@ const SystemTab: React.FC = () => {
                                   <SelectItem value="EUR">EUR</SelectItem>
                                   <SelectItem value="BRL">BRL</SelectItem>
                                   <SelectItem value="ARS">ARS</SelectItem>
-                                  <SelectItem value="GBP">GBP</SelectItem>
                                 </SelectContent>
                               </Select>
                             </td>
