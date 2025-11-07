@@ -28,10 +28,12 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useLogo } from "@/contexts/LogoContext";
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const { t } = useLanguage();
+  const { companyLogo } = useLogo();
   const isCollapsed = state === "collapsed";
 
   const mainItems = [
@@ -78,7 +80,7 @@ export function AppSidebar() {
         <div className="p-4">
           <div className="flex items-center justify-center">
             <img
-              src="/logo1.png"
+              src={companyLogo || "/logo1.png"}
               alt="Zenith Travel Ops"
               className={
                 isCollapsed

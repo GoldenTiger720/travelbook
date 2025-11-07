@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { apiCall, API_CONFIG } from '@/config/api'
+import { useLogo } from '@/contexts/LogoContext'
 import {
   DollarSign,
   Save,
@@ -21,6 +22,7 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  Image,
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -51,6 +53,11 @@ interface ExchangeRate {
   rate: number
 }
 
+interface SystemAppearance {
+  id: string
+  company_logo?: string
+}
+
 interface SystemSettings {
   baseCurrency: string
   taxRate: number
@@ -62,6 +69,7 @@ interface SystemSettings {
 }
 
 const SystemTab: React.FC = () => {
+  const { updateLogo } = useLogo()
   const [isLoadingSettings, setIsLoadingSettings] = useState(true)
 
   // Loading states for each section
@@ -80,6 +88,16 @@ const SystemTab: React.FC = () => {
   const [isAddingTerms, setIsAddingTerms] = useState(false)
   const [isUpdatingTerms, setIsUpdatingTerms] = useState(false)
   const [isDeletingTerms, setIsDeletingTerms] = useState<string | null>(null)
+
+  const [isAddingAppearance, setIsAddingAppearance] = useState(false)
+  const [isUpdatingAppearance, setIsUpdatingAppearance] = useState(false)
+  const [isDeletingAppearance, setIsDeletingAppearance] = useState<string | null>(null)
+
+  // System Appearance state
+  const [systemAppearances, setSystemAppearances] = useState<SystemAppearance[]>([])
+  const [editingAppearance, setEditingAppearance] = useState<SystemAppearance | null>(null)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string>('')
 
   // Financial Configuration state
   const [financialConfigs, setFinancialConfigs] = useState<FinancialConfig[]>([])
@@ -163,6 +181,19 @@ const SystemTab: React.FC = () => {
     const loadAllSettings = async () => {
       setIsLoadingSettings(true)
       try {
+        // Load System Appearance
+        const appearanceResponse = await apiCall('/api/settings/system/appearance/', {
+          method: 'GET'
+        })
+        if (appearanceResponse.ok) {
+          const appearanceData = await appearanceResponse.json()
+          const appearances = Array.isArray(appearanceData) ? appearanceData.map((item: any) => ({
+            id: item.id,
+            company_logo: item.company_logo
+          })) : []
+          setSystemAppearances(appearances)
+        }
+
         // Load Financial Configuration
         const financialResponse = await apiCall('/api/settings/system/financial-config/', {
           method: 'GET'
@@ -356,6 +387,136 @@ const SystemTab: React.FC = () => {
     if (aValue > bValue) return exchangeRateSortDirection === 'asc' ? 1 : -1
     return 0
   })
+
+  // ===== System Appearance Handlers =====
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setLogoFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+
+      // If editing an existing appearance, update it immediately after file is set
+      if (editingAppearance) {
+        // Wait a bit for state to update
+        setTimeout(() => updateAppearanceWithFile(editingAppearance.id, file), 100)
+      }
+    }
+  }
+
+  const updateAppearanceWithFile = async (id: string, file: File) => {
+    setIsUpdatingAppearance(true)
+    try {
+      // Convert file to base64
+      const base64Logo = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          const base64String = reader.result as string
+          resolve(base64String)
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+
+      const payload = {
+        company_logo_base64: base64Logo
+      }
+
+      const response = await apiCall(`/api/settings/system/appearance/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      })
+
+      if (!response.ok) throw new Error('Failed to update appearance')
+
+      const result = await response.json()
+      setSystemAppearances(prev => prev.map(app => app.id === id ? {
+        id: result.id,
+        company_logo: result.company_logo
+      } : app))
+      // Update logo in context to refresh navbar and sidebar
+      updateLogo(result.company_logo)
+      setEditingAppearance(null)
+      setLogoFile(null)
+      setLogoPreview('')
+      toast.success('Logo updated successfully!')
+    } catch (error) {
+      console.error('Error updating appearance:', error)
+      toast.error('Failed to update logo')
+    } finally {
+      setIsUpdatingAppearance(false)
+    }
+  }
+
+  const uploadLogo = async () => {
+    if (!logoFile) {
+      toast.error('Please select a logo file')
+      return
+    }
+
+    setIsAddingAppearance(true)
+    try {
+      // Convert file to base64
+      const base64Logo = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          const base64String = reader.result as string
+          resolve(base64String)
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(logoFile)
+      })
+
+      const payload = {
+        company_logo_base64: base64Logo
+      }
+
+      const response = await apiCall('/api/settings/system/appearance/', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      })
+
+      if (!response.ok) throw new Error('Failed to upload logo')
+
+      const result = await response.json()
+      setSystemAppearances(prev => [...prev, {
+        id: result.id,
+        company_logo: result.company_logo
+      }])
+      // Update logo in context to refresh navbar and sidebar
+      updateLogo(result.company_logo)
+      setLogoFile(null)
+      setLogoPreview('')
+      toast.success('Logo uploaded successfully!')
+    } catch (error) {
+      console.error('Error uploading logo:', error)
+      toast.error('Failed to upload logo')
+    } finally {
+      setIsAddingAppearance(false)
+    }
+  }
+
+  const deleteAppearance = async (id: string) => {
+    setIsDeletingAppearance(id)
+    try {
+      const response = await apiCall(`/api/settings/system/appearance/${id}/`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) throw new Error('Failed to delete appearance')
+
+      setSystemAppearances(prev => prev.filter(app => app.id !== id))
+      toast.success('Appearance deleted successfully!')
+    } catch (error) {
+      console.error('Error deleting appearance:', error)
+      toast.error('Failed to delete appearance')
+    } finally {
+      setIsDeletingAppearance(null)
+    }
+  }
 
   // ===== Financial Configuration Handlers =====
   const addFinancialConfig = async () => {
@@ -826,6 +987,108 @@ const SystemTab: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* System Appearance */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Image className="w-5 h-5 text-blue-600" />
+            <span className="truncate">System Appearance</span>
+          </CardTitle>
+          <CardDescription className="text-sm">
+            Upload your company logo for use in the menu, quotes, and vouchers
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Upload Logo Form */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
+            <div className="space-y-2">
+              <Label htmlFor="logo-upload">Company Logo</Label>
+              <div className="flex flex-col gap-2">
+                <Input
+                  id="logo-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                  className="cursor-pointer"
+                />
+                {logoPreview && (
+                  <div className="mt-2 p-4 border rounded-lg bg-white dark:bg-gray-800">
+                    <p className="text-sm text-muted-foreground mb-2">Preview:</p>
+                    <img
+                      src={logoPreview}
+                      alt="Logo preview"
+                      className="max-h-32 object-contain"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="invisible">Upload</Label>
+              <Button onClick={uploadLogo} disabled={isAddingAppearance || !logoFile} className="w-full">
+                {isAddingAppearance ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Upload className="w-4 h-4 mr-2" />
+                )}
+                {isAddingAppearance ? 'Uploading...' : 'Upload Logo'}
+              </Button>
+            </div>
+          </div>
+
+          {/* Current Logos */}
+          {systemAppearances.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Current Company Logos</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {systemAppearances.map((appearance) => (
+                  <div key={appearance.id} className="border rounded-lg p-4 space-y-3 bg-card">
+                    {appearance.company_logo && (
+                      <div className="flex items-center justify-center p-4 bg-muted/30 rounded-lg">
+                        <img
+                          src={appearance.company_logo}
+                          alt="Company logo"
+                          className="max-h-24 object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none'
+                          }}
+                        />
+                      </div>
+                    )}
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setEditingAppearance(appearance)
+                          document.getElementById('logo-upload')?.click()
+                        }}
+                        className="text-blue-600 hover:text-blue-700"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteAppearance(appearance.id)}
+                        disabled={isDeletingAppearance === appearance.id}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        {isDeletingAppearance === appearance.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Financial Configuration */}
       <Card>
         <CardHeader className="pb-4">

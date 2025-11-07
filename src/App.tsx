@@ -9,6 +9,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Bell, ChevronDown, User, LogOut, UserCircle } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { LanguageProvider, useLanguage } from "@/contexts/LanguageContext";
+import { LogoProvider, useLogo } from "@/contexts/LogoContext";
 import { useCurrentUser, useSignOut } from "@/lib/hooks/useAuth";
 import authService from "@/services/authService";
 import DashboardPage from "./pages/DashboardPage";
@@ -41,12 +42,13 @@ import { isUserPendingApproval } from "./lib/utils/userApproval";
 
 const MainLayout = () => {
   const { language, setLanguage, t } = useLanguage();
+  const { companyLogo } = useLogo();
   const navigate = useNavigate();
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  
+
   // Get current user from localStorage and auth hooks
   const { data: currentUser } = useCurrentUser();
   const { signOut, isPending: isSigningOut } = useSignOut();
@@ -120,9 +122,9 @@ const MainLayout = () => {
                 <header className="sticky top-0 h-16 flex items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 z-50">
                   <div className="flex items-center">
                     <SidebarTrigger className="mr-4" />
-                    <img 
-                      src="/logo1.png" 
-                      alt="Zenith Travel Ops" 
+                    <img
+                      src={companyLogo || "/logo1.png"}
+                      alt="Zenith Travel Ops"
                       className="w-10 h-10 object-contain"
                     />
                   </div>
@@ -289,11 +291,13 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <AppContent />
-        </TooltipProvider>
+        <LogoProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <AppContent />
+          </TooltipProvider>
+        </LogoProvider>
       </LanguageProvider>
     </QueryClientProvider>
   );
