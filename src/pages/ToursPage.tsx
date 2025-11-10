@@ -28,7 +28,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar, MapPin, Users } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { tourService, CreateTourData, Tour } from "@/services/tourService";
+import { tourService, CreateTourData, Tour, TourOperator } from "@/services/tourService";
 import { destinationService, Destination } from "@/services/destinationService";
 import { format } from "date-fns";
 
@@ -158,6 +158,8 @@ const ToursPage = () => {
   const [editFormData, setEditFormData] = useState<any>(null);
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [isLoadingDestinations, setIsLoadingDestinations] = useState(false);
+  const [operators, setOperators] = useState<TourOperator[]>([]);
+  const [isLoadingOperators, setIsLoadingOperators] = useState(false);
 
   // Map backend tour data to frontend display format
   const mapBackendToursToDisplayFormat = (backendTours: Tour[]) => {
@@ -176,9 +178,11 @@ const ToursPage = () => {
         ? parseFloat(tour.percentage_discount_allowed)
         : undefined,
       cost: tour.cost ? parseFloat(tour.cost) : undefined,
-      operator: tour.operator || "",
+      operator: tour.operator?.id || "",
+      operatorName: tour.operator?.full_name || "",
       currency: tour.currency,
       description: tour.description,
+      availableDays: tour.available_days || [],
       created_at: tour.created_at,
       updated_at: tour.updated_at,
       // Additional destination info for reference
@@ -201,20 +205,23 @@ const ToursPage = () => {
     startingPoint: "",
     description: "",
     currency: "CLP",
+    availableDays: [],
     active: true,
   });
 
-  // Load tours and destinations from API on component mount
+  // Load tours, destinations, and operators from API on component mount
   React.useEffect(() => {
     const loadData = async () => {
       setIsLoadingTours(true);
       setIsLoadingDestinations(true);
+      setIsLoadingOperators(true);
 
       try {
-        // Load tours and destinations in parallel
-        const [fetchedTours, fetchedDestinations] = await Promise.all([
+        // Load tours, destinations, and operators in parallel
+        const [fetchedTours, fetchedDestinations, fetchedOperators] = await Promise.all([
           tourService.getTours(),
           destinationService.getDestinations(),
+          tourService.getOperators(),
         ]);
 
         setTours(
@@ -225,14 +232,19 @@ const ToursPage = () => {
         setDestinations(
           Array.isArray(fetchedDestinations) ? fetchedDestinations : []
         );
+        setOperators(
+          Array.isArray(fetchedOperators) ? fetchedOperators : []
+        );
       } catch (error) {
         console.error("Error loading data:", error);
         // Fallback to mock data if API fails
         setTours(Array.isArray(toursData) ? toursData : []);
         setDestinations([]);
+        setOperators([]);
       } finally {
         setIsLoadingTours(false);
         setIsLoadingDestinations(false);
+        setIsLoadingOperators(false);
       }
     };
 
@@ -320,6 +332,7 @@ const ToursPage = () => {
       startingPoint: "",
       description: "",
       currency: "CLP",
+      availableDays: [],
       active: true,
     });
   };
@@ -643,6 +656,7 @@ const ToursPage = () => {
         startingPoint: selectedTour.startingPoint,
         description: selectedTour.description,
         currency: selectedTour.currency || "CLP",
+        availableDays: selectedTour.availableDays || [],
         active: selectedTour.status === "active",
       });
     }
@@ -922,12 +936,12 @@ const ToursPage = () => {
             </div>
             <div className="space-y-2 col-span-1">
               <Label htmlFor="cost" className="text-sm font-medium">
-                Cost
+                Cost (%)
               </Label>
               <Input
                 id="cost"
                 type="number"
-                placeholder="0"
+                placeholder="70"
                 value={formData.cost || ""}
                 onChange={(e) =>
                   handleFormChange("cost", parseFloat(e.target.value) || 0)
@@ -939,13 +953,34 @@ const ToursPage = () => {
               <Label htmlFor="operator" className="text-sm font-medium">
                 Operator
               </Label>
-              <Input
-                id="operator"
-                placeholder="Enter operator name"
-                value={formData.operator || ""}
-                onChange={(e) => handleFormChange("operator", e.target.value)}
-                className="h-10"
-              />
+              <Select
+                value={formData.operator || "none"}
+                onValueChange={(value) => handleFormChange("operator", value === "none" ? "" : value)}
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Select operator" />
+                </SelectTrigger>
+                <SelectContent>
+                  {isLoadingOperators ? (
+                    <SelectItem value="_loading" disabled>
+                      Loading operators...
+                    </SelectItem>
+                  ) : operators.length > 0 ? (
+                    <>
+                      <SelectItem value="none">None</SelectItem>
+                      {operators.map((op) => (
+                        <SelectItem key={op.id} value={op.id}>
+                          {op.full_name}
+                        </SelectItem>
+                      ))}
+                    </>
+                  ) : (
+                    <SelectItem value="_empty" disabled>
+                      No operators available
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2 col-span-1">
               <Label htmlFor="currency" className="text-sm font-medium">
@@ -1000,6 +1035,41 @@ const ToursPage = () => {
                 }
                 className="min-h-[80px] resize-none"
               />
+            </div>
+            <div className="col-span-full space-y-2">
+              <Label className="text-sm font-medium">
+                Available Days
+              </Label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: 0, label: "Mon" },
+                  { value: 1, label: "Tue" },
+                  { value: 2, label: "Wed" },
+                  { value: 3, label: "Thu" },
+                  { value: 4, label: "Fri" },
+                  { value: 5, label: "Sat" },
+                  { value: 6, label: "Sun" },
+                ].map((day) => (
+                  <button
+                    key={day.value}
+                    type="button"
+                    onClick={() => {
+                      const currentDays = formData.availableDays || [];
+                      const newDays = currentDays.includes(day.value)
+                        ? currentDays.filter((d) => d !== day.value)
+                        : [...currentDays, day.value].sort();
+                      handleFormChange("availableDays", newDays);
+                    }}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      (formData.availableDays || []).includes(day.value)
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    }`}
+                  >
+                    {day.label}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="col-span-full flex items-center space-x-3 py-2">
               <Switch
@@ -1206,12 +1276,12 @@ const ToursPage = () => {
               </div>
               <div className="space-y-2 col-span-1">
                 <Label htmlFor="editCost" className="text-sm font-medium">
-                  Cost
+                  Cost (%)
                 </Label>
                 <Input
                   id="editCost"
                   type="number"
-                  placeholder="0"
+                  placeholder="70"
                   value={editFormData.cost || ""}
                   onChange={(e) =>
                     handleEditFormChange(
@@ -1226,15 +1296,34 @@ const ToursPage = () => {
                 <Label htmlFor="editOperator" className="text-sm font-medium">
                   Operator
                 </Label>
-                <Input
-                  id="editOperator"
-                  placeholder="Enter operator name"
-                  value={editFormData.operator || ""}
-                  onChange={(e) =>
-                    handleEditFormChange("operator", e.target.value)
-                  }
-                  className="h-10"
-                />
+                <Select
+                  value={editFormData.operator || "none"}
+                  onValueChange={(value) => handleEditFormChange("operator", value === "none" ? "" : value)}
+                >
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Select operator" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {isLoadingOperators ? (
+                      <SelectItem value="_loading" disabled>
+                        Loading operators...
+                      </SelectItem>
+                    ) : operators.length > 0 ? (
+                      <>
+                        <SelectItem value="none">None</SelectItem>
+                        {operators.map((op) => (
+                          <SelectItem key={op.id} value={op.id}>
+                            {op.full_name}
+                          </SelectItem>
+                        ))}
+                      </>
+                    ) : (
+                      <SelectItem value="_empty" disabled>
+                        No operators available
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2 col-span-1">
                 <Label htmlFor="editCurrency" className="text-sm font-medium">
@@ -1295,6 +1384,41 @@ const ToursPage = () => {
                   }
                   className="min-h-[80px] resize-none"
                 />
+              </div>
+              <div className="col-span-full space-y-2">
+                <Label className="text-sm font-medium">
+                  Available Days
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: 0, label: "Mon" },
+                    { value: 1, label: "Tue" },
+                    { value: 2, label: "Wed" },
+                    { value: 3, label: "Thu" },
+                    { value: 4, label: "Fri" },
+                    { value: 5, label: "Sat" },
+                    { value: 6, label: "Sun" },
+                  ].map((day) => (
+                    <button
+                      key={day.value}
+                      type="button"
+                      onClick={() => {
+                        const currentDays = editFormData.availableDays || [];
+                        const newDays = currentDays.includes(day.value)
+                          ? currentDays.filter((d) => d !== day.value)
+                          : [...currentDays, day.value].sort();
+                        handleEditFormChange("availableDays", newDays);
+                      }}
+                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        (editFormData.availableDays || []).includes(day.value)
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      }`}
+                    >
+                      {day.label}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="col-span-full flex items-center space-x-3 py-2">
                 <Switch

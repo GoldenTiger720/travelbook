@@ -13,6 +13,13 @@ export interface TourDestination {
   updated_at: string;
 }
 
+// Operator object structure
+export interface TourOperator {
+  id: string;
+  full_name: string;
+  email: string;
+}
+
 // Backend tour data structure
 export interface Tour {
   id: string;
@@ -28,7 +35,8 @@ export interface Tour {
   starting_point: string;
   departure_time: string;
   capacity: number;
-  operator?: string;
+  operator?: TourOperator | null;
+  available_days: number[];  // Array of day numbers: 0=Monday, 1=Tuesday, ..., 6=Sunday
   active: boolean;
   created_by: string;
   created_at: string;
@@ -58,6 +66,7 @@ export interface CreateTourData {
   startingPoint: string;
   description: string;
   currency: string;
+  availableDays?: number[];  // Array of day numbers: 0=Monday, 1=Tuesday, ..., 6=Sunday
   active: boolean;
 }
 
@@ -81,6 +90,25 @@ export interface TourError {
 }
 
 class TourService {
+  // Get all operators (supplier users)
+  async getOperators(): Promise<TourOperator[]> {
+    try {
+      const response = await apiCall('/api/users/operator/', {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch operators');
+      }
+
+      const data: TourOperator[] = await response.json();
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching operators:', error);
+      throw error;
+    }
+  }
+
   // Create a new tour
   async createTour(data: CreateTourData): Promise<TourResponse> {
     try {
