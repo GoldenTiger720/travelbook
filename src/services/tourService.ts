@@ -21,10 +21,14 @@ export interface Tour {
   description: string;
   adult_price: string;
   child_price: string;
+  baby_price?: string;
   currency: string;
+  percentage_discount_allowed?: string;
+  cost?: string;
   starting_point: string;
   departure_time: string;
   capacity: number;
+  operator?: string;
   active: boolean;
   created_by: string;
   created_at: string;
@@ -47,6 +51,10 @@ export interface CreateTourData {
   departureTime: string;
   adultPrice: number;
   childPrice: number;
+  babyPrice?: number;
+  percentageDiscountAllowed?: number;
+  cost?: number;
+  operator?: string;
   startingPoint: string;
   description: string;
   currency: string;

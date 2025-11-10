@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -17,6 +17,9 @@ import {
   Trash2,
   CheckCircle,
   XCircle,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
 
@@ -56,6 +59,48 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
   onExportTours,
 }) => {
   const { t } = useLanguage()
+
+  // Sort state
+  const [sortField, setSortField] = useState<string>('')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+
+  // Sort handler
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  // Sort icon helper
+  const getSortIcon = (field: string) => {
+    if (field !== sortField) {
+      return <ArrowUpDown className="w-4 h-4 ml-1 inline" />
+    }
+    return sortDirection === 'asc' ? (
+      <ArrowUp className="w-4 h-4 ml-1 inline" />
+    ) : (
+      <ArrowDown className="w-4 h-4 ml-1 inline" />
+    )
+  }
+
+  // Sort filtered tours
+  const sortedTours = [...filteredTours].sort((a, b) => {
+    if (!sortField) return 0
+    const aValue = a[sortField]
+    const bValue = b[sortField]
+    if (aValue === undefined || bValue === undefined) return 0
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return sortDirection === 'asc'
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue)
+    }
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
+    return 0
+  })
 
   const getStatusBadge = (status: string) => {
     if (status === 'active') {
@@ -144,19 +189,67 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
               <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t('tours.tour')}</TableHead>
-                  <TableHead>{t('tours.destination')}</TableHead>
-                  <TableHead className="text-center">{t('tours.capacity')}</TableHead>
-                  <TableHead>{t('tours.startingPoint')}</TableHead>
-                  <TableHead>{t('tours.departureTime')}</TableHead>
-                  <TableHead className="text-right">{t('tours.adultPrice')}</TableHead>
-                  <TableHead className="text-right">{t('tours.childPrice')}</TableHead>
-                  <TableHead>{t('tours.status')}</TableHead>
+                  <TableHead
+                    className="cursor-pointer hover:bg-muted transition-colors select-none"
+                    onClick={() => handleSort('name')}
+                  >
+                    {t('tours.tour')}
+                    {getSortIcon('name')}
+                  </TableHead>
+                  <TableHead
+                    className="cursor-pointer hover:bg-muted transition-colors select-none"
+                    onClick={() => handleSort('destination')}
+                  >
+                    {t('tours.destination')}
+                    {getSortIcon('destination')}
+                  </TableHead>
+                  <TableHead
+                    className="text-center cursor-pointer hover:bg-muted transition-colors select-none"
+                    onClick={() => handleSort('capacity')}
+                  >
+                    {t('tours.capacity')}
+                    {getSortIcon('capacity')}
+                  </TableHead>
+                  <TableHead
+                    className="cursor-pointer hover:bg-muted transition-colors select-none"
+                    onClick={() => handleSort('startingPoint')}
+                  >
+                    {t('tours.startingPoint')}
+                    {getSortIcon('startingPoint')}
+                  </TableHead>
+                  <TableHead
+                    className="cursor-pointer hover:bg-muted transition-colors select-none"
+                    onClick={() => handleSort('departureTime')}
+                  >
+                    {t('tours.departureTime')}
+                    {getSortIcon('departureTime')}
+                  </TableHead>
+                  <TableHead
+                    className="text-right cursor-pointer hover:bg-muted transition-colors select-none"
+                    onClick={() => handleSort('adultPrice')}
+                  >
+                    {t('tours.adultPrice')}
+                    {getSortIcon('adultPrice')}
+                  </TableHead>
+                  <TableHead
+                    className="text-right cursor-pointer hover:bg-muted transition-colors select-none"
+                    onClick={() => handleSort('childPrice')}
+                  >
+                    {t('tours.childPrice')}
+                    {getSortIcon('childPrice')}
+                  </TableHead>
+                  <TableHead
+                    className="cursor-pointer hover:bg-muted transition-colors select-none"
+                    onClick={() => handleSort('status')}
+                  >
+                    {t('tours.status')}
+                    {getSortIcon('status')}
+                  </TableHead>
                   <TableHead className="text-center">{t('tours.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredTours.map((tour) => (
+                {sortedTours.map((tour) => (
                   <TableRow key={tour.id} className="hover:bg-muted/50">
                     <TableCell>
                       <div>
@@ -233,16 +326,46 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="min-w-[150px]">{t('tours.tour')}</TableHead>
-                      <TableHead className="min-w-[120px]">{t('tours.destination')}</TableHead>
-                      <TableHead className="min-w-[80px] text-center">{t('tours.capacity')}</TableHead>
-                      <TableHead className="min-w-[100px] text-right">{t('tours.adultPrice')}</TableHead>
-                      <TableHead className="min-w-[100px]">{t('tours.status')}</TableHead>
+                      <TableHead
+                        className="min-w-[150px] cursor-pointer hover:bg-muted transition-colors select-none"
+                        onClick={() => handleSort('name')}
+                      >
+                        {t('tours.tour')}
+                        {getSortIcon('name')}
+                      </TableHead>
+                      <TableHead
+                        className="min-w-[120px] cursor-pointer hover:bg-muted transition-colors select-none"
+                        onClick={() => handleSort('destination')}
+                      >
+                        {t('tours.destination')}
+                        {getSortIcon('destination')}
+                      </TableHead>
+                      <TableHead
+                        className="min-w-[80px] text-center cursor-pointer hover:bg-muted transition-colors select-none"
+                        onClick={() => handleSort('capacity')}
+                      >
+                        {t('tours.capacity')}
+                        {getSortIcon('capacity')}
+                      </TableHead>
+                      <TableHead
+                        className="min-w-[100px] text-right cursor-pointer hover:bg-muted transition-colors select-none"
+                        onClick={() => handleSort('adultPrice')}
+                      >
+                        {t('tours.adultPrice')}
+                        {getSortIcon('adultPrice')}
+                      </TableHead>
+                      <TableHead
+                        className="min-w-[100px] cursor-pointer hover:bg-muted transition-colors select-none"
+                        onClick={() => handleSort('status')}
+                      >
+                        {t('tours.status')}
+                        {getSortIcon('status')}
+                      </TableHead>
                       <TableHead className="min-w-[120px] text-center">{t('tours.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredTours.map((tour) => (
+                    {sortedTours.map((tour) => (
                       <TableRow key={tour.id} className="hover:bg-muted/50">
                         <TableCell className="min-w-[150px]">
                           <div>
@@ -301,7 +424,7 @@ const TourCatalogTab: React.FC<TourCatalogTabProps> = ({
 
           {/* Mobile Card View */}
           <div className="lg:hidden space-y-3 sm:space-y-4">
-            {filteredTours.map((tour) => (
+            {sortedTours.map((tour) => (
               <Card key={tour.id} className="p-3 sm:p-4 hover:bg-muted/50">
                 <div className="space-y-2 sm:space-y-3">
                   {/* Tour Header */}

@@ -159,6 +159,10 @@ const ToursPage = () => {
       departureTime: tour.departure_time,
       adultPrice: parseFloat(tour.adult_price),
       childPrice: parseFloat(tour.child_price),
+      babyPrice: tour.baby_price ? parseFloat(tour.baby_price) : undefined,
+      percentageDiscountAllowed: tour.percentage_discount_allowed ? parseFloat(tour.percentage_discount_allowed) : undefined,
+      cost: tour.cost ? parseFloat(tour.cost) : undefined,
+      operator: tour.operator || '',
       currency: tour.currency,
       description: tour.description,
       created_at: tour.created_at,
@@ -176,6 +180,10 @@ const ToursPage = () => {
     departureTime: '',
     adultPrice: 0,
     childPrice: 0,
+    babyPrice: 0,
+    percentageDiscountAllowed: 0,
+    cost: 0,
+    operator: '',
     startingPoint: '',
     description: '',
     currency: 'CLP',
@@ -277,6 +285,10 @@ const ToursPage = () => {
       departureTime: '',
       adultPrice: 0,
       childPrice: 0,
+      babyPrice: 0,
+      percentageDiscountAllowed: 0,
+      cost: 0,
+      operator: '',
       startingPoint: '',
       description: '',
       currency: 'CLP',
@@ -522,6 +534,10 @@ const ToursPage = () => {
         departureTime: selectedTour.departureTime,
         adultPrice: selectedTour.adultPrice,
         childPrice: selectedTour.childPrice,
+        babyPrice: selectedTour.babyPrice || 0,
+        percentageDiscountAllowed: selectedTour.percentageDiscountAllowed || 0,
+        cost: selectedTour.cost || 0,
+        operator: selectedTour.operator || '',
         startingPoint: selectedTour.startingPoint,
         description: selectedTour.description,
         currency: selectedTour.currency || 'CLP',
@@ -701,6 +717,51 @@ const ToursPage = () => {
               />
             </div>
             <div className="space-y-2 col-span-1">
+              <Label htmlFor="babyPrice" className="text-sm font-medium">Baby Price</Label>
+              <Input
+                id="babyPrice"
+                type="number"
+                placeholder="0"
+                value={formData.babyPrice || ''}
+                onChange={(e) => handleFormChange('babyPrice', parseFloat(e.target.value) || 0)}
+                className="h-10"
+              />
+            </div>
+            <div className="space-y-2 col-span-1">
+              <Label htmlFor="percentageDiscountAllowed" className="text-sm font-medium">Percentage Discount Allowed (%)</Label>
+              <Input
+                id="percentageDiscountAllowed"
+                type="number"
+                placeholder="0"
+                min="0"
+                max="100"
+                value={formData.percentageDiscountAllowed || ''}
+                onChange={(e) => handleFormChange('percentageDiscountAllowed', parseFloat(e.target.value) || 0)}
+                className="h-10"
+              />
+            </div>
+            <div className="space-y-2 col-span-1">
+              <Label htmlFor="cost" className="text-sm font-medium">Cost</Label>
+              <Input
+                id="cost"
+                type="number"
+                placeholder="0"
+                value={formData.cost || ''}
+                onChange={(e) => handleFormChange('cost', parseFloat(e.target.value) || 0)}
+                className="h-10"
+              />
+            </div>
+            <div className="space-y-2 col-span-1">
+              <Label htmlFor="operator" className="text-sm font-medium">Operator</Label>
+              <Input
+                id="operator"
+                placeholder="Enter operator name"
+                value={formData.operator || ''}
+                onChange={(e) => handleFormChange('operator', e.target.value)}
+                className="h-10"
+              />
+            </div>
+            <div className="space-y-2 col-span-1">
               <Label htmlFor="currency" className="text-sm font-medium">Currency</Label>
               <Select value={formData.currency} onValueChange={(value) => handleFormChange('currency', value)}>
                 <SelectTrigger className="h-10">
@@ -842,6 +903,51 @@ const ToursPage = () => {
                   type="number"
                   value={editFormData.childPrice || ''}
                   onChange={(e) => handleEditFormChange('childPrice', parseFloat(e.target.value) || 0)}
+                  className="h-10"
+                />
+              </div>
+              <div className="space-y-2 col-span-1">
+                <Label htmlFor="editBabyPrice" className="text-sm font-medium">Baby Price</Label>
+                <Input
+                  id="editBabyPrice"
+                  type="number"
+                  placeholder="0"
+                  value={editFormData.babyPrice || ''}
+                  onChange={(e) => handleEditFormChange('babyPrice', parseFloat(e.target.value) || 0)}
+                  className="h-10"
+                />
+              </div>
+              <div className="space-y-2 col-span-1">
+                <Label htmlFor="editPercentageDiscountAllowed" className="text-sm font-medium">Percentage Discount Allowed (%)</Label>
+                <Input
+                  id="editPercentageDiscountAllowed"
+                  type="number"
+                  placeholder="0"
+                  min="0"
+                  max="100"
+                  value={editFormData.percentageDiscountAllowed || ''}
+                  onChange={(e) => handleEditFormChange('percentageDiscountAllowed', parseFloat(e.target.value) || 0)}
+                  className="h-10"
+                />
+              </div>
+              <div className="space-y-2 col-span-1">
+                <Label htmlFor="editCost" className="text-sm font-medium">Cost</Label>
+                <Input
+                  id="editCost"
+                  type="number"
+                  placeholder="0"
+                  value={editFormData.cost || ''}
+                  onChange={(e) => handleEditFormChange('cost', parseFloat(e.target.value) || 0)}
+                  className="h-10"
+                />
+              </div>
+              <div className="space-y-2 col-span-1">
+                <Label htmlFor="editOperator" className="text-sm font-medium">Operator</Label>
+                <Input
+                  id="editOperator"
+                  placeholder="Enter operator name"
+                  value={editFormData.operator || ''}
+                  onChange={(e) => handleEditFormChange('operator', e.target.value)}
                   className="h-10"
                 />
               </div>
