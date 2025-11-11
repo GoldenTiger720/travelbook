@@ -3,10 +3,7 @@ import { toast } from "sonner";
 import Swal from "sweetalert2";
 import html2pdf from "html2pdf.js";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TourCatalogTab from "@/components/ToursPage/TourCatalogTab";
-import TourOperatorsManagement from "@/components/ToursPage/TourOperatorsManagement";
-import DailyAvailabilityTab from "@/components/ToursPage/DailyAvailabilityTab";
 import {
   Select,
   SelectContent,
@@ -26,7 +23,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, MapPin, Users } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { tourService, CreateTourData, Tour, TourOperator } from "@/services/tourService";
 import { destinationService, Destination } from "@/services/destinationService";
@@ -111,47 +107,14 @@ const toursData = [
   },
 ];
 
-// Mock data for daily availability
-const generateCalendarData = () => {
-  const today = new Date();
-  const currentMonth = today.getMonth();
-  const currentYear = today.getFullYear();
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-
-  const calendarData = [];
-  for (let day = 1; day <= daysInMonth; day++) {
-    const date = new Date(currentYear, currentMonth, day);
-    calendarData.push({
-      date: date.toISOString().split("T")[0],
-      day,
-      tours: toursData
-        .filter((t) => t.status === "active")
-        .map((tour) => ({
-          id: tour.id,
-          name: tour.name,
-          totalCapacity: tour.capacity,
-          bookedSpots: Math.floor(Math.random() * tour.capacity * 0.8),
-          availableSpots:
-            tour.capacity - Math.floor(Math.random() * tour.capacity * 0.8),
-        })),
-    });
-  }
-  return calendarData;
-};
-
 const ToursPage = () => {
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState("catalog");
   const [searchTerm, setSearchTerm] = useState("");
   const [destinationFilter, setDestinationFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showNewTourDialog, setShowNewTourDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [showAvailabilityDialog, setShowAvailabilityDialog] = useState(false);
   const [selectedTour, setSelectedTour] = useState<any>(null);
-  const [selectedDate, setSelectedDate] = useState<any>(null);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [calendarData] = useState(generateCalendarData());
   const [isLoading, setIsLoading] = useState(false);
   const [tours, setTours] = useState<any[]>([]); // Display format tours
   const [isLoadingTours, setIsLoadingTours] = useState(false);
@@ -269,52 +232,6 @@ const ToursPage = () => {
 
     return matchesSearch && matchesDestination && matchesStatus;
   });
-
-  // Calendar navigation
-  const navigateMonth = (direction: "prev" | "next") => {
-    const newMonth = new Date(currentMonth);
-    newMonth.setMonth(
-      currentMonth.getMonth() + (direction === "next" ? 1 : -1)
-    );
-    setCurrentMonth(newMonth);
-  };
-
-  // Get calendar days for current month
-  const getCalendarDays = () => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
-
-    const days = [];
-
-    // Add empty cells for days before the first day of the month
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(null);
-    }
-
-    // Add days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateStr = `${year}-${(month + 1).toString().padStart(2, "0")}-${day
-        .toString()
-        .padStart(2, "0")}`;
-      const dayData = calendarData.find((d) => d.date === dateStr);
-      days.push({
-        day,
-        date: dateStr,
-        data: dayData,
-      });
-    }
-
-    return days;
-  };
-
-  const handleEditAvailability = (date: any) => {
-    setSelectedDate(date);
-    setShowAvailabilityDialog(true);
-  };
 
   // Reset form data when dialog closes
   const resetFormData = () => {
@@ -684,92 +601,32 @@ const ToursPage = () => {
         </div>
       </div>
 
-      {/* Main Content with Tabs */}
-      <Tabs
-        value={activeTab}
-        onValueChange={setActiveTab}
-        className="space-y-3 sm:space-y-4"
-      >
-        <TabsList className="grid w-full grid-cols-3 h-auto">
-          <TabsTrigger
-            value="catalog"
-            className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 text-xs sm:text-sm"
-          >
-            <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="hidden xs:inline">{t("tours.tourCatalog")}</span>
-            <span className="xs:hidden">Catalog</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="operators"
-            className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 text-xs sm:text-sm"
-          >
-            <Users className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="hidden xs:inline">Tour Operators</span>
-            <span className="xs:hidden">Operators</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="availability"
-            className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 text-xs sm:text-sm"
-          >
-            <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="hidden xs:inline">
-              {t("tours.dailyAvailability")}
-            </span>
-            <span className="xs:hidden">Availability</span>
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Tour Catalog Tab */}
-        <TabsContent
-          value="catalog"
-          className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden"
-        >
-          {isLoadingTours ? (
-            <div className="flex justify-center items-center py-8">
-              <div className="text-muted-foreground">Loading tours...</div>
-            </div>
-          ) : (
-            <TourCatalogTab
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              destinationFilter={destinationFilter}
-              setDestinationFilter={setDestinationFilter}
-              statusFilter={statusFilter}
-              setStatusFilter={setStatusFilter}
-              setShowNewTourDialog={setShowNewTourDialog}
-              setSelectedTour={setSelectedTour}
-              setShowEditDialog={setShowEditDialog}
-              onDeleteTour={handleDeleteTour}
-              toursData={tours}
-              destinations={destinationOptions}
-              filteredTours={filteredTours}
-              onPrintTours={handlePrintTours}
-              onExportTours={handleExportTours}
-            />
-          )}
-        </TabsContent>
-
-        {/* Tour Operators Management Tab */}
-        <TabsContent
-          value="operators"
-          className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden"
-        >
-          <TourOperatorsManagement />
-        </TabsContent>
-
-        {/* Daily Availability Tab */}
-        <TabsContent
-          value="availability"
-          className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden"
-        >
-          <DailyAvailabilityTab
-            currentMonth={currentMonth}
-            navigateMonth={navigateMonth}
-            getCalendarDays={getCalendarDays}
-            handleEditAvailability={handleEditAvailability}
+      {/* Main Content */}
+      <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
+        {isLoadingTours ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="text-muted-foreground">Loading tours...</div>
+          </div>
+        ) : (
+          <TourCatalogTab
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            destinationFilter={destinationFilter}
+            setDestinationFilter={setDestinationFilter}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            setShowNewTourDialog={setShowNewTourDialog}
+            setSelectedTour={setSelectedTour}
+            setShowEditDialog={setShowEditDialog}
+            onDeleteTour={handleDeleteTour}
+            toursData={tours}
+            destinations={destinationOptions}
+            filteredTours={filteredTours}
+            onPrintTours={handlePrintTours}
+            onExportTours={handleExportTours}
           />
-        </TabsContent>
-      </Tabs>
+        )}
+      </div>
 
       {/* New Tour Dialog */}
       <Dialog
@@ -1450,123 +1307,6 @@ const ToursPage = () => {
               {isLoading
                 ? t("common.updating") || "Updating..."
                 : t("tours.updateTour")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Availability Edit Dialog */}
-      <Dialog
-        open={showAvailabilityDialog}
-        onOpenChange={setShowAvailabilityDialog}
-      >
-        <DialogContent className="w-[95vw] max-w-2xl max-h-[95vh] overflow-y-auto mx-auto p-4 sm:p-6">
-          <DialogHeader>
-            <DialogTitle>{t("tours.editDailyAvailability")}</DialogTitle>
-            <DialogDescription>
-              {selectedDate &&
-                `${t("tours.editAvailabilityDescription")} ${
-                  selectedDate.date
-                }`}
-            </DialogDescription>
-          </DialogHeader>
-          {selectedDate && (
-            <div className="space-y-3 sm:space-y-4">
-              {selectedDate.tours?.map((tour: any) => (
-                <div key={tour.id} className="border rounded-lg p-3 sm:p-4">
-                  <h4 className="font-medium mb-2 sm:mb-3 text-sm sm:text-base truncate">
-                    {tour.name}
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-                    <div className="space-y-1 sm:space-y-2">
-                      <Label className="text-xs sm:text-sm font-medium">
-                        {t("tours.totalCapacity")}
-                      </Label>
-                      <Input
-                        type="number"
-                        defaultValue={tour.totalCapacity}
-                        className="h-9 sm:h-10"
-                      />
-                    </div>
-                    <div className="space-y-1 sm:space-y-2">
-                      <Label className="text-xs sm:text-sm font-medium">
-                        {t("tours.bookedSpots")}
-                      </Label>
-                      <Input
-                        type="number"
-                        defaultValue={tour.bookedSpots}
-                        className="h-9 sm:h-10"
-                      />
-                    </div>
-                    <div className="space-y-1 sm:space-y-2">
-                      <Label className="text-xs sm:text-sm font-medium">
-                        {t("tours.availableSpots")}
-                      </Label>
-                      <Input
-                        type="number"
-                        defaultValue={tour.availableSpots}
-                        readOnly
-                        className="bg-muted h-9 sm:h-10"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )) ||
-                (selectedDate.tour && (
-                  <div className="border rounded-lg p-3 sm:p-4">
-                    <h4 className="font-medium mb-2 sm:mb-3 text-sm sm:text-base truncate">
-                      {selectedDate.tour.name}
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-                      <div className="space-y-1 sm:space-y-2">
-                        <Label className="text-xs sm:text-sm font-medium">
-                          {t("tours.totalCapacity")}
-                        </Label>
-                        <Input
-                          type="number"
-                          defaultValue={selectedDate.tour.totalCapacity}
-                          className="h-9 sm:h-10"
-                        />
-                      </div>
-                      <div className="space-y-1 sm:space-y-2">
-                        <Label className="text-xs sm:text-sm font-medium">
-                          {t("tours.bookedSpots")}
-                        </Label>
-                        <Input
-                          type="number"
-                          defaultValue={selectedDate.tour.bookedSpots}
-                          className="h-9 sm:h-10"
-                        />
-                      </div>
-                      <div className="space-y-1 sm:space-y-2">
-                        <Label className="text-xs sm:text-sm font-medium">
-                          {t("tours.availableSpots")}
-                        </Label>
-                        <Input
-                          type="number"
-                          defaultValue={selectedDate.tour.availableSpots}
-                          readOnly
-                          className="bg-muted h-9 sm:h-10"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
-          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => setShowAvailabilityDialog(false)}
-              className="w-full sm:w-auto"
-            >
-              {t("common.cancel")}
-            </Button>
-            <Button
-              onClick={() => setShowAvailabilityDialog(false)}
-              className="w-full sm:w-auto"
-            >
-              {t("tours.updateAvailability")}
             </Button>
           </DialogFooter>
         </DialogContent>
