@@ -25,7 +25,9 @@ import {
   Download,
   Plus,
   Eye,
+  FileText,
 } from 'lucide-react'
+import { useToast } from '@/components/ui/use-toast'
 
 interface Receivable {
   id: number
@@ -53,12 +55,196 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
   onAddInvoice,
 }) => {
   const [searchTerm, setSearchTerm] = React.useState('')
+  const { toast } = useToast()
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   // Filter receivables by search term
   const filteredReceivables = receivables.filter(r =>
-    r.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.bookingId.toLowerCase().includes(searchTerm.toLowerCase())
+    r.customerName.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  // Export to CSV
+  const exportToCSV = () => {
+    try {
+      // CSV headers
+      const headers = ['ID', 'Customer', 'Amount', 'Currency', 'Due Date', 'Payment Method', 'Status', 'Percentage']
+
+      // CSV rows
+      const rows = filteredReceivables.map(item => [
+        item.id,
+        item.customerName,
+        item.amount,
+        item.currency,
+        item.dueDate,
+        item.method,
+        item.status,
+        item.percentage
+      ])
+
+      // Combine headers and rows
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n')
+
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `receivables_${new Date().toISOString().split('T')[0]}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      toast({
+        title: 'Success',
+        description: 'Receivables exported to CSV successfully'
+      })
+    } catch (error) {
+      console.error('Error exporting to CSV:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to export receivables',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  // Export to PDF
+  const exportToPDF = () => {
+    try {
+      // Create HTML content for PDF
+      let htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Receivables Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .status-paid { color: green; font-weight: bold; }
+            .status-pending { color: orange; font-weight: bold; }
+            .status-overdue { color: red; font-weight: bold; }
+            .header-info { margin-bottom: 20px; }
+          </style>
+        </head>
+        <body>
+          <h1>Receivables Report</h1>
+          <div class="header-info">
+            <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+            <p><strong>Total Records:</strong> ${filteredReceivables.length}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Customer</th>
+                <th>Amount</th>
+                <th>Due Date</th>
+                <th>Payment Method</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+      `
+
+      filteredReceivables.forEach(item => {
+        const statusClass = `status-${item.status}`
+        htmlContent += `
+              <tr>
+                <td>#${item.id}</td>
+                <td>${item.customerName}</td>
+                <td>${formatCurrency(item.amount, item.currency)}</td>
+                <td>${item.dueDate}</td>
+                <td>${item.method}</td>
+                <td class="${statusClass}">${item.status.toUpperCase()}</td>
+              </tr>
+        `
+      })
+
+      htmlContent += `
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `
+
+      // Open print dialog with the HTML content
+      const printWindow = window.open('', '_blank')
+      if (printWindow) {
+        printWindow.document.write(htmlContent)
+        printWindow.document.close()
+        printWindow.focus()
+
+        // Wait for content to load then print
+        setTimeout(() => {
+          printWindow.print()
+          toast({
+            title: 'Success',
+            description: 'PDF export initiated. Use your browser\'s print dialog to save as PDF.'
+          })
+        }, 250)
+      } else {
+        throw new Error('Could not open print window')
+      }
+    } catch (error) {
+      console.error('Error exporting to PDF:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to export PDF',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  // Handle CSV import
+  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string
+        const lines = text.split('\n').filter(line => line.trim())
+
+        if (lines.length < 2) {
+          throw new Error('CSV file is empty or invalid')
+        }
+
+        // Parse CSV (basic implementation)
+        const data = lines.slice(1).map(line => {
+          const values = line.split(',').map(v => v.replace(/^"|"$/g, '').trim())
+          return values
+        })
+
+        toast({
+          title: 'Import Preview',
+          description: `Found ${data.length} records. Import functionality requires backend API implementation.`
+        })
+
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
+      } catch (error) {
+        console.error('Error importing CSV:', error)
+        toast({
+          title: 'Error',
+          description: 'Failed to parse CSV file',
+          variant: 'destructive'
+        })
+      }
+    }
+    reader.readAsText(file)
+  }
 
   if (loading) {
     return (
@@ -96,14 +282,35 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
           </Select>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleImport}
+            className="hidden"
+          />
+          <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
             <Upload className="w-4 h-4 sm:mr-2" />
             <span className="hidden sm:inline">Import</span>
           </Button>
-          <Button variant="outline" size="sm">
-            <Download className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">Export</span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Download className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Export</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportToCSV}>
+                <Download className="w-4 h-4 mr-2" />
+                Export as CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportToPDF}>
+                <FileText className="w-4 h-4 mr-2" />
+                Export as PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button size="sm" onClick={onAddInvoice}>
             <Plus className="w-4 h-4 sm:mr-2" />
             <span className="hidden sm:inline">New Invoice</span>
@@ -119,7 +326,6 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
                 <TableRow>
                   <TableHead className="min-w-[100px]">ID</TableHead>
                   <TableHead className="min-w-[150px]">Customer</TableHead>
-                  <TableHead className="min-w-[120px]">Booking ID</TableHead>
                   <TableHead className="min-w-[120px]">Amount</TableHead>
                   <TableHead className="min-w-[100px]">Due Date</TableHead>
                   <TableHead className="min-w-[100px]">Payment Method</TableHead>
@@ -130,7 +336,7 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
               <TableBody>
                 {filteredReceivables.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       {searchTerm ? 'No receivables found matching your search.' : 'No receivables found.'}
                     </TableCell>
                   </TableRow>
@@ -139,11 +345,6 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">#{item.id}</TableCell>
                       <TableCell>{item.customerName}</TableCell>
-                      <TableCell>
-                        <span className="text-blue-600 hover:underline cursor-pointer">
-                          {item.bookingId}
-                        </span>
-                      </TableCell>
                       <TableCell>{formatCurrency(item.amount, item.currency)}</TableCell>
                       <TableCell>{item.dueDate}</TableCell>
                       <TableCell className="capitalize">{item.method}</TableCell>

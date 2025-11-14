@@ -7,10 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { CalendarIcon } from 'lucide-react'
+import { CalendarIcon, Search } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import type { Currency, PaymentMethod } from '@/types/financial'
+import { apiCall } from '@/config/api'
 
 interface AddInvoiceDialogProps {
   open: boolean
@@ -29,8 +30,25 @@ export interface InvoiceFormData {
   comments?: string
 }
 
+interface Booking {
+  id: string
+  customer: {
+    name: string
+    email: string
+  }
+  pricing: {
+    amount: number
+    currency: string
+  }
+  status: string
+  createdAt: string
+}
+
 const AddInvoiceDialog: React.FC<AddInvoiceDialogProps> = ({ open, onOpenChange, onSave }) => {
   const [loading, setLoading] = useState(false)
+  const [loadingBookings, setLoadingBookings] = useState(false)
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
   const [dueDate, setDueDate] = useState<Date>(new Date())
 
   const [formData, setFormData] = useState<InvoiceFormData>({
@@ -43,6 +61,55 @@ const AddInvoiceDialog: React.FC<AddInvoiceDialogProps> = ({ open, onOpenChange,
     status: 'pending',
     comments: ''
   })
+
+  // Fetch bookings when dialog opens
+  useEffect(() => {
+    const fetchBookings = async () => {
+      if (!open) return
+
+      setLoadingBookings(true)
+      try {
+        const response = await apiCall('/api/reservations/', {
+          method: 'GET'
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch bookings')
+        }
+
+        const result = await response.json()
+        const bookingsData = result.data || []
+        setBookings(bookingsData)
+      } catch (error) {
+        console.error('Error fetching bookings:', error)
+        setBookings([])
+      } finally {
+        setLoadingBookings(false)
+      }
+    }
+
+    fetchBookings()
+  }, [open])
+
+  // Filter bookings based on search term
+  const filteredBookings = bookings.filter(booking =>
+    booking.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    booking.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    booking.customer.email.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  // Handle booking selection
+  const handleBookingSelect = (bookingId: string) => {
+    const selectedBooking = bookings.find(b => b.id === bookingId)
+    if (selectedBooking) {
+      setFormData({
+        ...formData,
+        bookingId: bookingId,
+        currency: selectedBooking.pricing.currency as Currency,
+        amount: selectedBooking.pricing.amount
+      })
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -66,6 +133,7 @@ const AddInvoiceDialog: React.FC<AddInvoiceDialogProps> = ({ open, onOpenChange,
         comments: ''
       })
       setDueDate(new Date())
+      setSearchTerm('')
       onOpenChange(false)
     } catch (error) {
       console.error('Error creating invoice:', error)
@@ -83,16 +151,46 @@ const AddInvoiceDialog: React.FC<AddInvoiceDialogProps> = ({ open, onOpenChange,
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            {/* Booking ID */}
+            {/* Booking Selection */}
             <div className="col-span-2">
-              <Label htmlFor="bookingId">Booking ID *</Label>
-              <Input
-                id="bookingId"
+              <Label htmlFor="bookingId">Select Booking *</Label>
+              <Select
                 value={formData.bookingId}
-                onChange={(e) => setFormData({ ...formData, bookingId: e.target.value })}
-                placeholder="Enter booking ID"
-                required
-              />
+                onValueChange={handleBookingSelect}
+                disabled={loadingBookings}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingBookings ? "Loading bookings..." : "Select a booking"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <div className="flex items-center px-3 pb-2">
+                    <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                    <Input
+                      placeholder="Search bookings..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="h-8"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                  {filteredBookings.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                      {loadingBookings ? 'Loading...' : 'No bookings found'}
+                    </div>
+                  ) : (
+                    filteredBookings.map((booking) => (
+                      <SelectItem key={booking.id} value={booking.id}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{booking.customer.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            #{booking.id.slice(0, 8)} • {booking.pricing.currency} {booking.pricing.amount.toFixed(2)} • {booking.status}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Amount */}

@@ -35,7 +35,7 @@ const FinancialPage = () => {
   const [endDate, setEndDate] = useState<Date>(endOfMonth(new Date()))
 
   // Currency filter
-  const [selectedCurrency, setSelectedCurrency] = useState<string>('CLP')
+  const [selectedCurrency, setSelectedCurrency] = useState<string>('ALL')
 
   // Data state
   const [dashboardData, setDashboardData] = useState<FinancialDashboard | null>(null)
@@ -207,13 +207,23 @@ const FinancialPage = () => {
         percentage: invoiceData.percentage,
         amount_paid: invoiceData.amount,
         status: invoiceData.status,
-        comments: invoiceData.comments || ''
+        comments: invoiceData.comments || '',
+        copy_comments: true,
+        include_payment: true,
+        quote_comments: '',
+        send_purchase_order: false,
+        send_quotation_access: false
       }
 
-      await apiCall(`/api/bookings/${invoiceData.bookingId}/payments/`, {
+      const response = await apiCall(`/api/bookings/${invoiceData.bookingId}/payments/`, {
         method: 'POST',
         body: JSON.stringify(bookingPaymentData)
       })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || errorData.error || 'Failed to create invoice')
+      }
 
       toast({
         title: 'Success',
@@ -225,11 +235,11 @@ const FinancialPage = () => {
         fetchDashboardData(),
         fetchReceivables()
       ])
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating invoice:', error)
       toast({
         title: 'Error',
-        description: 'Failed to create invoice. Please check if the booking ID exists.',
+        description: error.message || 'Failed to create invoice. Please check if the booking ID exists.',
         variant: 'destructive'
       })
       throw error
@@ -340,6 +350,7 @@ const FinancialPage = () => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="ALL">All Currencies</SelectItem>
               <SelectItem value="CLP">CLP - Chilean Peso</SelectItem>
               <SelectItem value="USD">USD - US Dollar</SelectItem>
               <SelectItem value="EUR">EUR - Euro</SelectItem>
