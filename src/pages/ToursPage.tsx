@@ -141,8 +141,8 @@ const ToursPage = () => {
         ? parseFloat(tour.percentage_discount_allowed)
         : undefined,
       cost: tour.cost ? parseFloat(tour.cost) : undefined,
-      operator: tour.operator?.id || "",
-      operatorName: tour.operator?.full_name || "",
+      operators: tour.operators?.map(op => op.id) || [],
+      operatorNames: tour.operators?.map(op => op.full_name).join(", ") || "",
       currency: tour.currency,
       description: tour.description,
       availableDays: tour.available_days || [],
@@ -164,7 +164,7 @@ const ToursPage = () => {
     babyPrice: 0,
     percentageDiscountAllowed: 0,
     cost: 0,
-    operator: "",
+    operators: [],
     startingPoint: "",
     description: "",
     currency: "CLP",
@@ -245,7 +245,7 @@ const ToursPage = () => {
       babyPrice: 0,
       percentageDiscountAllowed: 0,
       cost: 0,
-      operator: "",
+      operators: [],
       startingPoint: "",
       description: "",
       currency: "CLP",
@@ -569,7 +569,7 @@ const ToursPage = () => {
         babyPrice: selectedTour.babyPrice || 0,
         percentageDiscountAllowed: selectedTour.percentageDiscountAllowed || 0,
         cost: selectedTour.cost || 0,
-        operator: selectedTour.operator || "",
+        operators: selectedTour.operators || [],
         startingPoint: selectedTour.startingPoint,
         description: selectedTour.description,
         currency: selectedTour.currency || "CLP",
@@ -807,39 +807,6 @@ const ToursPage = () => {
               />
             </div>
             <div className="space-y-2 col-span-1">
-              <Label htmlFor="operator" className="text-sm font-medium">
-                Operator
-              </Label>
-              <Select
-                value={formData.operator || "none"}
-                onValueChange={(value) => handleFormChange("operator", value === "none" ? "" : value)}
-              >
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Select operator" />
-                </SelectTrigger>
-                <SelectContent>
-                  {isLoadingOperators ? (
-                    <SelectItem value="_loading" disabled>
-                      Loading operators...
-                    </SelectItem>
-                  ) : operators.length > 0 ? (
-                    <>
-                      <SelectItem value="none">None</SelectItem>
-                      {operators.map((op) => (
-                        <SelectItem key={op.id} value={op.id}>
-                          {op.full_name}
-                        </SelectItem>
-                      ))}
-                    </>
-                  ) : (
-                    <SelectItem value="_empty" disabled>
-                      No operators available
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2 col-span-1">
               <Label htmlFor="currency" className="text-sm font-medium">
                 Currency
               </Label>
@@ -878,6 +845,106 @@ const ToursPage = () => {
                 }
                 className="h-10"
               />
+            </div>
+            <div className="col-span-full space-y-2">
+              <Label className="text-sm font-medium">
+                Operators
+              </Label>
+              <div className="space-y-2">
+                <Select>
+                  <SelectTrigger className="h-10">
+                    <SelectValue>
+                      {formData.operators && formData.operators.length > 0
+                        ? `${formData.operators.length} selected`
+                        : "Select operators"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {isLoadingOperators ? (
+                      <div className="px-2 py-3 text-sm text-muted-foreground">
+                        Loading operators...
+                      </div>
+                    ) : operators.length > 0 ? (
+                      <div className="max-h-60 overflow-y-auto">
+                        {[...operators]
+                          .sort((a, b) => {
+                            const aSelected = (formData.operators || []).includes(a.id);
+                            const bSelected = (formData.operators || []).includes(b.id);
+                            if (aSelected && !bSelected) return -1;
+                            if (!aSelected && bSelected) return 1;
+                            return a.full_name.localeCompare(b.full_name);
+                          })
+                          .map((op) => (
+                            <div
+                              key={op.id}
+                              className="flex items-center space-x-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-sm"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                const currentOperators = formData.operators || [];
+                                const isSelected = currentOperators.includes(op.id);
+                                const newOperators = isSelected
+                                  ? currentOperators.filter(id => id !== op.id)
+                                  : [...currentOperators, op.id];
+                                handleFormChange("operators", newOperators);
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={(formData.operators || []).includes(op.id)}
+                                onChange={() => {}}
+                                className="rounded border-gray-300 pointer-events-none"
+                              />
+                              <span className="text-sm">{op.full_name}</span>
+                            </div>
+                          ))}
+                      </div>
+                    ) : (
+                      <div className="px-2 py-3 text-sm text-muted-foreground">
+                        No operators available
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+                {formData.operators && formData.operators.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {formData.operators.map((operatorId) => {
+                      const operator = operators.find(op => op.id === operatorId);
+                      if (!operator) return null;
+                      return (
+                        <div
+                          key={operatorId}
+                          className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md text-sm"
+                        >
+                          <span>{operator.full_name}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newOperators = formData.operators?.filter(id => id !== operatorId) || [];
+                              handleFormChange("operators", newOperators);
+                            }}
+                            className="hover:bg-primary/20 rounded-full p-0.5"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <line x1="18" y1="6" x2="6" y2="18"></line>
+                              <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="col-span-full space-y-2">
               <Label htmlFor="description" className="text-sm font-medium">
@@ -1150,39 +1217,6 @@ const ToursPage = () => {
                 />
               </div>
               <div className="space-y-2 col-span-1">
-                <Label htmlFor="editOperator" className="text-sm font-medium">
-                  Operator
-                </Label>
-                <Select
-                  value={editFormData.operator || "none"}
-                  onValueChange={(value) => handleEditFormChange("operator", value === "none" ? "" : value)}
-                >
-                  <SelectTrigger className="h-10">
-                    <SelectValue placeholder="Select operator" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {isLoadingOperators ? (
-                      <SelectItem value="_loading" disabled>
-                        Loading operators...
-                      </SelectItem>
-                    ) : operators.length > 0 ? (
-                      <>
-                        <SelectItem value="none">None</SelectItem>
-                        {operators.map((op) => (
-                          <SelectItem key={op.id} value={op.id}>
-                            {op.full_name}
-                          </SelectItem>
-                        ))}
-                      </>
-                    ) : (
-                      <SelectItem value="_empty" disabled>
-                        No operators available
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2 col-span-1">
                 <Label htmlFor="editCurrency" className="text-sm font-medium">
                   Currency
                 </Label>
@@ -1225,6 +1259,106 @@ const ToursPage = () => {
                   }
                   className="h-10"
                 />
+              </div>
+              <div className="col-span-full space-y-2">
+                <Label className="text-sm font-medium">
+                  Operators
+                </Label>
+                <div className="space-y-2">
+                  <Select>
+                    <SelectTrigger className="h-10">
+                      <SelectValue>
+                        {editFormData.operators && editFormData.operators.length > 0
+                          ? `${editFormData.operators.length} selected`
+                          : "Select operators"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {isLoadingOperators ? (
+                        <div className="px-2 py-3 text-sm text-muted-foreground">
+                          Loading operators...
+                        </div>
+                      ) : operators.length > 0 ? (
+                        <div className="max-h-60 overflow-y-auto">
+                          {[...operators]
+                            .sort((a, b) => {
+                              const aSelected = (editFormData.operators || []).includes(a.id);
+                              const bSelected = (editFormData.operators || []).includes(b.id);
+                              if (aSelected && !bSelected) return -1;
+                              if (!aSelected && bSelected) return 1;
+                              return a.full_name.localeCompare(b.full_name);
+                            })
+                            .map((op) => (
+                              <div
+                                key={op.id}
+                                className="flex items-center space-x-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-sm"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  const currentOperators = editFormData.operators || [];
+                                  const isSelected = currentOperators.includes(op.id);
+                                  const newOperators = isSelected
+                                    ? currentOperators.filter(id => id !== op.id)
+                                    : [...currentOperators, op.id];
+                                  handleEditFormChange("operators", newOperators);
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={(editFormData.operators || []).includes(op.id)}
+                                  onChange={() => {}}
+                                  className="rounded border-gray-300 pointer-events-none"
+                                />
+                                <span className="text-sm">{op.full_name}</span>
+                              </div>
+                            ))}
+                        </div>
+                      ) : (
+                        <div className="px-2 py-3 text-sm text-muted-foreground">
+                          No operators available
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {editFormData.operators && editFormData.operators.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {editFormData.operators.map((operatorId) => {
+                        const operator = operators.find(op => op.id === operatorId);
+                        if (!operator) return null;
+                        return (
+                          <div
+                            key={operatorId}
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md text-sm"
+                          >
+                            <span>{operator.full_name}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newOperators = editFormData.operators?.filter(id => id !== operatorId) || [];
+                                handleEditFormChange("operators", newOperators);
+                              }}
+                              className="hover:bg-primary/20 rounded-full p-0.5"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                              </svg>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="col-span-full space-y-2">
                 <Label

@@ -35,7 +35,7 @@ export interface Tour {
   starting_point: string;
   departure_time: string;
   capacity: number;
-  operator?: TourOperator | null;
+  operators: TourOperator[];  // Array of operators
   available_days: number[];  // Array of day numbers: 0=Monday, 1=Tuesday, ..., 6=Sunday
   active: boolean;
   created_by: string;
@@ -62,7 +62,7 @@ export interface CreateTourData {
   babyPrice?: number;
   percentageDiscountAllowed?: number;
   cost?: number;
-  operator?: string;
+  operators?: string[];  // Array of operator UUIDs
   startingPoint: string;
   description: string;
   currency: string;
