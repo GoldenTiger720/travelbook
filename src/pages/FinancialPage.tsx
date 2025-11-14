@@ -404,6 +404,7 @@ const FinancialPage = () => {
             formatCurrency={formatCurrency}
             dashboardData={dashboardData}
             loading={loading}
+            selectedCurrency={selectedCurrency}
           />
         </TabsContent>
 

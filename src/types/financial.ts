@@ -170,6 +170,9 @@ export interface FinancialDashboard {
     total: number
     fixed: number
     variable: number
+    fc: number
+    ivc: number
+    dvc: number
     pending: number
     paid: number
     overdue: number
