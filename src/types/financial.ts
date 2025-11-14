@@ -21,19 +21,8 @@ export type PaymentStatus = 'pending' | 'paid' | 'overdue' | 'cancelled'
 
 export type Currency = 'CLP' | 'USD' | 'EUR' | 'BRL' | 'ARS'
 
-export type PaymentMethod =
-  | 'pagarme-brl'
-  | 'sicred-pix-brl'
-  | 'cash-brl'
-  | 'cash-ars'
-  | 'cash-usd'
-  | 'asaas-brl'
-  | 'santander-ar'
-  | 'wise-brl'
-  | 'wise-usd'
-  | 'wise-eur'
-  | 'wise-clp'
-  | 'mercado-pago-ar'
+// PaymentMethod is now dynamic - loaded from bank accounts in Settings
+export type PaymentMethod = string
 
 export type Recurrence =
   | 'once'

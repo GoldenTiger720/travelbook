@@ -35,14 +35,16 @@ const FinancialPage = () => {
   const [endDate, setEndDate] = useState<Date>(endOfMonth(new Date()))
 
   // Currency filter
-  const [selectedCurrency, setSelectedCurrency] = useState<string>('ALL')
+  const [selectedCurrency, setSelectedCurrency] = useState<string>('USD')
 
   // Data state
   const [dashboardData, setDashboardData] = useState<FinancialDashboard | null>(null)
   const [receivables, setReceivables] = useState<Receivable[]>([])
   const [payables, setPayables] = useState<Payables>({ expenses: [], commissions: [] })
   const [expenses, setExpenses] = useState<Expense[]>([])
+  const [bookings, setBookings] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [loadingBookings, setLoadingBookings] = useState(false)
 
   // Dialog state
   const [addExpenseOpen, setAddExpenseOpen] = useState(false)
@@ -105,6 +107,34 @@ const FinancialPage = () => {
       console.error('Error fetching expenses:', error)
     }
   }
+
+  // Fetch bookings (cached for invoice dialog)
+  const fetchBookings = async () => {
+    if (bookings.length > 0) return // Already loaded
+
+    try {
+      setLoadingBookings(true)
+      const response = await apiCall('/api/reservations/', { method: 'GET' })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch bookings')
+      }
+
+      const result = await response.json()
+      const bookingsData = result.data || []
+      setBookings(bookingsData)
+    } catch (error) {
+      console.error('Error fetching bookings:', error)
+      setBookings([])
+    } finally {
+      setLoadingBookings(false)
+    }
+  }
+
+  // Preload bookings on component mount (for instant invoice dialog loading)
+  useEffect(() => {
+    fetchBookings()
+  }, [])
 
   // Load all data when date range or currency changes
   useEffect(() => {
@@ -350,12 +380,10 @@ const FinancialPage = () => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">All Currencies</SelectItem>
-              <SelectItem value="CLP">CLP - Chilean Peso</SelectItem>
-              <SelectItem value="USD">USD - US Dollar</SelectItem>
-              <SelectItem value="EUR">EUR - Euro</SelectItem>
-              <SelectItem value="BRL">BRL - Brazilian Real</SelectItem>
-              <SelectItem value="ARS">ARS - Argentine Peso</SelectItem>
+              <SelectItem value="USD">USD</SelectItem>
+              <SelectItem value="EUR">EUR</SelectItem>
+              <SelectItem value="BRL">BRL</SelectItem>
+              <SelectItem value="ARS">ARS</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -434,6 +462,8 @@ const FinancialPage = () => {
         open={addInvoiceOpen}
         onOpenChange={setAddInvoiceOpen}
         onSave={handleAddInvoice}
+        bookings={bookings}
+        loadingBookings={loadingBookings}
       />
     </div>
   )

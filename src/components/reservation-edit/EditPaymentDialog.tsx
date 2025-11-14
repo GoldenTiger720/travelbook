@@ -18,6 +18,7 @@ import { format } from 'date-fns'
 import { CalendarIcon } from 'lucide-react'
 import { getCurrencySymbol } from './utils'
 import authService from '@/services/authService'
+import { usePaymentAccounts } from '@/lib/hooks/usePaymentAccounts'
 
 interface EditPaymentDialogProps {
   isOpen: boolean
@@ -62,6 +63,9 @@ export const EditPaymentDialog = ({
   const currentUser = authService.getCurrentUser()
   const canChangePaymentStatus = currentUser?.role === 'Finance' || currentUser?.role === 'Administrator' || currentUser?.isSuperuser
 
+  // Fetch payment accounts from Settings
+  const { paymentAccounts, loading: loadingPaymentAccounts } = usePaymentAccounts()
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
@@ -100,23 +104,26 @@ export const EditPaymentDialog = ({
             </div>
             <div className="space-y-2">
               <Label>Payment Method</Label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+              <Select
+                value={paymentMethod}
+                onValueChange={setPaymentMethod}
+                disabled={loadingPaymentAccounts}
+              >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder={loadingPaymentAccounts ? "Loading..." : "Select payment method"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pagarme-brl">Pagar.me (BRL)</SelectItem>
-                  <SelectItem value="sicred-pix-brl">Sicred – Pix (BRL)</SelectItem>
-                  <SelectItem value="cash-brl">Cash (BRL)</SelectItem>
-                  <SelectItem value="cash-ars">Cash (ARS)</SelectItem>
-                  <SelectItem value="cash-usd">Cash (USD)</SelectItem>
-                  <SelectItem value="asaas-brl">Asaas (BRL)</SelectItem>
-                  <SelectItem value="santander-ar">Santander (AR)</SelectItem>
-                  <SelectItem value="wise-brl">Wise (BRL)</SelectItem>
-                  <SelectItem value="wise-usd">Wise (USD)</SelectItem>
-                  <SelectItem value="wise-eur">Wise (EUR)</SelectItem>
-                  <SelectItem value="wise-clp">Wise (CLP)</SelectItem>
-                  <SelectItem value="mercado-pago-ar">Mercado Pago (AR)</SelectItem>
+                  {paymentAccounts.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                      {loadingPaymentAccounts ? 'Loading...' : 'No payment accounts configured'}
+                    </div>
+                  ) : (
+                    paymentAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.accountName}>
+                        {account.accountName} ({account.currency})
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>

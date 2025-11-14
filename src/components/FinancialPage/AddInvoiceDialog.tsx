@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,12 +11,14 @@ import { CalendarIcon, Search } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import type { Currency, PaymentMethod } from '@/types/financial'
-import { apiCall } from '@/config/api'
+import { usePaymentAccounts } from '@/lib/hooks/usePaymentAccounts'
 
 interface AddInvoiceDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSave: (data: InvoiceFormData) => Promise<void>
+  bookings: Booking[]
+  loadingBookings: boolean
 }
 
 export interface InvoiceFormData {
@@ -44,52 +46,30 @@ interface Booking {
   createdAt: string
 }
 
-const AddInvoiceDialog: React.FC<AddInvoiceDialogProps> = ({ open, onOpenChange, onSave }) => {
+const AddInvoiceDialog: React.FC<AddInvoiceDialogProps> = ({
+  open,
+  onOpenChange,
+  onSave,
+  bookings,
+  loadingBookings
+}) => {
   const [loading, setLoading] = useState(false)
-  const [loadingBookings, setLoadingBookings] = useState(false)
-  const [bookings, setBookings] = useState<Booking[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [dueDate, setDueDate] = useState<Date>(new Date())
+
+  // Fetch payment accounts from Settings
+  const { paymentAccounts, loading: loadingPaymentAccounts } = usePaymentAccounts()
 
   const [formData, setFormData] = useState<InvoiceFormData>({
     bookingId: '',
     date: format(new Date(), 'yyyy-MM-dd'),
-    method: 'bank-transfer',
+    method: paymentAccounts[0]?.accountName || '',
     percentage: 100,
     amount: 0,
     currency: 'CLP',
     status: 'pending',
     comments: ''
   })
-
-  // Fetch bookings when dialog opens
-  useEffect(() => {
-    const fetchBookings = async () => {
-      if (!open) return
-
-      setLoadingBookings(true)
-      try {
-        const response = await apiCall('/api/reservations/', {
-          method: 'GET'
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch bookings')
-        }
-
-        const result = await response.json()
-        const bookingsData = result.data || []
-        setBookings(bookingsData)
-      } catch (error) {
-        console.error('Error fetching bookings:', error)
-        setBookings([])
-      } finally {
-        setLoadingBookings(false)
-      }
-    }
-
-    fetchBookings()
-  }, [open])
 
   // Filter bookings based on search term
   const filteredBookings = bookings.filter(booking =>
@@ -271,23 +251,26 @@ const AddInvoiceDialog: React.FC<AddInvoiceDialogProps> = ({ open, onOpenChange,
             {/* Payment Method */}
             <div>
               <Label htmlFor="method">Payment Method *</Label>
-              <Select value={formData.method} onValueChange={(value: PaymentMethod) => setFormData({ ...formData, method: value })}>
+              <Select
+                value={formData.method}
+                onValueChange={(value: PaymentMethod) => setFormData({ ...formData, method: value })}
+                disabled={loadingPaymentAccounts}
+              >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder={loadingPaymentAccounts ? "Loading..." : "Select payment method"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pagarme-brl">Pagar.me (BRL)</SelectItem>
-                  <SelectItem value="sicred-pix-brl">Sicred – Pix (BRL)</SelectItem>
-                  <SelectItem value="cash-brl">Cash (BRL)</SelectItem>
-                  <SelectItem value="cash-ars">Cash (ARS)</SelectItem>
-                  <SelectItem value="cash-usd">Cash (USD)</SelectItem>
-                  <SelectItem value="asaas-brl">Asaas (BRL)</SelectItem>
-                  <SelectItem value="santander-ar">Santander (AR)</SelectItem>
-                  <SelectItem value="wise-brl">Wise (BRL)</SelectItem>
-                  <SelectItem value="wise-usd">Wise (USD)</SelectItem>
-                  <SelectItem value="wise-eur">Wise (EUR)</SelectItem>
-                  <SelectItem value="wise-clp">Wise (CLP)</SelectItem>
-                  <SelectItem value="mercado-pago-ar">Mercado Pago (AR)</SelectItem>
+                  {paymentAccounts.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                      {loadingPaymentAccounts ? 'Loading...' : 'No payment accounts configured'}
+                    </div>
+                  ) : (
+                    paymentAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.accountName}>
+                        {account.accountName} ({account.currency})
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>

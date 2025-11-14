@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { TourBooking } from "@/types/tour"
+import { usePaymentAccounts } from "@/lib/hooks/usePaymentAccounts"
 
 interface PaymentDetailsProps {
   includePayment: boolean
@@ -90,6 +91,7 @@ const PaymentDetails: React.FC<PaymentDetailsProps> = ({
   calculateGrandTotal
 }) => {
   const { t } = useLanguage()
+  const { paymentAccounts, loading: loadingPaymentAccounts } = usePaymentAccounts()
 
   return (
     <>
@@ -135,23 +137,26 @@ const PaymentDetails: React.FC<PaymentDetailsProps> = ({
                 <Label htmlFor="payment-method" className="text-sm font-medium">
                   {t('quotes.paymentMethod')}
                 </Label>
-                <Select value={paymentMethod} onValueChange={onPaymentMethodChange}>
+                <Select
+                  value={paymentMethod}
+                  onValueChange={onPaymentMethodChange}
+                  disabled={loadingPaymentAccounts}
+                >
                   <SelectTrigger className="mt-1">
-                    <SelectValue placeholder={t('quotes.select')} />
+                    <SelectValue placeholder={loadingPaymentAccounts ? "Loading..." : t('quotes.select')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pagarme-brl">Pagar.me (BRL)</SelectItem>
-                    <SelectItem value="sicred-pix-brl">Sicred – Pix (BRL)</SelectItem>
-                    <SelectItem value="cash-brl">Cash (BRL)</SelectItem>
-                    <SelectItem value="cash-ars">Cash (ARS)</SelectItem>
-                    <SelectItem value="cash-usd">Cash (USD)</SelectItem>
-                    <SelectItem value="asaas-brl">Asaas (BRL)</SelectItem>
-                    <SelectItem value="santander-ar">Santander (AR)</SelectItem>
-                    <SelectItem value="wise-brl">Wise (BRL)</SelectItem>
-                    <SelectItem value="wise-usd">Wise (USD)</SelectItem>
-                    <SelectItem value="wise-eur">Wise (EUR)</SelectItem>
-                    <SelectItem value="wise-clp">Wise (CLP)</SelectItem>
-                    <SelectItem value="mercado-pago-ar">Mercado Pago (AR)</SelectItem>
+                    {paymentAccounts.length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">
+                        {loadingPaymentAccounts ? 'Loading...' : 'No payment accounts configured'}
+                      </div>
+                    ) : (
+                      paymentAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.accountName}>
+                          {account.accountName} ({account.currency})
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
