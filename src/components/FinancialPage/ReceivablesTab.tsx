@@ -20,14 +20,30 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import {
   Search,
   Upload,
   Download,
   Plus,
   Eye,
   FileText,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Edit,
+  DollarSign,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { useNavigate } from 'react-router-dom'
+import authService from '@/services/authService'
 
 interface Receivable {
   id: number
@@ -48,6 +64,9 @@ interface ReceivablesTabProps {
   onAddInvoice: () => void
 }
 
+type SortField = 'id' | 'customerName' | 'amount' | 'dueDate' | 'method' | 'status'
+type SortOrder = 'asc' | 'desc' | null
+
 const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
   receivables,
   formatCurrency,
@@ -55,13 +74,109 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
   onAddInvoice,
 }) => {
   const [searchTerm, setSearchTerm] = React.useState('')
+  const [sortField, setSortField] = React.useState<SortField | null>(null)
+  const [sortOrder, setSortOrder] = React.useState<SortOrder>(null)
+  const [editStatusDialog, setEditStatusDialog] = React.useState<{open: boolean, receivable: Receivable | null}>({
+    open: false,
+    receivable: null
+  })
+  const [newStatus, setNewStatus] = React.useState<string>('')
   const { toast } = useToast()
+  const navigate = useNavigate()
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
-  // Filter receivables by search term
-  const filteredReceivables = receivables.filter(r =>
+  // Get current user and check permissions
+  const currentUser = authService.getCurrentUser()
+  const canEditPaymentStatus = currentUser?.role === 'administrator' ||
+                                currentUser?.role === 'Finance' ||
+                                currentUser?.isSuperuser
+
+  // Handle sorting
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // Cycle through: asc -> desc -> null
+      if (sortOrder === 'asc') {
+        setSortOrder('desc')
+      } else if (sortOrder === 'desc') {
+        setSortOrder(null)
+        setSortField(null)
+      }
+    } else {
+      setSortField(field)
+      setSortOrder('asc')
+    }
+  }
+
+  // Get sort icon for a field
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-4 h-4 ml-1 opacity-50" />
+    }
+    if (sortOrder === 'asc') {
+      return <ArrowUp className="w-4 h-4 ml-1" />
+    }
+    if (sortOrder === 'desc') {
+      return <ArrowDown className="w-4 h-4 ml-1" />
+    }
+    return <ArrowUpDown className="w-4 h-4 ml-1 opacity-50" />
+  }
+
+  // Filter and sort receivables
+  let filteredReceivables = receivables.filter(r =>
     r.customerName.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  // Apply sorting
+  if (sortField && sortOrder) {
+    filteredReceivables = [...filteredReceivables].sort((a, b) => {
+      let aValue: any = a[sortField]
+      let bValue: any = b[sortField]
+
+      // Handle different data types
+      if (sortField === 'amount') {
+        aValue = Number(aValue)
+        bValue = Number(bValue)
+      } else if (sortField === 'dueDate') {
+        aValue = new Date(aValue).getTime()
+        bValue = new Date(bValue).getTime()
+      } else if (typeof aValue === 'string') {
+        aValue = aValue.toLowerCase()
+        bValue = bValue.toLowerCase()
+      }
+
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : aValue < bValue ? -1 : 0
+      } else {
+        return aValue < bValue ? 1 : aValue > bValue ? -1 : 0
+      }
+    })
+  }
+
+  // Handle opening edit status dialog
+  const handleEditStatus = (receivable: Receivable) => {
+    setEditStatusDialog({ open: true, receivable })
+    setNewStatus(receivable.status)
+  }
+
+  // Handle saving status change
+  const handleSaveStatus = () => {
+    if (!editStatusDialog.receivable) return
+
+    // TODO: Implement API call to update payment status
+    // For now, just show a success message
+    toast({
+      title: 'Status Updated',
+      description: `Payment status for ${editStatusDialog.receivable.customerName} has been updated to ${newStatus}.`
+    })
+
+    setEditStatusDialog({ open: false, receivable: null })
+    setNewStatus('')
+  }
+
+  // Navigate to Edit Reservation page
+  const handleEditReservation = (bookingId: string) => {
+    navigate(`/reservations/${bookingId}/edit`)
+  }
 
   // Export to CSV
   const exportToCSV = () => {
@@ -324,12 +439,66 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[100px]">ID</TableHead>
-                  <TableHead className="min-w-[150px]">Customer</TableHead>
-                  <TableHead className="min-w-[120px]">Amount</TableHead>
-                  <TableHead className="min-w-[100px]">Due Date</TableHead>
-                  <TableHead className="min-w-[100px]">Payment Method</TableHead>
-                  <TableHead className="min-w-[100px]">Status</TableHead>
+                  <TableHead className="min-w-[100px]">
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleSort('id')}
+                      className="h-8 px-2 hover:bg-transparent text-black hover:text-black"
+                    >
+                      ID
+                      {getSortIcon('id')}
+                    </Button>
+                  </TableHead>
+                  <TableHead className="min-w-[150px]">
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleSort('customerName')}
+                      className="h-8 px-2 hover:bg-transparent text-black hover:text-black"
+                    >
+                      Customer
+                      {getSortIcon('customerName')}
+                    </Button>
+                  </TableHead>
+                  <TableHead className="min-w-[120px]">
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleSort('amount')}
+                      className="h-8 px-2 hover:bg-transparent text-black hover:text-black"
+                    >
+                      Amount
+                      {getSortIcon('amount')}
+                    </Button>
+                  </TableHead>
+                  <TableHead className="min-w-[100px]">
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleSort('dueDate')}
+                      className="h-8 px-2 hover:bg-transparent text-black hover:text-black"
+                    >
+                      Due Date
+                      {getSortIcon('dueDate')}
+                    </Button>
+                  </TableHead>
+                  <TableHead className="min-w-[100px]">
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleSort('method')}
+                      className="h-8 px-2 hover:bg-transparent text-black hover:text-black"
+                    >
+                      Payment Method
+                      {getSortIcon('method')}
+                    </Button>
+                  </TableHead>
+                  <TableHead className="min-w-[100px]">
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleSort('status')}
+                      className="h-8 px-2 hover:bg-transparent text-black hover:text-black"
+                    >
+                      Status
+                      {getSortIcon('status')}
+                    </Button>
+                  </TableHead>
                   <TableHead className="min-w-[80px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -366,11 +535,19 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>View Details</DropdownMenuItem>
-                            <DropdownMenuItem>Record Payment</DropdownMenuItem>
-                            <DropdownMenuItem>Send Reminder</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600">Mark as Overdue</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditReservation(item.bookingId)}>
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit Reservation
+                            </DropdownMenuItem>
+                            {canEditPaymentStatus && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleEditStatus(item)}>
+                                  <DollarSign className="w-4 h-4 mr-2" />
+                                  Edit Payment Status
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -382,6 +559,68 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
           </div>
         </CardContent>
       </Card>
+
+      {/* Edit Payment Status Dialog */}
+      <Dialog open={editStatusDialog.open} onOpenChange={(open) => setEditStatusDialog({ open, receivable: null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Payment Status</DialogTitle>
+            <DialogDescription>
+              Update the payment status for {editStatusDialog.receivable?.customerName}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="payment-status">Payment Status</Label>
+              <Select value={newStatus} onValueChange={setNewStatus}>
+                <SelectTrigger id="payment-status">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="overdue">Overdue</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {editStatusDialog.receivable && (
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Booking ID:</span>
+                  <span className="font-medium">#{editStatusDialog.receivable.id}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Amount:</span>
+                  <span className="font-medium">
+                    {formatCurrency(editStatusDialog.receivable.amount, editStatusDialog.receivable.currency)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Current Status:</span>
+                  <Badge variant={
+                    editStatusDialog.receivable.status === 'paid' ? 'success' :
+                    editStatusDialog.receivable.status === 'overdue' ? 'destructive' :
+                    'default'
+                  }>
+                    {editStatusDialog.receivable.status}
+                  </Badge>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditStatusDialog({ open: false, receivable: null })}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSaveStatus}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
