@@ -20,15 +20,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import {
   Search,
   Upload,
   Download,
@@ -44,6 +35,7 @@ import {
 import { useToast } from '@/components/ui/use-toast'
 import { useNavigate } from 'react-router-dom'
 import authService from '@/services/authService'
+import { EditPaymentStatusDialog } from './ReceivablesTab/index'
 
 interface Receivable {
   id: number
@@ -561,66 +553,15 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
       </Card>
 
       {/* Edit Payment Status Dialog */}
-      <Dialog open={editStatusDialog.open} onOpenChange={(open) => setEditStatusDialog({ open, receivable: null })}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Payment Status</DialogTitle>
-            <DialogDescription>
-              Update the payment status for {editStatusDialog.receivable?.customerName}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="payment-status">Payment Status</Label>
-              <Select value={newStatus} onValueChange={setNewStatus}>
-                <SelectTrigger id="payment-status">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="overdue">Overdue</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {editStatusDialog.receivable && (
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Booking ID:</span>
-                  <span className="font-medium">#{editStatusDialog.receivable.id}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Amount:</span>
-                  <span className="font-medium">
-                    {formatCurrency(editStatusDialog.receivable.amount, editStatusDialog.receivable.currency)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Current Status:</span>
-                  <Badge variant={
-                    editStatusDialog.receivable.status === 'paid' ? 'success' :
-                    editStatusDialog.receivable.status === 'overdue' ? 'destructive' :
-                    'default'
-                  }>
-                    {editStatusDialog.receivable.status}
-                  </Badge>
-                </div>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setEditStatusDialog({ open: false, receivable: null })}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleSaveStatus}>
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <EditPaymentStatusDialog
+        open={editStatusDialog.open}
+        receivable={editStatusDialog.receivable}
+        newStatus={newStatus}
+        onStatusChange={setNewStatus}
+        onClose={() => setEditStatusDialog({ open: false, receivable: null })}
+        onSave={handleSaveStatus}
+        formatCurrency={formatCurrency}
+      />
     </div>
   )
 }
