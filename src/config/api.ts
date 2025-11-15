@@ -135,6 +135,13 @@ export const API_ENDPOINTS = {
       UPDATE: (id: string) => `/api/settings/destinations/${id}`,
       DELETE: (id: string) => `/api/settings/destinations/${id}`,
     },
+    CATEGORIES: {
+      LIST: '/api/settings/system/categories/',
+      CREATE: '/api/settings/system/categories/',
+      GET: (id: string) => `/api/settings/system/categories/${id}/`,
+      UPDATE: (id: string) => `/api/settings/system/categories/${id}/`,
+      DELETE: (id: string) => `/api/settings/system/categories/${id}/`,
+    },
   },
   
   // Support endpoints

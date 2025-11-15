@@ -246,17 +246,18 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
       </Card>
 
       {/* Bank Accounts */}
-      {dashboardData?.accounts && dashboardData.accounts.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Building2 className="w-5 h-5" />
-              <CardTitle>Bank Accounts</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {dashboardData.accounts.map((account) => (
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Building2 className="w-5 h-5" />
+            <CardTitle>Bank Accounts</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {dashboardData?.accounts && dashboardData.accounts.length > 0 ? (
+              dashboardData.accounts.map((account) => (
                 <div
                   key={account.id}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
@@ -277,15 +278,22 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                       {account.currency}{" "}
                       {account.current_balance.toLocaleString()}
                     </p>
-                    {account.currency !== selectedCurrency && (
+                    {account.converted_balance !== null && account.converted_balance !== undefined && (
                       <p className="text-xs text-muted-foreground">
-                        ≈ {formatCurrency(account.current_balance)}
+                        ≈ {formatCurrency(account.converted_balance)}
                       </p>
                     )}
                   </div>
                 </div>
-              ))}
+              ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No bank accounts registered yet.</p>
+                <p className="text-sm mt-2">Add accounts in the Settings page.</p>
+              </div>
+            )}
 
+            {dashboardData?.accounts && dashboardData.accounts.length > 0 && (
               <div className="pt-4 border-t">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-semibold">
@@ -296,10 +304,10 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                   </span>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

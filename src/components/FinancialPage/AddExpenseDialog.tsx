@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,7 +16,15 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarIcon } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
+import { apiCall, API_ENDPOINTS } from '@/config/api'
 import type { ExpenseFormData, ExpenseType, ExpenseCategory, PaymentStatus, Currency, PaymentMethod, Recurrence } from '@/types/financial'
+
+interface FinancialCategory {
+  id: string
+  name: string
+  description?: string
+  is_active: boolean
+}
 
 interface AddExpenseDialogProps {
   open: boolean
@@ -28,6 +36,8 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSave }: AddExpenseDialo
   const [loading, setLoading] = useState(false)
   const [dueDate, setDueDate] = useState<Date>()
   const [paymentDate, setPaymentDate] = useState<Date>()
+  const [categories, setCategories] = useState<FinancialCategory[]>([])
+  const [loadingCategories, setLoadingCategories] = useState(false)
 
   const [formData, setFormData] = useState<ExpenseFormData>({
     name: '',
@@ -40,6 +50,30 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSave }: AddExpenseDialo
     recurrence: 'once',
     requires_approval: false,
   })
+
+  // Fetch categories from backend
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setLoadingCategories(true)
+        const response = await apiCall(API_ENDPOINTS.SETTINGS.CATEGORIES.LIST)
+        const data = await response.json()
+        // Handle paginated response
+        const categoryList = data.results || data
+        setCategories(categoryList.filter((cat: FinancialCategory) => cat.is_active))
+      } catch (error) {
+        console.error('Error fetching categories:', error)
+        // Fallback to empty array - will use hardcoded categories
+        setCategories([])
+      } finally {
+        setLoadingCategories(false)
+      }
+    }
+
+    if (open) {
+      fetchCategories()
+    }
+  }, [open])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -77,7 +111,8 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSave }: AddExpenseDialo
     { value: 'variable', label: 'Variable' },
   ]
 
-  const categories: { value: ExpenseCategory; label: string }[] = [
+  // Fallback hardcoded categories (used if backend fetch fails)
+  const fallbackCategories: { value: ExpenseCategory; label: string }[] = [
     { value: 'salary', label: 'Salary' },
     { value: 'rent', label: 'Rent' },
     { value: 'utilities', label: 'Utilities' },
@@ -92,6 +127,11 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSave }: AddExpenseDialo
     { value: 'commission', label: 'Commission' },
     { value: 'other', label: 'Other' },
   ]
+
+  // Use backend categories if available, otherwise use fallback
+  const displayCategories = categories.length > 0
+    ? categories.map(cat => ({ value: cat.name.toLowerCase().replace(/\s+/g, '-'), label: cat.name }))
+    : fallbackCategories
 
   const paymentStatuses: { value: PaymentStatus; label: string }[] = [
     { value: 'pending', label: 'Pending' },
@@ -179,12 +219,13 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSave }: AddExpenseDialo
               <Select
                 value={formData.category}
                 onValueChange={(value: ExpenseCategory) => setFormData({ ...formData, category: value })}
+                disabled={loadingCategories}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder={loadingCategories ? "Loading categories..." : "Select category"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((cat) => (
+                  {displayCategories.map((cat) => (
                     <SelectItem key={cat.value} value={cat.value}>
                       {cat.label}
                     </SelectItem>

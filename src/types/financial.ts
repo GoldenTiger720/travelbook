@@ -82,6 +82,7 @@ export interface FinancialAccount {
   currency: Currency
   initial_balance: number
   current_balance: number
+  converted_balance?: number | null
   is_active: boolean
   notes?: string
   created_by?: string
