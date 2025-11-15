@@ -23,6 +23,7 @@ import {
   ArrowUp,
   ArrowDown,
   Image,
+  Tag,
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -66,6 +67,11 @@ interface SystemSettings {
   termsAndConditions: string
   termsFileUrl: string
   termsFileName: string
+}
+
+interface Category {
+  id: string
+  name: string
 }
 
 const SystemTab: React.FC = () => {
@@ -156,6 +162,11 @@ const SystemTab: React.FC = () => {
   const [isUpdatingExchangeRate, setIsUpdatingExchangeRate] = useState(false)
   const [isDeletingExchangeRate, setIsDeletingExchangeRate] = useState<string | null>(null)
 
+  // Loading states for Categories
+  const [isAddingCategory, setIsAddingCategory] = useState(false)
+  const [isUpdatingCategory, setIsUpdatingCategory] = useState(false)
+  const [isDeletingCategory, setIsDeletingCategory] = useState<string | null>(null)
+
   // Sort state for Financial Configuration
   const [financialSortField, setFinancialSortField] = useState<keyof FinancialConfig | ''>('')
   const [financialSortDirection, setFinancialSortDirection] = useState<'asc' | 'desc'>('asc')
@@ -175,6 +186,17 @@ const SystemTab: React.FC = () => {
   // Sort state for Exchange Rate
   const [exchangeRateSortField, setExchangeRateSortField] = useState<keyof ExchangeRate | ''>('')
   const [exchangeRateSortDirection, setExchangeRateSortDirection] = useState<'asc' | 'desc'>('asc')
+
+  // Categories state
+  const [categories, setCategories] = useState<Category[]>([])
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null)
+  const [newCategory, setNewCategory] = useState({
+    name: ''
+  })
+
+  // Sort state for Categories
+  const [categorySortField, setCategorySortField] = useState<keyof Category | ''>('')
+  const [categorySortDirection, setCategorySortDirection] = useState<'asc' | 'desc'>('asc')
 
   // Load all settings on component mount
   useEffect(() => {
@@ -268,6 +290,19 @@ const SystemTab: React.FC = () => {
           setExchangeRates(rates)
         }
 
+        // Load Categories
+        const categoriesResponse = await apiCall('/api/settings/system/categories/', {
+          method: 'GET'
+        })
+        if (categoriesResponse.ok) {
+          const categoriesData = await categoriesResponse.json()
+          const cats = Array.isArray(categoriesData) ? categoriesData.map((item: any) => ({
+            id: item.id,
+            name: item.name
+          })) : []
+          setCategories(cats)
+        }
+
       } catch (error) {
         console.error('Error loading system settings:', error)
         toast.error('Failed to load some settings. Using default values.')
@@ -322,6 +357,15 @@ const SystemTab: React.FC = () => {
     } else {
       setExchangeRateSortField(field)
       setExchangeRateSortDirection('asc')
+    }
+  }
+
+  const handleCategorySort = (field: keyof Category) => {
+    if (categorySortField === field) {
+      setCategorySortDirection(categorySortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setCategorySortField(field)
+      setCategorySortDirection('asc')
     }
   }
 
@@ -385,6 +429,16 @@ const SystemTab: React.FC = () => {
     if (aValue === undefined || bValue === undefined) return 0
     if (aValue < bValue) return exchangeRateSortDirection === 'asc' ? -1 : 1
     if (aValue > bValue) return exchangeRateSortDirection === 'asc' ? 1 : -1
+    return 0
+  })
+
+  const sortedCategories = [...categories].sort((a, b) => {
+    if (!categorySortField) return 0
+    const aValue = a[categorySortField]
+    const bValue = b[categorySortField]
+    if (aValue === undefined || bValue === undefined) return 0
+    if (aValue < bValue) return categorySortDirection === 'asc' ? -1 : 1
+    if (aValue > bValue) return categorySortDirection === 'asc' ? 1 : -1
     return 0
   })
 
@@ -968,6 +1022,91 @@ const SystemTab: React.FC = () => {
       toast.error('Failed to delete exchange rate')
     } finally {
       setIsDeletingExchangeRate(null)
+    }
+  }
+
+  // ===== Category Handlers =====
+  const addCategory = async () => {
+    if (!newCategory.name.trim()) {
+      toast.error('Please enter a category name')
+      return
+    }
+
+    setIsAddingCategory(true)
+    try {
+      const payload = {
+        name: newCategory.name
+      }
+
+      const response = await apiCall('/api/settings/system/categories/', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      })
+
+      if (!response.ok) throw new Error('Failed to add category')
+
+      const result = await response.json()
+      setCategories(prev => [...prev, {
+        id: result.id,
+        name: result.name
+      }])
+      setNewCategory({ name: '' })
+      toast.success('Category added successfully!')
+    } catch (error) {
+      console.error('Error adding category:', error)
+      toast.error('Failed to add category')
+    } finally {
+      setIsAddingCategory(false)
+    }
+  }
+
+  const updateCategory = async (id: string) => {
+    if (!editingCategory) return
+
+    setIsUpdatingCategory(true)
+    try {
+      const payload = {
+        name: editingCategory.name
+      }
+
+      const response = await apiCall(`/api/settings/system/categories/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(payload)
+      })
+
+      if (!response.ok) throw new Error('Failed to update category')
+
+      const result = await response.json()
+      setCategories(prev => prev.map(cat => cat.id === id ? {
+        id: result.id,
+        name: result.name
+      } : cat))
+      setEditingCategory(null)
+      toast.success('Category updated successfully!')
+    } catch (error) {
+      console.error('Error updating category:', error)
+      toast.error('Failed to update category')
+    } finally {
+      setIsUpdatingCategory(false)
+    }
+  }
+
+  const deleteCategory = async (id: string) => {
+    setIsDeletingCategory(id)
+    try {
+      const response = await apiCall(`/api/settings/system/categories/${id}/`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) throw new Error('Failed to delete category')
+
+      setCategories(prev => prev.filter(cat => cat.id !== id))
+      toast.success('Category deleted successfully!')
+    } catch (error) {
+      console.error('Error deleting category:', error)
+      toast.error('Failed to delete category')
+    } finally {
+      setIsDeletingCategory(null)
     }
   }
 
@@ -2084,6 +2223,140 @@ const SystemTab: React.FC = () => {
                                   className="text-red-600 hover:text-red-700"
                                 >
                                   {isDeletingTerms === config.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                  )}
+                                </Button>
+                              </div>
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Categories Section */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Tag className="w-5 h-5 text-indigo-600" />
+            <span className="truncate">Categories</span>
+          </CardTitle>
+          <CardDescription className="text-sm">
+            Manage categories for organizing your content
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Add Category Form */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
+            <div className="space-y-2">
+              <Label htmlFor="categoryName">Category Name</Label>
+              <Input
+                id="categoryName"
+                value={newCategory.name}
+                onChange={(e) => setNewCategory(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="e.g., Tours, Hotels, Transportation"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="invisible">Add</Label>
+              <Button onClick={addCategory} disabled={isAddingCategory} className="w-full">
+                {isAddingCategory ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4 mr-2" />
+                )}
+                {isAddingCategory ? 'Adding...' : 'Add Category'}
+              </Button>
+            </div>
+          </div>
+
+          {/* Categories Table */}
+          {categories.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Registered Categories</h4>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th
+                        className="text-left p-3 text-sm font-medium cursor-pointer hover:bg-muted transition-colors select-none"
+                        onClick={() => handleCategorySort('name')}
+                      >
+                        Category Name
+                        {getSortIcon('name', categorySortField, categorySortDirection)}
+                      </th>
+                      <th className="text-right p-3 text-sm font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedCategories.map((category) => (
+                      <tr key={category.id} className="border-t">
+                        {editingCategory?.id === category.id ? (
+                          <>
+                            <td className="p-3">
+                              <Input
+                                value={editingCategory.name}
+                                onChange={(e) => setEditingCategory(prev => prev ? { ...prev, name: e.target.value } : null)}
+                                className="h-8"
+                              />
+                            </td>
+                            <td className="p-3">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => updateCategory(category.id)}
+                                  disabled={isUpdatingCategory}
+                                  className="text-green-600 hover:text-green-700"
+                                >
+                                  {isUpdatingCategory ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Save className="w-4 h-4" />
+                                  )}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setEditingCategory(null)}
+                                  disabled={isUpdatingCategory}
+                                  className="text-gray-600 hover:text-gray-700"
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="p-3 text-sm font-medium">{category.name}</td>
+                            <td className="p-3">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setEditingCategory(category)}
+                                  disabled={isDeletingCategory === category.id}
+                                  className="text-blue-600 hover:text-blue-700"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => deleteCategory(category.id)}
+                                  disabled={isDeletingCategory === category.id}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  {isDeletingCategory === category.id ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
                                   ) : (
                                     <Trash2 className="w-4 h-4" />
