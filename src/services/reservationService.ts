@@ -14,14 +14,6 @@ class ReservationService {
       throw new Error('No tour data found in reservation')
     }
 
-    // Debug: Log the backend reservation data to verify email and phone are present
-    console.log('Backend reservation data:', {
-      id: backendReservation.id,
-      fullName: backendReservation.fullName,
-      email: backendReservation.email,
-      phone: backendReservation.phone
-    })
-
     // Determine payment status from paymentDetails
     let paymentStatus: Reservation['paymentStatus'] = 'pending'
     if (backendReservation.paymentDetails) {
@@ -234,12 +226,12 @@ class ReservationService {
       }
     }
   }
-  
+
   async getFilteredReservations(filters: ReservationFilters): Promise<Reservation[]> {
     // Get all reservations from backend first
     const allReservations = await this.getAllReservations()
     let filtered = [...allReservations]
-    
+
     // Date range filter
     if (filters.startDate && filters.endDate) {
       const dateField = filters.dateType === 'operation' ? 'operationDate' : 'saleDate'
@@ -248,51 +240,51 @@ class ReservationService {
         return date >= filters.startDate! && date <= filters.endDate!
       })
     }
-    
+
     // Status filter
     if (filters.status && filters.status !== 'all') {
       filtered = filtered.filter(r => r.status === filters.status)
     }
-    
+
     // Payment status filter
     if (filters.paymentStatus && filters.paymentStatus !== 'all') {
       filtered = filtered.filter(r => r.paymentStatus === filters.paymentStatus)
     }
-    
+
     // Salesperson filter
     if (filters.salesperson && filters.salesperson !== 'all') {
       filtered = filtered.filter(r => r.salesperson === filters.salesperson)
     }
-    
+
     // Tour filter
     if (filters.tour && filters.tour !== 'all') {
       filtered = filtered.filter(r => r.tour.id === filters.tour)
     }
-    
+
     // Guide filter
     if (filters.guide && filters.guide !== 'all') {
       filtered = filtered.filter(r => r.guide === filters.guide)
     }
-    
+
     // Driver filter
     if (filters.driver && filters.driver !== 'all') {
       filtered = filtered.filter(r => r.driver === filters.driver)
     }
-    
+
     // Operator filter
     if (filters.operator && filters.operator !== 'all') {
       filtered = filtered.filter(r => r.operator === filters.operator)
     }
-    
+
     // External agency filter
     if (filters.externalAgency && filters.externalAgency !== 'all') {
       filtered = filtered.filter(r => r.externalAgency === filters.externalAgency)
     }
-    
+
     // Search term filter
     if (filters.searchTerm) {
       const search = filters.searchTerm.toLowerCase()
-      filtered = filtered.filter(r => 
+      filtered = filtered.filter(r =>
         r.reservationNumber.toLowerCase().includes(search) ||
         r.client.name.toLowerCase().includes(search) ||
         r.client.email.toLowerCase().includes(search) ||
@@ -300,24 +292,24 @@ class ReservationService {
         r.purchaseOrderNumber?.toLowerCase().includes(search)
       )
     }
-    
+
     // Sort by operation date descending
     filtered.sort((a, b) => b.operationDate.getTime() - a.operationDate.getTime())
-    
+
     return filtered
   }
-  
+
   async getUniqueValues() {
     // Get all reservations from backend first
     const allReservations = await this.getAllReservations()
-    
+
     const salespersons = new Set<string>()
     const operators = new Set<string>()
     const guides = new Set<string>()
     const drivers = new Set<string>()
     const agencies = new Set<string>()
     const tours = new Map<string, string>()
-    
+
     allReservations.forEach(r => {
       salespersons.add(r.salesperson)
       if (r.operator) operators.add(r.operator)
@@ -326,7 +318,7 @@ class ReservationService {
       if (r.externalAgency) agencies.add(r.externalAgency)
       tours.set(r.tour.id, r.tour.name)
     })
-    
+
     return {
       salespersons: Array.from(salespersons).sort(),
       operators: Array.from(operators).sort(),
@@ -336,7 +328,7 @@ class ReservationService {
       tours: Array.from(tours.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
     }
   }
-  
+
   async getReservationById(id: string): Promise<Reservation | null> {
     try {
       const response = await apiCall(API_ENDPOINTS.RESERVATIONS.GET(id), {
