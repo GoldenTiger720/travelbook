@@ -1,78 +1,100 @@
-# Travel Booking System
+# TravelBook
 
-A modern travel agency management system built with React, TypeScript, and shadcn/ui components. This comprehensive platform streamlines travel operations by managing reservations, quotes, customers, and financial data in one elegant interface.
+**TravelBook** is a comprehensive tour operations platform designed to help travel agencies and tour operators manage their entire booking lifecycle—from initial customer inquiries to completed tours. Whether you're running day trips, multi-day adventures, or complex tour packages, TravelBook provides the tools you need to stay organized and deliver exceptional customer experiences.
 
-![Travel Booking System](./public/omg.png)
+![TravelBook](./public/omg.png)
 
+## Our Mission
 
-### Core Modules
+We built TravelBook to solve a common challenge in the travel industry: managing reservations, customer relationships, tour logistics, and finances often requires juggling multiple disconnected systems. TravelBook brings everything together in one intuitive platform, allowing tour operators to focus on what matters most—creating memorable travel experiences for their customers.
 
-- **📊 Dashboard**: Real-time overview of key metrics including revenue, active reservations, customer count, and pending quotes
-- **📅 Reservation Calendar**: Advanced booking management with day, week, and month views
-- **💰 Quotes Management**: Create and track travel quotes for potential customers
-- **👥 Customer Management**: Comprehensive customer database and relationship management
-- **💸 Financial Module**: Track revenue, expenses, and financial reports
-- **🚗 Logistics**: Manage transportation and tour services
-- **📈 Reports**: Generate detailed business analytics and insights
-- **⚙️ Settings**: Configure system preferences and user settings
+## What TravelBook Does
 
-### Technical Features
+### Quote-to-Booking Workflow
 
-- **Modern UI/UX**: Built with shadcn/ui components for a consistent, beautiful interface
-- **Responsive Design**: Fully responsive layout that works on desktop, tablet, and mobile devices
-- **Dark Mode Support**: Theme system with light/dark mode toggle
-- **Type Safety**: Full TypeScript support for improved development experience
-- **State Management**: Efficient state management with React Query
-- **Routing**: Client-side routing with React Router v6
-- **Component Library**: Extensive set of reusable UI components
+TravelBook streamlines the entire sales process with a flexible quote system. When a potential customer inquires about a tour, your sales team can quickly create a detailed quote that includes:
 
-## 🛠️ Tech Stack
+- Multiple tours with individual dates and pricing
+- Passenger breakdown (adults, children, infants) with automatic price calculations
+- Custom discounts and payment terms
+- Personalized comments and special requests
 
-### Frontend Framework
-- **React 18.3** - Modern React with hooks and concurrent features
-- **TypeScript 5.8** - Type-safe development
-- **Vite 5.4** - Lightning-fast build tool and development server
+Once a quote is ready, you can share it with your customer via a unique link. They can review the itinerary, see all the details, and accept the terms directly from their phone or computer. When they're ready to proceed, converting a quote into a confirmed booking takes just one click.
 
-### UI & Styling
-- **shadcn/ui** - High-quality, accessible component library
-- **Tailwind CSS 3.4** - Utility-first CSS framework
-- **Radix UI** - Unstyled, accessible component primitives
-- **Lucide Icons** - Beautiful, consistent icon set
+### Reservation Calendar
 
-### State & Data Management
-- **React Query (TanStack Query)** - Powerful data synchronization
-- **React Hook Form** - Performant forms with easy validation
-- **Zod** - TypeScript-first schema validation
+The heart of TravelBook is its visual reservation calendar. At a glance, you can see:
 
-### Additional Libraries
-- **date-fns** - Modern JavaScript date utility library
-- **Recharts** - Composable charting library for data visualization
-- **React Day Picker** - Flexible date picker component
-- **Sonner** - Beautiful toast notifications
+- **Daily occupancy levels** — Color-coded indicators show you how full each day is, from light blue (few bookings) to red (near capacity)
+- **Tour-by-tour breakdown** — See exactly how many passengers are booked on each tour for any given day
+- **Capacity tracking** — Each tour has a defined capacity, and the calendar shows occupancy percentages to help you manage availability
 
-## 📁 Project Structure
+The calendar isn't just for viewing—click on any day to see a detailed sidebar with all reservations, passenger counts per tour, and quick access to booking details. This makes it easy to answer customer questions, check availability, and plan your operations.
 
-```
-zenith-travelops/
-├── src/
-│   ├── components/         # Reusable UI components
-│   │   ├── ui/            # shadcn/ui components
-│   │   ├── AppSidebar.tsx # Main navigation sidebar
-│   │   ├── Dashboard.tsx  # Dashboard component
-│   │   └── ...           # Other feature components
-│   ├── pages/            # Route page components
-│   ├── hooks/            # Custom React hooks
-│   ├── lib/              # Utility functions
-│   ├── App.tsx           # Main application component
-│   └── main.tsx          # Application entry point
-├── public/               # Static assets
-├── package.json          # Project dependencies
-├── vite.config.ts        # Vite configuration
-├── tailwind.config.ts    # Tailwind CSS configuration
-└── tsconfig.json         # TypeScript configuration
-```
+### How Reservations Work
 
-## 🚀 Getting Started
+Making a reservation in TravelBook follows a natural, conversational flow:
+
+1. **Start with the customer** — Enter or select the customer's information. TravelBook remembers returning customers, so repeat bookings are even faster.
+
+2. **Build the itinerary** — Add one or more tours to the booking. For each tour, you'll select:
+   - The destination and specific tour
+   - The date they want to travel
+   - Pickup location and time
+   - Number of passengers by type (adults, children, infants)
+
+3. **Review pricing** — Prices are automatically calculated based on your tour configurations, but you can apply discounts or adjust as needed.
+
+4. **Choose payment options** — Set up how and when payment will be collected. TravelBook tracks payment status so you always know what's outstanding.
+
+5. **Save and share** — Save the quote and share it with your customer. They can review everything online and accept the terms when ready.
+
+6. **Confirm the booking** — Once your customer approves, convert the quote to a confirmed reservation with a single action.
+
+### Tour Scheduling
+
+Each tour in TravelBook can be configured with:
+
+- **Available days** — Specify which days of the week a tour operates (e.g., Monday through Friday only, or weekends only)
+- **Departure time** — Set the standard departure time for the tour
+- **Capacity** — Define how many passengers each tour can accommodate
+- **Starting point** — The default pickup or meeting location
+
+When creating reservations, the system uses these settings to help ensure tours aren't overbooked. The calendar's occupancy indicators give you an immediate visual sense of availability.
+
+### Logistics & Operations
+
+Once reservations are confirmed, the operations side of TravelBook takes over:
+
+- **Assign resources** — For each tour on each day, assign a driver, guide (and assistant guide if needed), and vehicle
+- **Passenger manifests** — Generate passenger lists with names, contact information, pickup locations, and special requirements
+- **Status tracking** — Track each tour through its lifecycle: pending → confirmed → checked-in → completed
+- **Locking mechanism** — Once logistics are confirmed, bookings are automatically locked to prevent accidental changes
+
+### Customer Management
+
+TravelBook maintains a complete customer database where you can:
+
+- Store contact information, hotel details, and preferences
+- Track booking history and total spend
+- Add notes and special requirements
+- View all past and upcoming reservations for any customer
+
+### Financial Overview
+
+Keep track of your business health with TravelBook's financial tools:
+
+- Revenue tracking across bookings and payment status
+- Commission calculations for sales staff
+- Expense management and categorization
+- Bank account tracking with multi-currency support
+- Exchange rate management for international operations
+
+## Multi-Language Support
+
+TravelBook supports English, Spanish, and Portuguese, making it accessible for tour operators across the Americas and beyond.
+
+## Getting Started
 
 ### Prerequisites
 
@@ -81,147 +103,49 @@ zenith-travelops/
 
 ### Installation
 
-1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/zenith-travelops.git
-cd zenith-travelops
-```
+# Clone the repository
+git clone https://github.com/yourusername/travelbook.git
+cd travelbook/frontend
 
-2. Install dependencies:
-```bash
+# Install dependencies
 npm install
-# or
-yarn install
-# or
-bun install
-```
 
-3. Start the development server:
-```bash
+# Start the development server
 npm run dev
-# or
-yarn dev
-# or
-bun dev
 ```
 
-4. Open your browser and navigate to `http://localhost:5173`
+Open your browser and navigate to `http://localhost:8080`
 
-### Available Scripts
+### Environment Variables
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run build:dev` - Build for development
-- `npm run preview` - Preview production build locally
-- `npm run lint` - Run ESLint for code quality
+Create a `.env` file in the frontend directory:
 
-## 🏗️ Building for Production
-
-To create a production build:
-
-```bash
-npm run build
+```
+VITE_API_URL=http://localhost:3000
 ```
 
-The build artifacts will be stored in the `dist/` directory.
+## Available Scripts
 
-## 🚀 Deployment
+- `npm run dev` — Start development server
+- `npm run build` — Build for production
+- `npm run build:dev` — Build for development
+- `npm run preview` — Preview production build locally
+- `npm run lint` — Run ESLint for code quality
 
-### Vercel (Recommended)
+## Built With
 
-This project is configured for easy deployment on Vercel:
+TravelBook is built with modern, reliable technologies:
 
-1. Push your code to GitHub
-2. Import the project in Vercel
-3. Deploy with zero configuration
+- **React 18** with TypeScript for a robust, type-safe frontend
+- **Tailwind CSS** and **shadcn/ui** for a clean, responsive interface
+- **React Query** for efficient data synchronization
+- **Django REST Framework** backend with PostgreSQL database
 
-The `vercel.json` file is already configured for proper SPA routing.
+## License
 
-### Other Platforms
-
-The project can be deployed to any static hosting service:
-- Netlify
-- AWS S3 + CloudFront
-- GitHub Pages
-- Cloudflare Pages
-
-## 🎨 Customization
-
-### Theme Configuration
-
-The project uses CSS variables for theming. You can customize colors in `src/index.css`:
-
-```css
-:root {
-  --primary: 240 5.9% 10%;
-  --secondary: 240 4.8% 95.9%;
-  /* ... other theme variables */
-}
-```
-
-### Adding New Components
-
-1. Create new components in `src/components/`
-2. Use the existing UI components from `src/components/ui/`
-3. Follow the established patterns for consistency
-
-### Adding New Pages
-
-1. Create a new page component in `src/pages/`
-2. Add the route in `src/App.tsx`
-3. Update navigation in `src/components/AppSidebar.tsx`
-
-## 🧪 Development Guidelines
-
-### Code Style
-
-- Use TypeScript for all new code
-- Follow React best practices and hooks guidelines
-- Maintain consistent formatting (ESLint configured)
-- Use meaningful component and variable names
-
-### Component Structure
-
-```typescript
-import { ComponentProps } from "@/types"
-
-export function MyComponent({ prop1, prop2 }: ComponentProps) {
-  // Component logic
-  return (
-    // JSX
-  )
-}
-```
-
-### State Management
-
-- Use React Query for server state
-- Use React hooks for local state
-- Consider context for cross-component state
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- [shadcn/ui](https://ui.shadcn.com/) for the amazing component library
-- [Radix UI](https://www.radix-ui.com/) for accessible component primitives
-- [Tailwind CSS](https://tailwindcss.com/) for the utility-first CSS framework
-- [Vite](https://vitejs.dev/) for the blazing fast build tool
-
-## 📞 Support
-
-For support, email support@zenith-travelops.com or open an issue in the GitHub repository.
+This project is licensed under the MIT License.
 
 ---
 
-Built with ❤️ by the Zenith Travel Ops Team
+Built with care for tour operators everywhere.
