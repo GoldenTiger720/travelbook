@@ -73,9 +73,9 @@ const AddInvoiceDialog: React.FC<AddInvoiceDialogProps> = ({
 
   // Filter bookings based on search term
   const filteredBookings = bookings.filter(booking =>
-    booking.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    booking.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    booking.customer.email.toLowerCase().includes(searchTerm.toLowerCase())
+    (booking.customer?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (booking.id?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (booking.customer?.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   )
 
   // Handle booking selection
@@ -85,8 +85,8 @@ const AddInvoiceDialog: React.FC<AddInvoiceDialogProps> = ({
       setFormData({
         ...formData,
         bookingId: bookingId,
-        currency: selectedBooking.pricing.currency as Currency,
-        amount: selectedBooking.pricing.amount
+        currency: (selectedBooking.pricing?.currency || 'CLP') as Currency,
+        amount: selectedBooking.pricing?.amount || 0
       })
     }
   }
@@ -161,9 +161,9 @@ const AddInvoiceDialog: React.FC<AddInvoiceDialogProps> = ({
                     filteredBookings.map((booking) => (
                       <SelectItem key={booking.id} value={booking.id}>
                         <div className="flex flex-col">
-                          <span className="font-medium">{booking.customer.name}</span>
+                          <span className="font-medium">{booking.customer?.name || 'Unknown Customer'}</span>
                           <span className="text-xs text-muted-foreground">
-                            #{booking.id.slice(0, 8)} • {booking.pricing.currency} {booking.pricing.amount.toFixed(2)} • {booking.status}
+                            #{booking.id?.slice(0, 8) || 'N/A'} • {booking.pricing?.currency || 'N/A'} {(booking.pricing?.amount || 0).toFixed(2)} • {booking.status || 'N/A'}
                           </span>
                         </div>
                       </SelectItem>
