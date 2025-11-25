@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { MoreVertical } from 'lucide-react'
 import Swal from 'sweetalert2'
-import type { Payables, Expense, PayableCommission } from '@/types/financial'
+import type { Payables, Expense } from '@/types/financial'
 
 interface User {
   id: string
@@ -49,7 +49,6 @@ interface PayablesTabProps {
 }
 
 type ExpenseSortField = 'person_name' | 'expense_type' | 'category' | 'amount' | 'due_date' | 'payment_status'
-type CommissionSortField = 'id' | 'bookingId' | 'salesperson' | 'amount' | 'percentage' | 'status'
 type SortDirection = 'asc' | 'desc' | null
 
 const PayablesTab: React.FC<PayablesTabProps> = ({
@@ -73,13 +72,8 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
   const [expenseSortField, setExpenseSortField] = useState<ExpenseSortField | null>(null)
   const [expenseSortDirection, setExpenseSortDirection] = useState<SortDirection>(null)
 
-  // Commission sort state
-  const [commissionSortField, setCommissionSortField] = useState<CommissionSortField | null>(null)
-  const [commissionSortDirection, setCommissionSortDirection] = useState<SortDirection>(null)
-
   // Ensure expenses is always an array
   const expensesList = Array.isArray(expenses) ? expenses : []
-  const commissionsList = Array.isArray(payables?.commissions) ? payables.commissions : []
 
   // Use users from props (loaded from backend), fallback to deriving from expenses
   const uniquePersons = useMemo(() => {
@@ -148,43 +142,6 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
     })
   }, [filteredExpenses, expenseSortField, expenseSortDirection, selectedCurrency, convertCurrency])
 
-  // Sort commissions
-  const sortedCommissions = useMemo(() => {
-    if (!commissionSortField || !commissionSortDirection) return commissionsList
-
-    return [...commissionsList].sort((a, b) => {
-      let aValue: any = a[commissionSortField]
-      let bValue: any = b[commissionSortField]
-
-      // Handle amount with currency conversion - ensure numeric values
-      if (commissionSortField === 'amount') {
-        const aAmount = typeof a.amount === 'string' ? parseFloat(a.amount) || 0 : Number(a.amount) || 0
-        const bAmount = typeof b.amount === 'string' ? parseFloat(b.amount) || 0 : Number(b.amount) || 0
-        aValue = a.currency !== selectedCurrency
-          ? convertCurrency(aAmount, a.currency, selectedCurrency)
-          : aAmount
-        bValue = b.currency !== selectedCurrency
-          ? convertCurrency(bAmount, b.currency, selectedCurrency)
-          : bAmount
-      }
-
-      // Handle null/undefined values
-      if (aValue == null) aValue = ''
-      if (bValue == null) bValue = ''
-
-      // Compare
-      if (typeof aValue === 'string') {
-        const comparison = aValue.localeCompare(bValue)
-        return commissionSortDirection === 'asc' ? comparison : -comparison
-      }
-
-      if (commissionSortDirection === 'asc') {
-        return aValue > bValue ? 1 : -1
-      }
-      return aValue < bValue ? 1 : -1
-    })
-  }, [commissionsList, commissionSortField, commissionSortDirection, selectedCurrency, convertCurrency])
-
   // Financial summary calculations
   const financialSummary = useMemo(() => {
     const today = new Date()
@@ -246,39 +203,12 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
     }
   }
 
-  // Handle commission sort
-  const handleCommissionSort = (field: CommissionSortField) => {
-    if (commissionSortField === field) {
-      // Cycle through: asc -> desc -> null
-      if (commissionSortDirection === 'asc') {
-        setCommissionSortDirection('desc')
-      } else if (commissionSortDirection === 'desc') {
-        setCommissionSortField(null)
-        setCommissionSortDirection(null)
-      }
-    } else {
-      setCommissionSortField(field)
-      setCommissionSortDirection('asc')
-    }
-  }
-
   // Get expense sort icon
   const getExpenseSortIcon = (field: ExpenseSortField) => {
     if (expenseSortField !== field) {
       return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
     }
     if (expenseSortDirection === 'asc') {
-      return <ArrowUp className="ml-2 h-4 w-4" />
-    }
-    return <ArrowDown className="ml-2 h-4 w-4" />
-  }
-
-  // Get commission sort icon
-  const getCommissionSortIcon = (field: CommissionSortField) => {
-    if (commissionSortField !== field) {
-      return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
-    }
-    if (commissionSortDirection === 'asc') {
       return <ArrowUp className="ml-2 h-4 w-4" />
     }
     return <ArrowDown className="ml-2 h-4 w-4" />
@@ -577,109 +507,6 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Commissions Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Commissions</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead
-                    className="min-w-[100px] cursor-pointer hover:bg-muted/50 select-none"
-                    onClick={() => handleCommissionSort('id')}
-                  >
-                    <div className="flex items-center">
-                      ID
-                      {getCommissionSortIcon('id')}
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    className="min-w-[120px] cursor-pointer hover:bg-muted/50 select-none"
-                    onClick={() => handleCommissionSort('bookingId')}
-                  >
-                    <div className="flex items-center">
-                      Booking ID
-                      {getCommissionSortIcon('bookingId')}
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    className="min-w-[150px] cursor-pointer hover:bg-muted/50 select-none"
-                    onClick={() => handleCommissionSort('salesperson')}
-                  >
-                    <div className="flex items-center">
-                      Salesperson
-                      {getCommissionSortIcon('salesperson')}
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    className="min-w-[120px] cursor-pointer hover:bg-muted/50 select-none"
-                    onClick={() => handleCommissionSort('amount')}
-                  >
-                    <div className="flex items-center">
-                      Amount
-                      {getCommissionSortIcon('amount')}
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    className="min-w-[100px] cursor-pointer hover:bg-muted/50 select-none"
-                    onClick={() => handleCommissionSort('percentage')}
-                  >
-                    <div className="flex items-center">
-                      Percentage
-                      {getCommissionSortIcon('percentage')}
-                    </div>
-                  </TableHead>
-                  <TableHead
-                    className="min-w-[100px] cursor-pointer hover:bg-muted/50 select-none"
-                    onClick={() => handleCommissionSort('status')}
-                  >
-                    <div className="flex items-center">
-                      Status
-                      {getCommissionSortIcon('status')}
-                    </div>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedCommissions.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                      No commissions found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  sortedCommissions.map((commission) => (
-                    <TableRow key={commission.id}>
-                      <TableCell className="font-medium">{commission.id}</TableCell>
-                      <TableCell>
-                        <span className="text-blue-600 hover:underline cursor-pointer">
-                          {commission.bookingId || 'N/A'}
-                        </span>
-                      </TableCell>
-                      <TableCell>{commission.salesperson}</TableCell>
-                      <TableCell>{formatCurrency(commission.amount, commission.currency)}</TableCell>
-                      <TableCell>{commission.percentage}%</TableCell>
-                      <TableCell>
-                        <Badge variant={
-                          commission.status === 'paid' ? 'success' :
-                          commission.status === 'pending' ? 'default' :
-                          'secondary'
-                        }>
-                          {commission.status}
-                        </Badge>
                       </TableCell>
                     </TableRow>
                   ))
