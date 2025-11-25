@@ -53,7 +53,7 @@ interface ReceivablesTabProps {
   receivables: Receivable[]
   formatCurrency: (amount: number, currency?: string) => string
   loading: boolean
-  onAddInvoice: () => void
+  onAddRecipe: () => void
 }
 
 type SortField = 'id' | 'customerName' | 'amount' | 'dueDate' | 'method' | 'status'
@@ -63,7 +63,7 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
   receivables,
   formatCurrency,
   loading,
-  onAddInvoice,
+  onAddRecipe,
 }) => {
   const [searchTerm, setSearchTerm] = React.useState('')
   const [sortField, setSortField] = React.useState<SortField | null>(null)
@@ -418,7 +418,7 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button size="sm" onClick={onAddInvoice}>
+          <Button size="sm" onClick={onAddRecipe}>
             <Plus className="w-4 h-4 sm:mr-2" />
             <span className="hidden sm:inline">New Recipe</span>
           </Button>

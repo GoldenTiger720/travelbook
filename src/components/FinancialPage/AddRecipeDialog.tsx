@@ -13,15 +13,15 @@ import { cn } from '@/lib/utils'
 import type { Currency, PaymentMethod } from '@/types/financial'
 import { usePaymentAccounts } from '@/lib/hooks/usePaymentAccounts'
 
-interface AddInvoiceDialogProps {
+interface AddRecipeDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSave: (data: InvoiceFormData) => Promise<void>
+  onSave: (data: RecipeFormData) => Promise<void>
   bookings: Booking[]
   loadingBookings: boolean
 }
 
-export interface InvoiceFormData {
+export interface RecipeFormData {
   bookingId: string
   date: string
   method: PaymentMethod
@@ -44,7 +44,7 @@ interface Booking {
   createdAt?: string
 }
 
-const AddInvoiceDialog: React.FC<AddInvoiceDialogProps> = ({
+const AddRecipeDialog: React.FC<AddRecipeDialogProps> = ({
   open,
   onOpenChange,
   onSave,
@@ -58,7 +58,7 @@ const AddInvoiceDialog: React.FC<AddInvoiceDialogProps> = ({
   // Fetch payment accounts from Settings
   const { paymentAccounts, loading: loadingPaymentAccounts } = usePaymentAccounts()
 
-  const [formData, setFormData] = useState<InvoiceFormData>({
+  const [formData, setFormData] = useState<RecipeFormData>({
     bookingId: '',
     date: format(new Date(), 'yyyy-MM-dd'),
     method: paymentAccounts[0]?.accountName || '',
@@ -114,7 +114,7 @@ const AddInvoiceDialog: React.FC<AddInvoiceDialogProps> = ({
       setSearchTerm('')
       onOpenChange(false)
     } catch (error) {
-      console.error('Error creating invoice:', error)
+      console.error('Error creating recipe:', error)
     } finally {
       setLoading(false)
     }
@@ -307,7 +307,7 @@ const AddInvoiceDialog: React.FC<AddInvoiceDialogProps> = ({
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Invoice'}
+              {loading ? 'Creating...' : 'Create Recipe'}
             </Button>
           </DialogFooter>
         </form>
@@ -316,4 +316,4 @@ const AddInvoiceDialog: React.FC<AddInvoiceDialogProps> = ({
   )
 }
 
-export default AddInvoiceDialog
+export default AddRecipeDialog

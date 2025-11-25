@@ -7,7 +7,7 @@ import PayablesTab from '@/components/FinancialPage/PayablesTab'
 import ReportsTab from '@/components/FinancialPage/ReportsTab'
 import { AddExpenseDialog } from '@/components/FinancialPage/AddExpenseDialog'
 import { EditExpenseDialog } from '@/components/FinancialPage/EditExpenseDialog'
-import AddInvoiceDialog, { InvoiceFormData } from '@/components/FinancialPage/AddInvoiceDialog'
+import AddRecipeDialog, { RecipeFormData } from '@/components/FinancialPage/AddRecipeDialog'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Calendar } from '@/components/ui/calendar'
@@ -50,7 +50,7 @@ const FinancialPage = () => {
   const [addExpenseOpen, setAddExpenseOpen] = useState(false)
   const [editExpenseOpen, setEditExpenseOpen] = useState(false)
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
-  const [addInvoiceOpen, setAddInvoiceOpen] = useState(false)
+  const [addRecipeOpen, setAddRecipeOpen] = useState(false)
 
   // Fetch financial dashboard data
   const fetchDashboardData = async () => {
@@ -108,7 +108,7 @@ const FinancialPage = () => {
     }
   }
 
-  // Fetch bookings (cached for invoice dialog)
+  // Fetch bookings (cached for recipe dialog)
   const fetchBookings = async () => {
     if (bookings.length > 0) return // Already loaded
 
@@ -131,7 +131,7 @@ const FinancialPage = () => {
     }
   }
 
-  // Preload bookings on component mount (for instant invoice dialog loading)
+  // Preload bookings on component mount (for instant recipe dialog loading)
   useEffect(() => {
     fetchBookings()
   }, [])
@@ -227,17 +227,17 @@ const FinancialPage = () => {
     }
   }
 
-  // Handle add invoice
-  const handleAddInvoice = async (invoiceData: InvoiceFormData) => {
+  // Handle add recipe
+  const handleAddRecipe = async (recipeData: RecipeFormData) => {
     try {
       // Create booking payment via the bookings API
       const bookingPaymentData = {
-        date: invoiceData.date,
-        method: invoiceData.method,
-        percentage: invoiceData.percentage,
-        amount_paid: invoiceData.amount,
-        status: invoiceData.status,
-        comments: invoiceData.comments || '',
+        date: recipeData.date,
+        method: recipeData.method,
+        percentage: recipeData.percentage,
+        amount_paid: recipeData.amount,
+        status: recipeData.status,
+        comments: recipeData.comments || '',
         copy_comments: true,
         include_payment: true,
         quote_comments: '',
@@ -245,19 +245,19 @@ const FinancialPage = () => {
         send_quotation_access: false
       }
 
-      const response = await apiCall(`/api/bookings/${invoiceData.bookingId}/payments/`, {
+      const response = await apiCall(`/api/bookings/${recipeData.bookingId}/payments/`, {
         method: 'POST',
         body: JSON.stringify(bookingPaymentData)
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.message || errorData.error || 'Failed to create invoice')
+        throw new Error(errorData.message || errorData.error || 'Failed to create recipe')
       }
 
       toast({
         title: 'Success',
-        description: 'Invoice created successfully'
+        description: 'Recipe created successfully'
       })
 
       // Refresh data
@@ -266,10 +266,10 @@ const FinancialPage = () => {
         fetchReceivables()
       ])
     } catch (error: any) {
-      console.error('Error creating invoice:', error)
+      console.error('Error creating recipe:', error)
       toast({
         title: 'Error',
-        description: error.message || 'Failed to create invoice. Please check if the booking ID exists.',
+        description: error.message || 'Failed to create recipe. Please check if the booking ID exists.',
         variant: 'destructive'
       })
       throw error
@@ -413,7 +413,7 @@ const FinancialPage = () => {
             receivables={receivables}
             formatCurrency={formatCurrency}
             loading={loading}
-            onAddInvoice={() => setAddInvoiceOpen(true)}
+            onAddRecipe={() => setAddRecipeOpen(true)}
           />
         </TabsContent>
 
@@ -458,11 +458,11 @@ const FinancialPage = () => {
         onDelete={handleDeleteExpense}
       />
 
-      {/* Invoice Dialog */}
-      <AddInvoiceDialog
-        open={addInvoiceOpen}
-        onOpenChange={setAddInvoiceOpen}
-        onSave={handleAddInvoice}
+      {/* Recipe Dialog */}
+      <AddRecipeDialog
+        open={addRecipeOpen}
+        onOpenChange={setAddRecipeOpen}
+        onSave={handleAddRecipe}
         bookings={bookings}
         loadingBookings={loadingBookings}
       />
