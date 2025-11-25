@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { CalendarIcon, Search } from 'lucide-react'
+import { CalendarIcon, Search, Paperclip } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import type { Currency, PaymentMethod } from '@/types/financial'
@@ -23,13 +23,16 @@ interface AddRecipeDialogProps {
 
 export interface RecipeFormData {
   bookingId: string
-  date: string
+  paymentDate: string
+  dueDate: string
   method: PaymentMethod
-  percentage: number
+  installment: number
   amount: number
   currency: Currency
   status: 'pending' | 'partial' | 'paid' | 'overdue'
-  comments?: string
+  description?: string
+  notes?: string
+  attachment?: File | null
 }
 
 interface Booking {
@@ -53,20 +56,25 @@ const AddRecipeDialog: React.FC<AddRecipeDialogProps> = ({
 }) => {
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [paymentDate, setPaymentDate] = useState<Date>(new Date())
   const [dueDate, setDueDate] = useState<Date>(new Date())
+  const [attachment, setAttachment] = useState<File | null>(null)
 
   // Fetch payment accounts from Settings
   const { paymentAccounts, loading: loadingPaymentAccounts } = usePaymentAccounts()
 
   const [formData, setFormData] = useState<RecipeFormData>({
     bookingId: '',
-    date: format(new Date(), 'yyyy-MM-dd'),
+    paymentDate: format(new Date(), 'yyyy-MM-dd'),
+    dueDate: format(new Date(), 'yyyy-MM-dd'),
     method: paymentAccounts[0]?.accountName || '',
-    percentage: 100,
+    installment: 1,
     amount: 0,
     currency: 'CLP',
     status: 'pending',
-    comments: ''
+    description: '',
+    notes: '',
+    attachment: null
   })
 
   // Filter bookings based on search term
@@ -89,6 +97,13 @@ const AddRecipeDialog: React.FC<AddRecipeDialogProps> = ({
     }
   }
 
+  // Handle file attachment
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null
+    setAttachment(file)
+    setFormData({ ...formData, attachment: file })
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -96,21 +111,28 @@ const AddRecipeDialog: React.FC<AddRecipeDialogProps> = ({
     try {
       await onSave({
         ...formData,
-        date: format(dueDate, 'yyyy-MM-dd')
+        paymentDate: format(paymentDate, 'yyyy-MM-dd'),
+        dueDate: format(dueDate, 'yyyy-MM-dd'),
+        attachment
       })
 
       // Reset form
       setFormData({
         bookingId: '',
-        date: format(new Date(), 'yyyy-MM-dd'),
+        paymentDate: format(new Date(), 'yyyy-MM-dd'),
+        dueDate: format(new Date(), 'yyyy-MM-dd'),
         method: 'bank-transfer',
-        percentage: 100,
+        installment: 1,
         amount: 0,
         currency: 'CLP',
         status: 'pending',
-        comments: ''
+        description: '',
+        notes: '',
+        attachment: null
       })
+      setPaymentDate(new Date())
       setDueDate(new Date())
+      setAttachment(null)
       setSearchTerm('')
       onOpenChange(false)
     } catch (error) {
@@ -203,20 +225,31 @@ const AddRecipeDialog: React.FC<AddRecipeDialogProps> = ({
               </Select>
             </div>
 
-            {/* Percentage */}
+            {/* Payment Date */}
             <div>
-              <Label htmlFor="percentage">Payment Percentage *</Label>
-              <Input
-                id="percentage"
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                value={formData.percentage}
-                onChange={(e) => setFormData({ ...formData, percentage: parseFloat(e.target.value) || 0 })}
-                placeholder="100"
-                required
-              />
+              <Label>Payment Date *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      'w-full justify-start text-left font-normal',
+                      !paymentDate && 'text-muted-foreground'
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {paymentDate ? format(paymentDate, 'PPP') : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={paymentDate}
+                    onSelect={(date) => date && setPaymentDate(date)}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Due Date */}
@@ -273,6 +306,26 @@ const AddRecipeDialog: React.FC<AddRecipeDialogProps> = ({
               </Select>
             </div>
 
+            {/* Installment */}
+            <div>
+              <Label htmlFor="installment">Installment *</Label>
+              <Select
+                value={formData.installment.toString()}
+                onValueChange={(value) => setFormData({ ...formData, installment: parseInt(value) })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select installment" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1x</SelectItem>
+                  <SelectItem value="2">2x</SelectItem>
+                  <SelectItem value="3">3x</SelectItem>
+                  <SelectItem value="4">4x</SelectItem>
+                  <SelectItem value="5">5x</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Status */}
             <div>
               <Label htmlFor="status">Status *</Label>
@@ -289,15 +342,54 @@ const AddRecipeDialog: React.FC<AddRecipeDialogProps> = ({
               </Select>
             </div>
 
-            {/* Comments */}
+            {/* Attachment */}
+            <div>
+              <Label htmlFor="attachment">Attachment</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="attachment"
+                  type="file"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                  onClick={() => document.getElementById('attachment')?.click()}
+                >
+                  <Paperclip className="mr-2 h-4 w-4" />
+                  {attachment ? attachment.name : 'Choose file...'}
+                </Button>
+              </div>
+              {attachment && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {(attachment.size / 1024).toFixed(1)} KB
+                </p>
+              )}
+            </div>
+
+            {/* Description */}
             <div className="col-span-2">
-              <Label htmlFor="comments">Comments</Label>
+              <Label htmlFor="description">Description</Label>
               <Textarea
-                id="comments"
-                value={formData.comments}
-                onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Add a description..."
+                rows={2}
+              />
+            </div>
+
+            {/* Notes */}
+            <div className="col-span-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="Add any additional notes..."
-                rows={3}
+                rows={2}
               />
             </div>
           </div>

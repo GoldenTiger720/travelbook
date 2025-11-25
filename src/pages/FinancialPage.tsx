@@ -230,34 +230,48 @@ const FinancialPage = () => {
   // Handle add recipe
   const handleAddRecipe = async (recipeData: RecipeFormData) => {
     try {
-      // Create booking payment via the bookings API
-      const bookingPaymentData = {
-        date: recipeData.date,
-        method: recipeData.method,
-        percentage: recipeData.percentage,
-        amount_paid: recipeData.amount,
-        status: recipeData.status,
-        comments: recipeData.comments || '',
-        copy_comments: true,
-        include_payment: true,
-        quote_comments: '',
-        send_purchase_order: false,
-        send_quotation_access: false
-      }
+      // Calculate installment amount
+      const installmentAmount = recipeData.amount / recipeData.installment
 
-      const response = await apiCall(`/api/bookings/${recipeData.bookingId}/payments/`, {
-        method: 'POST',
-        body: JSON.stringify(bookingPaymentData)
-      })
+      // Create payments for each installment
+      for (let i = 0; i < recipeData.installment; i++) {
+        // Calculate due date for each installment (add months from the first due date)
+        const installmentDueDate = new Date(recipeData.dueDate)
+        installmentDueDate.setMonth(installmentDueDate.getMonth() + i)
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || errorData.error || 'Failed to create recipe')
+        const bookingPaymentData = {
+          date: recipeData.paymentDate,
+          due_date: format(installmentDueDate, 'yyyy-MM-dd'),
+          method: recipeData.method,
+          installment: i + 1,
+          total_installments: recipeData.installment,
+          amount_paid: installmentAmount,
+          status: recipeData.status,
+          description: recipeData.description || '',
+          notes: recipeData.notes || '',
+          copy_comments: true,
+          include_payment: true,
+          quote_comments: '',
+          send_purchase_order: false,
+          send_quotation_access: false
+        }
+
+        const response = await apiCall(`/api/bookings/${recipeData.bookingId}/payments/`, {
+          method: 'POST',
+          body: JSON.stringify(bookingPaymentData)
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.message || errorData.error || 'Failed to create recipe')
+        }
       }
 
       toast({
         title: 'Success',
-        description: 'Recipe created successfully'
+        description: recipeData.installment > 1
+          ? `${recipeData.installment} installments created successfully`
+          : 'Recipe created successfully'
       })
 
       // Refresh data
