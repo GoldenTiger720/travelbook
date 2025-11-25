@@ -223,3 +223,100 @@ export interface AccountFormData {
   is_active: boolean
   notes?: string
 }
+
+// Bank Transfer Types
+export type TransferStatus = 'pending' | 'completed' | 'cancelled'
+
+export interface BankTransfer {
+  id: string
+  source_account: string
+  source_account_id: string
+  source_account_name: string
+  source_currency: Currency
+  source_amount: number
+  destination_account: string
+  destination_account_id: string
+  destination_account_name: string
+  destination_currency: Currency
+  destination_amount: number
+  exchange_rate: number
+  transfer_date: string
+  description?: string
+  reference_number?: string
+  status: TransferStatus
+  receipt?: string
+  created_by?: string
+  created_by_name?: string
+  created_at: string
+  updated_at: string
+  is_cross_currency: boolean
+}
+
+export interface BankTransferFormData {
+  source_account: string
+  source_currency: Currency
+  source_amount: number
+  destination_account: string
+  destination_currency: Currency
+  destination_amount: number
+  exchange_rate: number
+  transfer_date: string
+  description?: string
+  reference_number?: string
+  status?: TransferStatus
+  receipt?: File
+}
+
+// Bank Statement Types
+export type TransactionType = 'expense' | 'payment' | 'transfer'
+export type TransactionDirection = 'incoming' | 'outgoing'
+
+export interface BankTransaction {
+  id: string
+  type: TransactionType
+  direction: TransactionDirection
+  date: string
+  description: string
+  amount: number
+  currency: Currency
+  reference: string
+  account_id?: string
+  account_name?: string
+  category?: string
+  person_name?: string
+  created_by?: string
+  status: string
+  // Optional fields for specific transaction types
+  booking_id?: string
+  method?: string
+  destination_account_id?: string
+  destination_account_name?: string
+  source_account_id?: string
+  source_account_name?: string
+  exchange_rate?: number
+  destination_amount?: number
+  source_amount?: number
+}
+
+export interface BankStatementSummary {
+  totalIncoming: number
+  totalOutgoing: number
+  netChange: number
+  transactionCount: number
+}
+
+export interface BankStatementAccount {
+  id: string
+  name: string
+  currency: Currency
+}
+
+export interface BankStatement {
+  account: BankStatementAccount | null
+  dateRange: {
+    startDate: string
+    endDate: string
+  }
+  summary: BankStatementSummary
+  transactions: BankTransaction[]
+}

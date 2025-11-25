@@ -5,9 +5,11 @@ import DashboardTab from '@/components/FinancialPage/DashboardTab'
 import ReceivablesTab from '@/components/FinancialPage/ReceivablesTab'
 import PayablesTab from '@/components/FinancialPage/PayablesTab'
 import ReportsTab from '@/components/FinancialPage/ReportsTab'
+import BankStatementTab from '@/components/FinancialPage/BankStatementTab'
 import { AddExpenseDialog } from '@/components/FinancialPage/AddExpenseDialog'
 import { EditExpenseDialog } from '@/components/FinancialPage/EditExpenseDialog'
 import AddRecipeDialog, { RecipeFormData } from '@/components/FinancialPage/AddRecipeDialog'
+import { AddTransferDialog } from '@/components/FinancialPage/AddTransferDialog'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Calendar } from '@/components/ui/calendar'
@@ -20,10 +22,12 @@ import { apiCall, API_ENDPOINTS } from '@/config/api'
 import { useReceivables, useCreateRecipe } from '@/lib/hooks/useReceivables'
 import { useExpenses, usePayables, useCreateExpense, useUpdateExpense, useDeleteExpense } from '@/lib/hooks/useExpenses'
 import { useExchangeRates } from '@/lib/hooks/useExchangeRates'
+import { useBankStatement, useCreateTransfer } from '@/lib/hooks/useBankStatement'
 import type {
   FinancialDashboard,
   Expense,
-  ExpenseFormData
+  ExpenseFormData,
+  BankTransferFormData
 } from '@/types/financial'
 
 const FinancialPage = () => {
@@ -66,6 +70,15 @@ const FinancialPage = () => {
   const [editExpenseOpen, setEditExpenseOpen] = useState(false)
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
   const [addRecipeOpen, setAddRecipeOpen] = useState(false)
+  const [addTransferOpen, setAddTransferOpen] = useState(false)
+
+  // Bank Statement state
+  const [selectedBankAccount, setSelectedBankAccount] = useState<string>('all')
+
+  // React Query for bank statement
+  const bankAccountId = selectedBankAccount === 'all' ? undefined : selectedBankAccount
+  const { data: bankStatement = null, isLoading: loadingBankStatement } = useBankStatement(startDate, endDate, bankAccountId)
+  const createTransferMutation = useCreateTransfer(startDate, endDate, bankAccountId)
 
   // Fetch financial dashboard data
   const fetchDashboardData = async () => {
@@ -256,6 +269,27 @@ const FinancialPage = () => {
     fetchDashboardData()
   }
 
+  // Handle add transfer - uses React Query mutation
+  const handleAddTransfer = async (transferData: BankTransferFormData) => {
+    try {
+      await createTransferMutation.mutateAsync(transferData)
+      toast({
+        title: 'Success',
+        description: 'Transfer recorded successfully'
+      })
+      // Dashboard data needs manual refresh
+      fetchDashboardData()
+    } catch (error) {
+      console.error('Error creating transfer:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to create transfer',
+        variant: 'destructive'
+      })
+      throw error
+    }
+  }
+
   // Currency formatter with exchange rate conversion
   const formatCurrency = useCallback((amount: number, sourceCurrency?: string) => {
     const symbols: { [key: string]: string } = {
@@ -378,10 +412,11 @@ const FinancialPage = () => {
 
       {/* Tabs */}
       <Tabs defaultValue="dashboard" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="receivables">Receivables</TabsTrigger>
           <TabsTrigger value="payables">Payables</TabsTrigger>
+          <TabsTrigger value="bank-statement">Bank Statement</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
         </TabsList>
 
@@ -422,6 +457,20 @@ const FinancialPage = () => {
             onDeleteExpense={handleDeleteExpense}
             users={users}
             paymentAccounts={paymentAccounts}
+          />
+        </TabsContent>
+
+        <TabsContent value="bank-statement" className="space-y-4">
+          <BankStatementTab
+            bankStatement={bankStatement}
+            formatCurrency={formatCurrency}
+            convertCurrency={convertCurrency}
+            selectedCurrency={selectedCurrency}
+            loading={loadingBankStatement}
+            paymentAccounts={paymentAccounts}
+            selectedAccount={selectedBankAccount}
+            onAccountChange={setSelectedBankAccount}
+            onAddTransfer={() => setAddTransferOpen(true)}
           />
         </TabsContent>
 
@@ -466,6 +515,15 @@ const FinancialPage = () => {
         onSave={handleAddRecipe}
         bookings={bookings}
         loadingBookings={loadingBookings}
+      />
+
+      {/* Transfer Dialog */}
+      <AddTransferDialog
+        open={addTransferOpen}
+        onOpenChange={setAddTransferOpen}
+        onSave={handleAddTransfer}
+        paymentAccounts={paymentAccounts}
+        loadingAccounts={loadingPaymentAccounts}
       />
     </div>
   )
