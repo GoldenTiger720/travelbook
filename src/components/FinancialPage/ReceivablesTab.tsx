@@ -68,7 +68,7 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
   const [searchTerm, setSearchTerm] = React.useState('')
   const [sortField, setSortField] = React.useState<SortField | null>(null)
   const [sortOrder, setSortOrder] = React.useState<SortOrder>(null)
-  const [editStatusDialog, setEditStatusDialog] = React.useState<{open: boolean, receivable: Receivable | null}>({
+  const [editStatusDialog, setEditStatusDialog] = React.useState<{ open: boolean, receivable: Receivable | null }>({
     open: false,
     receivable: null
   })
@@ -80,8 +80,8 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
   // Get current user and check permissions
   const currentUser = authService.getCurrentUser()
   const canEditPaymentStatus = currentUser?.role === 'administrator' ||
-                                currentUser?.role === 'Finance' ||
-                                currentUser?.isSuperuser
+    currentUser?.role === 'Finance' ||
+    currentUser?.isSuperuser
 
   // Handle sorting
   const handleSort = (field: SortField) => {
@@ -420,7 +420,7 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
           </DropdownMenu>
           <Button size="sm" onClick={onAddInvoice}>
             <Plus className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">New Invoice</span>
+            <span className="hidden sm:inline">New Recipe</span>
           </Button>
         </div>
       </div>
@@ -512,9 +512,9 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
                       <TableCell>
                         <Badge variant={
                           item.status === 'paid' ? 'success' :
-                          item.status === 'overdue' ? 'destructive' :
-                          item.status === 'pending' ? 'default' :
-                          'secondary'
+                            item.status === 'overdue' ? 'destructive' :
+                              item.status === 'pending' ? 'default' :
+                                'secondary'
                         }>
                           {item.status}
                         </Badge>
