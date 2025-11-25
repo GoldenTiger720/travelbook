@@ -17,10 +17,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { MoreVertical } from 'lucide-react'
+import Swal from 'sweetalert2'
 import type { Payables, Expense, PayableCommission } from '@/types/financial'
 
 interface User {
@@ -43,6 +43,7 @@ interface PayablesTabProps {
   loading: boolean
   onAddExpense: () => void
   onEditExpense: (expense: Expense) => void
+  onDeleteExpense: (id: string) => Promise<void>
   users?: User[]
   paymentAccounts?: PaymentAccount[]
 }
@@ -60,6 +61,7 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
   loading,
   onAddExpense,
   onEditExpense,
+  onDeleteExpense,
   users = [],
   paymentAccounts = [],
 }) => {
@@ -543,10 +545,27 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
                             <DropdownMenuItem onClick={() => onEditExpense(expense)}>
                               Edit Expense
                             </DropdownMenuItem>
-                            <DropdownMenuItem>View Details</DropdownMenuItem>
-                            <DropdownMenuItem>Mark as Paid</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => {
+                                Swal.fire({
+                                  title: 'Delete Expense?',
+                                  text: 'Are you sure you want to delete this expense? This action cannot be undone.',
+                                  icon: 'warning',
+                                  showCancelButton: true,
+                                  confirmButtonColor: '#d33',
+                                  cancelButtonColor: '#3085d6',
+                                  confirmButtonText: 'Yes, delete it!',
+                                  cancelButtonText: 'Cancel'
+                                }).then((result) => {
+                                  if (result.isConfirmed) {
+                                    onDeleteExpense(expense.id)
+                                  }
+                                })
+                              }}
+                            >
+                              Delete
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

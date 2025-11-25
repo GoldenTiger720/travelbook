@@ -34,16 +34,14 @@ interface EditExpenseDialogProps {
   onOpenChange: (open: boolean) => void
   expense: Expense | null
   onSave: (id: string, expense: ExpenseFormData) => Promise<void>
-  onDelete: (id: string) => Promise<void>
   users?: User[]
   loadingUsers?: boolean
   paymentAccounts?: PaymentAccount[]
   loadingPaymentAccounts?: boolean
 }
 
-export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, onDelete, users = [], loadingUsers = false, paymentAccounts = [], loadingPaymentAccounts = false }: EditExpenseDialogProps) => {
+export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, users = [], loadingUsers = false, paymentAccounts = [], loadingPaymentAccounts = false }: EditExpenseDialogProps) => {
   const [loading, setLoading] = useState(false)
-  const [deleting, setDeleting] = useState(false)
   const [dueDate, setDueDate] = useState<Date>()
   const [paymentDate, setPaymentDate] = useState<Date>()
   const [attachment, setAttachment] = useState<File | null>(null)
@@ -96,20 +94,6 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, onDelet
       console.error('Error updating expense:', error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleDelete = async () => {
-    if (!expense || !confirm('Are you sure you want to delete this expense?')) return
-
-    setDeleting(true)
-    try {
-      await onDelete(expense.id)
-      onOpenChange(false)
-    } catch (error) {
-      console.error('Error deleting expense:', error)
-    } finally {
-      setDeleting(false)
     }
   }
 
@@ -425,23 +409,13 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, onDelet
             </div>
           </div>
 
-          <DialogFooter className="flex justify-between">
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? 'Deleting...' : 'Delete'}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
             </Button>
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Saving...' : 'Update Expense'}
-              </Button>
-            </div>
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Saving...' : 'Update Expense'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -419,6 +419,7 @@ const FinancialPage = () => {
               setSelectedExpense(expense)
               setEditExpenseOpen(true)
             }}
+            onDeleteExpense={handleDeleteExpense}
             users={users}
             paymentAccounts={paymentAccounts}
           />
@@ -452,7 +453,6 @@ const FinancialPage = () => {
         onOpenChange={setEditExpenseOpen}
         expense={selectedExpense}
         onSave={handleEditExpense}
-        onDelete={handleDeleteExpense}
         users={users}
         loadingUsers={loadingUsers}
         paymentAccounts={paymentAccounts}
