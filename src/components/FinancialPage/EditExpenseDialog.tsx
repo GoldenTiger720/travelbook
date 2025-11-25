@@ -13,10 +13,15 @@ import {
 } from '@/components/ui/select'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Calendar as CalendarIcon } from 'lucide-react'
+import { Calendar as CalendarIcon, Paperclip } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
-import type { Expense, ExpenseFormData, ExpenseType, ExpenseCategory, PaymentStatus, Currency, PaymentMethod, Recurrence } from '@/types/financial'
+import type { Expense, ExpenseFormData, ExpenseType, ExpenseCategory, Currency, Recurrence } from '@/types/financial'
+
+interface User {
+  id: string
+  full_name: string
+}
 
 interface EditExpenseDialogProps {
   open: boolean
@@ -24,50 +29,44 @@ interface EditExpenseDialogProps {
   expense: Expense | null
   onSave: (id: string, expense: ExpenseFormData) => Promise<void>
   onDelete: (id: string) => Promise<void>
+  users?: User[]
+  loadingUsers?: boolean
 }
 
-export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, onDelete }: EditExpenseDialogProps) => {
+export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, onDelete, users = [], loadingUsers = false }: EditExpenseDialogProps) => {
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [dueDate, setDueDate] = useState<Date>()
   const [paymentDate, setPaymentDate] = useState<Date>()
+  const [attachment, setAttachment] = useState<File | null>(null)
+
   const [formData, setFormData] = useState<ExpenseFormData>({
-    name: '',
-    expense_type: 'variable',
+    person_id: '',
+    expense_type: 'fc',
     category: 'other',
     amount: 0,
-    currency: 'CLP',
-    payment_status: 'pending',
+    currency: 'USD',
     due_date: format(new Date(), 'yyyy-MM-dd'),
     recurrence: 'once',
-    requires_approval: false,
   })
 
   useEffect(() => {
     if (expense) {
       setFormData({
-        name: expense.name,
+        person_id: expense.person_id || '',
         expense_type: expense.expense_type,
         category: expense.category,
         description: expense.description,
         amount: expense.amount,
         currency: expense.currency,
-        payment_status: expense.payment_status,
-        payment_method: expense.payment_method,
-        payment_date: expense.payment_date,
         due_date: expense.due_date,
+        payment_date: expense.payment_date,
         recurrence: expense.recurrence,
-        recurrence_end_date: expense.recurrence_end_date,
-        vendor: expense.vendor,
-        vendor_id_number: expense.vendor_id_number,
-        invoice_number: expense.invoice_number,
-        department: expense.department,
         notes: expense.notes,
-        reference: expense.reference,
-        requires_approval: expense.requires_approval,
       })
       setDueDate(expense.due_date ? new Date(expense.due_date) : undefined)
       setPaymentDate(expense.payment_date ? new Date(expense.payment_date) : undefined)
+      setAttachment(null) // Reset attachment on new expense load
     }
   }, [expense])
 
@@ -81,6 +80,7 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, onDelet
         ...formData,
         due_date: dueDate ? format(dueDate, 'yyyy-MM-dd') : formData.due_date,
         payment_date: paymentDate ? format(paymentDate, 'yyyy-MM-dd') : undefined,
+        attachment: attachment || undefined,
       })
       onOpenChange(false)
     } catch (error) {
@@ -104,10 +104,10 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, onDelet
     }
   }
 
-  // Same options as AddExpenseDialog
   const expenseTypes: { value: ExpenseType; label: string }[] = [
-    { value: 'fixed', label: 'Fixed' },
-    { value: 'variable', label: 'Variable' },
+    { value: 'fc', label: 'Fixed Cost (FC)' },
+    { value: 'ivc', label: 'Indirect Variable Cost (IVC)' },
+    { value: 'dvc', label: 'Direct Variable Cost (DVC)' },
   ]
 
   const categories: { value: ExpenseCategory; label: string }[] = [
@@ -126,42 +126,30 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, onDelet
     { value: 'other', label: 'Other' },
   ]
 
-  const paymentStatuses: { value: PaymentStatus; label: string }[] = [
-    { value: 'pending', label: 'Pending' },
-    { value: 'paid', label: 'Paid' },
-    { value: 'overdue', label: 'Overdue' },
-    { value: 'cancelled', label: 'Cancelled' },
-  ]
-
   const currencies: { value: Currency; label: string }[] = [
-    { value: 'CLP', label: 'CLP' },
-    { value: 'USD', label: 'USD' },
-    { value: 'EUR', label: 'EUR' },
-    { value: 'BRL', label: 'BRL' },
-    { value: 'ARS', label: 'ARS' },
-  ]
-
-  const paymentMethods: { value: PaymentMethod; label: string }[] = [
-    { value: 'pagarme-brl', label: 'Pagar.me (BRL)' },
-    { value: 'sicred-pix-brl', label: 'Sicred – Pix (BRL)' },
-    { value: 'cash-brl', label: 'Cash (BRL)' },
-    { value: 'cash-ars', label: 'Cash (ARS)' },
-    { value: 'cash-usd', label: 'Cash (USD)' },
-    { value: 'asaas-brl', label: 'Asaas (BRL)' },
-    { value: 'santander-ar', label: 'Santander (AR)' },
-    { value: 'wise-brl', label: 'Wise (BRL)' },
-    { value: 'wise-usd', label: 'Wise (USD)' },
-    { value: 'wise-eur', label: 'Wise (EUR)' },
-    { value: 'wise-clp', label: 'Wise (CLP)' },
-    { value: 'mercado-pago-ar', label: 'Mercado Pago (AR)' },
+    { value: 'USD', label: 'USD - US Dollar' },
+    { value: 'EUR', label: 'EUR - Euro' },
+    { value: 'BRL', label: 'BRL - Brazilian Real' },
+    { value: 'ARS', label: 'ARS - Argentine Peso' },
+    { value: 'CLP', label: 'CLP - Chilean Peso' },
   ]
 
   const recurrences: { value: Recurrence; label: string }[] = [
     { value: 'once', label: 'One-time' },
+    { value: 'daily', label: 'Daily' },
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'biweekly', label: 'Bi-weekly' },
     { value: 'monthly', label: 'Monthly' },
     { value: 'quarterly', label: 'Quarterly' },
     { value: 'yearly', label: 'Yearly' },
   ]
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setAttachment(file)
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -172,124 +160,28 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, onDelet
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            {/* Same fields as AddExpenseDialog but with pre-filled values */}
-            <div className="col-span-2">
-              <Label htmlFor="name">Expense Name *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
-            </div>
-
+            {/* Person/User */}
             <div>
-              <Label htmlFor="expense_type">Expense Type *</Label>
+              <Label htmlFor="person_id">Person/User</Label>
               <Select
-                value={formData.expense_type}
-                onValueChange={(value: ExpenseType) => setFormData({ ...formData, expense_type: value })}
+                value={formData.person_id}
+                onValueChange={(value) => setFormData({ ...formData, person_id: value })}
+                disabled={loadingUsers}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder={loadingUsers ? "Loading users..." : "Select person"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {expenseTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.full_name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div>
-              <Label htmlFor="category">Category *</Label>
-              <Select
-                value={formData.category}
-                onValueChange={(value: ExpenseCategory) => setFormData({ ...formData, category: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="amount">Amount *</Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) })}
-                required
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="currency">Currency *</Label>
-              <Select
-                value={formData.currency}
-                onValueChange={(value: Currency) => setFormData({ ...formData, currency: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {currencies.map((curr) => (
-                    <SelectItem key={curr.value} value={curr.value}>
-                      {curr.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="payment_status">Payment Status *</Label>
-              <Select
-                value={formData.payment_status}
-                onValueChange={(value: PaymentStatus) => setFormData({ ...formData, payment_status: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {paymentStatuses.map((status) => (
-                    <SelectItem key={status.value} value={status.value}>
-                      {status.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="payment_method">Payment Method</Label>
-              <Select
-                value={formData.payment_method}
-                onValueChange={(value: PaymentMethod) => setFormData({ ...formData, payment_method: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select method" />
-                </SelectTrigger>
-                <SelectContent>
-                  {paymentMethods.map((method) => (
-                    <SelectItem key={method.value} value={method.value}>
-                      {method.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
+            {/* Due Date */}
             <div>
               <Label>Due Date *</Label>
               <Popover>
@@ -316,6 +208,7 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, onDelet
               </Popover>
             </div>
 
+            {/* Payment Date */}
             <div>
               <Label>Payment Date</Label>
               <Popover>
@@ -342,24 +235,144 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, onDelet
               </Popover>
             </div>
 
+            {/* Amount */}
             <div>
-              <Label htmlFor="vendor">Vendor/Supplier</Label>
+              <Label htmlFor="amount">Amount *</Label>
               <Input
-                id="vendor"
-                value={formData.vendor || ''}
-                onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
+                id="amount"
+                type="number"
+                step="0.01"
+                value={formData.amount || ''}
+                onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
+                required
               />
             </div>
 
+            {/* Currency */}
             <div>
-              <Label htmlFor="invoice_number">Invoice Number</Label>
-              <Input
-                id="invoice_number"
-                value={formData.invoice_number || ''}
-                onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
-              />
+              <Label htmlFor="currency">Currency *</Label>
+              <Select
+                value={formData.currency}
+                onValueChange={(value: Currency) => setFormData({ ...formData, currency: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {currencies.map((curr) => (
+                    <SelectItem key={curr.value} value={curr.value}>
+                      {curr.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
+            {/* Expense Type */}
+            <div>
+              <Label htmlFor="expense_type">Expense Type *</Label>
+              <Select
+                value={formData.expense_type}
+                onValueChange={(value: ExpenseType) => setFormData({ ...formData, expense_type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {expenseTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Category */}
+            <div>
+              <Label htmlFor="category">Category *</Label>
+              <Select
+                value={formData.category}
+                onValueChange={(value: ExpenseCategory) => setFormData({ ...formData, category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Recurrence */}
+            <div>
+              <Label htmlFor="recurrence">Recurrence</Label>
+              <Select
+                value={formData.recurrence}
+                onValueChange={(value: Recurrence) => setFormData({ ...formData, recurrence: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {recurrences.map((rec) => (
+                    <SelectItem key={rec.value} value={rec.value}>
+                      {rec.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Current Attachment */}
+            {expense?.attachment && (
+              <div className="col-span-2">
+                <Label>Current Attachment</Label>
+                <div className="text-sm text-muted-foreground mt-1">
+                  <a href={expense.attachment} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                    View current attachment
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* Attachment */}
+            <div className="col-span-2">
+              <Label htmlFor="attachment">New Attachment</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Input
+                  id="attachment"
+                  type="file"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById('attachment')?.click()}
+                  className="w-full justify-start"
+                >
+                  <Paperclip className="mr-2 h-4 w-4" />
+                  {attachment ? attachment.name : 'Choose file...'}
+                </Button>
+                {attachment && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAttachment(null)}
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Description */}
             <div className="col-span-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
@@ -367,6 +380,17 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, onDelet
                 value={formData.description || ''}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
+              />
+            </div>
+
+            {/* Notes */}
+            <div className="col-span-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes || ''}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={2}
               />
             </div>
           </div>

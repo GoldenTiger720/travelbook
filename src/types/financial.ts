@@ -43,37 +43,25 @@ export type AccountType =
 
 export interface Expense {
   id: string
-  name: string
+  person_id?: string
+  person_name?: string
   expense_type: ExpenseType
+  cost_type?: string
   category: ExpenseCategory
   description?: string
   amount: number
   currency: Currency
-  payment_status: PaymentStatus
-  payment_method?: PaymentMethod
-  payment_date?: string
   due_date: string
+  payment_date?: string
   recurrence: Recurrence
-  recurrence_end_date?: string
-  vendor?: string
-  vendor_id_number?: string
-  invoice_number?: string
-  receipt_file?: string
   attachment?: string
-  department?: string
   notes?: string
-  reference?: string
-  requires_approval: boolean
-  approved_by?: string
-  approved_by_name?: string
-  approved_at?: string
-  person_id?: string
-  person_name?: string
   created_by?: string
   created_by_name?: string
   created_at: string
   updated_at: string
   is_overdue: boolean
+  payment_status: PaymentStatus // Derived from payment_date and due_date
 }
 
 export interface FinancialAccount {
@@ -108,8 +96,7 @@ export interface Receivable {
 
 export interface PayableExpense {
   id: string
-  name: string
-  vendor?: string
+  person_name?: string
   amount: number
   currency: Currency
   dueDate: string
@@ -213,23 +200,11 @@ export interface ExpenseFormData {
   description?: string
   amount: number
   currency: Currency
-  payment_status: PaymentStatus
-  payment_date?: string
   due_date: string
+  payment_date?: string
   recurrence?: Recurrence
   attachment?: File
   notes?: string
-  // Legacy fields kept for backward compatibility
-  name?: string
-  payment_method?: PaymentMethod
-  recurrence_end_date?: string
-  vendor?: string
-  vendor_id_number?: string
-  invoice_number?: string
-  receipt_file?: File
-  department?: string
-  reference?: string
-  requires_approval?: boolean
 }
 
 export interface AccountFormData {

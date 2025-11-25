@@ -159,10 +159,10 @@ const FinancialPage = () => {
 
   // Lazy load users when expense dialog opens
   useEffect(() => {
-    if (addExpenseOpen && users.length === 0) {
+    if ((addExpenseOpen || editExpenseOpen) && users.length === 0) {
       fetchUsers()
     }
-  }, [addExpenseOpen])
+  }, [addExpenseOpen, editExpenseOpen])
 
   // Load all data when date range or currency changes
   // Note: receivables are handled by React Query automatically
@@ -190,7 +190,6 @@ const FinancialPage = () => {
         formData.append('category', expenseData.category)
         formData.append('amount', String(expenseData.amount))
         formData.append('currency', expenseData.currency)
-        formData.append('payment_status', expenseData.payment_status)
         formData.append('due_date', expenseData.due_date)
         if (expenseData.payment_date) formData.append('payment_date', expenseData.payment_date)
         if (expenseData.recurrence) formData.append('recurrence', expenseData.recurrence)
@@ -211,7 +210,6 @@ const FinancialPage = () => {
           category: expenseData.category,
           amount: expenseData.amount,
           currency: expenseData.currency,
-          payment_status: expenseData.payment_status,
           due_date: expenseData.due_date,
           payment_date: expenseData.payment_date || null,
           recurrence: expenseData.recurrence || 'once',
@@ -250,10 +248,55 @@ const FinancialPage = () => {
   // Handle edit expense
   const handleEditExpense = async (id: string, expenseData: ExpenseFormData) => {
     try {
-      await apiCall(API_ENDPOINTS.FINANCIAL.EXPENSE(id), {
-        method: 'PUT',
-        body: JSON.stringify(expenseData)
-      })
+      // Check if there's an attachment file
+      const hasAttachment = expenseData.attachment instanceof File
+
+      let requestOptions: RequestInit
+
+      if (hasAttachment) {
+        // Use FormData for file upload
+        const formData = new FormData()
+
+        // Add all fields to FormData
+        if (expenseData.person_id) formData.append('person', expenseData.person_id)
+        formData.append('expense_type', expenseData.expense_type)
+        formData.append('category', expenseData.category)
+        formData.append('amount', String(expenseData.amount))
+        formData.append('currency', expenseData.currency)
+        formData.append('due_date', expenseData.due_date)
+        if (expenseData.payment_date) formData.append('payment_date', expenseData.payment_date)
+        if (expenseData.recurrence) formData.append('recurrence', expenseData.recurrence)
+        if (expenseData.description) formData.append('description', expenseData.description)
+        if (expenseData.notes) formData.append('notes', expenseData.notes)
+        // Add the file
+        formData.append('attachment', expenseData.attachment)
+
+        requestOptions = {
+          method: 'PUT',
+          body: formData
+        }
+      } else {
+        // Use JSON for non-file requests
+        const backendData = {
+          person: expenseData.person_id || null,
+          expense_type: expenseData.expense_type,
+          category: expenseData.category,
+          amount: expenseData.amount,
+          currency: expenseData.currency,
+          due_date: expenseData.due_date,
+          payment_date: expenseData.payment_date || null,
+          recurrence: expenseData.recurrence || 'once',
+          description: expenseData.description || null,
+          notes: expenseData.notes || null,
+        }
+
+        requestOptions = {
+          method: 'PUT',
+          body: JSON.stringify(backendData)
+        }
+      }
+
+      await apiCall(API_ENDPOINTS.FINANCIAL.EXPENSE(id), requestOptions)
       toast({
         title: 'Success',
         description: 'Expense updated successfully'
@@ -477,6 +520,7 @@ const FinancialPage = () => {
               setSelectedExpense(expense)
               setEditExpenseOpen(true)
             }}
+            users={users}
           />
         </TabsContent>
 
@@ -507,6 +551,8 @@ const FinancialPage = () => {
         expense={selectedExpense}
         onSave={handleEditExpense}
         onDelete={handleDeleteExpense}
+        users={users}
+        loadingUsers={loadingUsers}
       />
 
       {/* Recipe Dialog */}

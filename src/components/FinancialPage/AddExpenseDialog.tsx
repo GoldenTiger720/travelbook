@@ -53,7 +53,6 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSave, users = [], loadi
     category: 'other',
     amount: 0,
     currency: 'USD',
-    payment_status: 'pending',
     due_date: format(new Date(), 'yyyy-MM-dd'),
     recurrence: 'once',
   })
@@ -100,7 +99,6 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSave, users = [], loadi
         category: 'other',
         amount: 0,
         currency: 'USD',
-        payment_status: 'pending',
         due_date: format(new Date(), 'yyyy-MM-dd'),
         recurrence: 'once',
       })

@@ -21,7 +21,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { MoreVertical } from 'lucide-react'
-import type { Payables, Expense } from '@/types/financial'
+import type { Payables, Expense, PayableCommission } from '@/types/financial'
+
+interface User {
+  id: string
+  full_name: string
+}
 
 interface PayablesTabProps {
   payables: Payables
@@ -32,9 +37,11 @@ interface PayablesTabProps {
   loading: boolean
   onAddExpense: () => void
   onEditExpense: (expense: Expense) => void
+  users?: User[]
 }
 
-type SortField = 'person_name' | 'expense_type' | 'category' | 'amount' | 'due_date' | 'payment_status'
+type ExpenseSortField = 'person_name' | 'expense_type' | 'category' | 'amount' | 'due_date' | 'payment_status'
+type CommissionSortField = 'id' | 'bookingId' | 'salesperson' | 'amount' | 'percentage' | 'status'
 type SortDirection = 'asc' | 'desc' | null
 
 const PayablesTab: React.FC<PayablesTabProps> = ({
@@ -46,21 +53,29 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
   loading,
   onAddExpense,
   onEditExpense,
+  users = [],
 }) => {
   // Filter states
-  const [methodFilter, setMethodFilter] = useState<string>('all')
   const [personFilter, setPersonFilter] = useState<string>('all')
 
-  // Sort state
-  const [sortField, setSortField] = useState<SortField | null>(null)
-  const [sortDirection, setSortDirection] = useState<SortDirection>(null)
+  // Expense sort state
+  const [expenseSortField, setExpenseSortField] = useState<ExpenseSortField | null>(null)
+  const [expenseSortDirection, setExpenseSortDirection] = useState<SortDirection>(null)
+
+  // Commission sort state
+  const [commissionSortField, setCommissionSortField] = useState<CommissionSortField | null>(null)
+  const [commissionSortDirection, setCommissionSortDirection] = useState<SortDirection>(null)
 
   // Ensure expenses is always an array
   const expensesList = Array.isArray(expenses) ? expenses : []
   const commissionsList = Array.isArray(payables?.commissions) ? payables.commissions : []
 
-  // Derive unique persons from expenses data (no API call needed)
+  // Use users from props (loaded from backend), fallback to deriving from expenses
   const uniquePersons = useMemo(() => {
+    if (users.length > 0) {
+      return users.map(user => ({ id: user.id, name: user.full_name }))
+    }
+    // Fallback: derive from expenses data
     const persons = new Map<string, string>()
     expensesList.forEach(expense => {
       if (expense.person_id && expense.person_name) {
@@ -68,44 +83,29 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
       }
     })
     return Array.from(persons.entries()).map(([id, name]) => ({ id, name }))
-  }, [expensesList])
-
-  // Derive unique payment methods from expenses data (no API call needed)
-  const uniquePaymentMethods = useMemo(() => {
-    const methods = new Set<string>()
-    expensesList.forEach(expense => {
-      if (expense.payment_method) {
-        methods.add(expense.payment_method)
-      }
-    })
-    return Array.from(methods)
-  }, [expensesList])
+  }, [users, expensesList])
 
   // Filter expenses
   const filteredExpenses = useMemo(() => {
     return expensesList.filter(expense => {
-      // Payment method filter
-      if (methodFilter !== 'all' && expense.payment_method !== methodFilter) {
-        return false
-      }
       // Person filter
       if (personFilter !== 'all' && expense.person_id !== personFilter) {
         return false
       }
       return true
     })
-  }, [expensesList, methodFilter, personFilter])
+  }, [expensesList, personFilter])
 
   // Sort expenses
   const sortedExpenses = useMemo(() => {
-    if (!sortField || !sortDirection) return filteredExpenses
+    if (!expenseSortField || !expenseSortDirection) return filteredExpenses
 
     return [...filteredExpenses].sort((a, b) => {
-      let aValue: any = a[sortField]
-      let bValue: any = b[sortField]
+      let aValue: any = a[expenseSortField]
+      let bValue: any = b[expenseSortField]
 
       // Handle amount with currency conversion
-      if (sortField === 'amount') {
+      if (expenseSortField === 'amount') {
         aValue = a.currency !== selectedCurrency
           ? convertCurrency(a.amount, a.currency, selectedCurrency)
           : a.amount
@@ -121,15 +121,50 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
       // Compare
       if (typeof aValue === 'string') {
         const comparison = aValue.localeCompare(bValue)
-        return sortDirection === 'asc' ? comparison : -comparison
+        return expenseSortDirection === 'asc' ? comparison : -comparison
       }
 
-      if (sortDirection === 'asc') {
+      if (expenseSortDirection === 'asc') {
         return aValue > bValue ? 1 : -1
       }
       return aValue < bValue ? 1 : -1
     })
-  }, [filteredExpenses, sortField, sortDirection, selectedCurrency, convertCurrency])
+  }, [filteredExpenses, expenseSortField, expenseSortDirection, selectedCurrency, convertCurrency])
+
+  // Sort commissions
+  const sortedCommissions = useMemo(() => {
+    if (!commissionSortField || !commissionSortDirection) return commissionsList
+
+    return [...commissionsList].sort((a, b) => {
+      let aValue: any = a[commissionSortField]
+      let bValue: any = b[commissionSortField]
+
+      // Handle amount with currency conversion
+      if (commissionSortField === 'amount') {
+        aValue = a.currency !== selectedCurrency
+          ? convertCurrency(a.amount, a.currency, selectedCurrency)
+          : a.amount
+        bValue = b.currency !== selectedCurrency
+          ? convertCurrency(b.amount, b.currency, selectedCurrency)
+          : b.amount
+      }
+
+      // Handle null/undefined values
+      if (aValue == null) aValue = ''
+      if (bValue == null) bValue = ''
+
+      // Compare
+      if (typeof aValue === 'string') {
+        const comparison = aValue.localeCompare(bValue)
+        return commissionSortDirection === 'asc' ? comparison : -comparison
+      }
+
+      if (commissionSortDirection === 'asc') {
+        return aValue > bValue ? 1 : -1
+      }
+      return aValue < bValue ? 1 : -1
+    })
+  }, [commissionsList, commissionSortField, commissionSortDirection, selectedCurrency, convertCurrency])
 
   // Financial summary calculations
   const financialSummary = useMemo(() => {
@@ -172,28 +207,55 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
     return { overdue, dueToday, due, paid, total }
   }, [filteredExpenses, selectedCurrency, convertCurrency])
 
-  // Handle sort
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
+  // Handle expense sort
+  const handleExpenseSort = (field: ExpenseSortField) => {
+    if (expenseSortField === field) {
       // Cycle through: asc -> desc -> null
-      if (sortDirection === 'asc') {
-        setSortDirection('desc')
-      } else if (sortDirection === 'desc') {
-        setSortField(null)
-        setSortDirection(null)
+      if (expenseSortDirection === 'asc') {
+        setExpenseSortDirection('desc')
+      } else if (expenseSortDirection === 'desc') {
+        setExpenseSortField(null)
+        setExpenseSortDirection(null)
       }
     } else {
-      setSortField(field)
-      setSortDirection('asc')
+      setExpenseSortField(field)
+      setExpenseSortDirection('asc')
     }
   }
 
-  // Get sort icon
-  const getSortIcon = (field: SortField) => {
-    if (sortField !== field) {
+  // Handle commission sort
+  const handleCommissionSort = (field: CommissionSortField) => {
+    if (commissionSortField === field) {
+      // Cycle through: asc -> desc -> null
+      if (commissionSortDirection === 'asc') {
+        setCommissionSortDirection('desc')
+      } else if (commissionSortDirection === 'desc') {
+        setCommissionSortField(null)
+        setCommissionSortDirection(null)
+      }
+    } else {
+      setCommissionSortField(field)
+      setCommissionSortDirection('asc')
+    }
+  }
+
+  // Get expense sort icon
+  const getExpenseSortIcon = (field: ExpenseSortField) => {
+    if (expenseSortField !== field) {
       return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
     }
-    if (sortDirection === 'asc') {
+    if (expenseSortDirection === 'asc') {
+      return <ArrowUp className="ml-2 h-4 w-4" />
+    }
+    return <ArrowDown className="ml-2 h-4 w-4" />
+  }
+
+  // Get commission sort icon
+  const getCommissionSortIcon = (field: CommissionSortField) => {
+    if (commissionSortField !== field) {
+      return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+    }
+    if (commissionSortDirection === 'asc') {
       return <ArrowUp className="ml-2 h-4 w-4" />
     }
     return <ArrowDown className="ml-2 h-4 w-4" />
@@ -308,24 +370,6 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
       <Card>
         <CardContent className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Payment Method Filter */}
-            <div className="space-y-2">
-              <Label>Payment Method</Label>
-              <Select value={methodFilter} onValueChange={setMethodFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All payment methods" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Payment Methods</SelectItem>
-                  {uniquePaymentMethods.map(method => (
-                    <SelectItem key={method} value={method}>
-                      {method}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
             {/* Person Filter */}
             <div className="space-y-2">
               <Label>Person/User</Label>
@@ -365,56 +409,56 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
                 <TableRow>
                   <TableHead
                     className="min-w-[150px] cursor-pointer hover:bg-muted/50 select-none"
-                    onClick={() => handleSort('person_name')}
+                    onClick={() => handleExpenseSort('person_name')}
                   >
                     <div className="flex items-center">
                       Person
-                      {getSortIcon('person_name')}
+                      {getExpenseSortIcon('person_name')}
                     </div>
                   </TableHead>
                   <TableHead
                     className="min-w-[100px] cursor-pointer hover:bg-muted/50 select-none"
-                    onClick={() => handleSort('expense_type')}
+                    onClick={() => handleExpenseSort('expense_type')}
                   >
                     <div className="flex items-center">
                       Type
-                      {getSortIcon('expense_type')}
+                      {getExpenseSortIcon('expense_type')}
                     </div>
                   </TableHead>
                   <TableHead
                     className="min-w-[120px] cursor-pointer hover:bg-muted/50 select-none"
-                    onClick={() => handleSort('category')}
+                    onClick={() => handleExpenseSort('category')}
                   >
                     <div className="flex items-center">
                       Category
-                      {getSortIcon('category')}
+                      {getExpenseSortIcon('category')}
                     </div>
                   </TableHead>
                   <TableHead
                     className="min-w-[120px] cursor-pointer hover:bg-muted/50 select-none"
-                    onClick={() => handleSort('amount')}
+                    onClick={() => handleExpenseSort('amount')}
                   >
                     <div className="flex items-center">
                       Amount
-                      {getSortIcon('amount')}
+                      {getExpenseSortIcon('amount')}
                     </div>
                   </TableHead>
                   <TableHead
                     className="min-w-[100px] cursor-pointer hover:bg-muted/50 select-none"
-                    onClick={() => handleSort('due_date')}
+                    onClick={() => handleExpenseSort('due_date')}
                   >
                     <div className="flex items-center">
                       Due Date
-                      {getSortIcon('due_date')}
+                      {getExpenseSortIcon('due_date')}
                     </div>
                   </TableHead>
                   <TableHead
                     className="min-w-[100px] cursor-pointer hover:bg-muted/50 select-none"
-                    onClick={() => handleSort('payment_status')}
+                    onClick={() => handleExpenseSort('payment_status')}
                   >
                     <div className="flex items-center">
                       Status
-                      {getSortIcon('payment_status')}
+                      {getExpenseSortIcon('payment_status')}
                     </div>
                   </TableHead>
                   <TableHead className="min-w-[80px]">Actions</TableHead>
@@ -430,7 +474,7 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
                 ) : (
                   sortedExpenses.map((expense) => (
                     <TableRow key={expense.id}>
-                      <TableCell className="font-medium">{expense.person_name || expense.name || '-'}</TableCell>
+                      <TableCell className="font-medium">{expense.person_name || '-'}</TableCell>
                       <TableCell>
                         <Badge variant="outline">
                           {getExpenseTypeLabel(expense.expense_type)}
@@ -486,23 +530,71 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[100px]">ID</TableHead>
-                  <TableHead className="min-w-[120px]">Booking ID</TableHead>
-                  <TableHead className="min-w-[150px]">Salesperson</TableHead>
-                  <TableHead className="min-w-[120px]">Amount</TableHead>
-                  <TableHead className="min-w-[100px]">Percentage</TableHead>
-                  <TableHead className="min-w-[100px]">Status</TableHead>
+                  <TableHead
+                    className="min-w-[100px] cursor-pointer hover:bg-muted/50 select-none"
+                    onClick={() => handleCommissionSort('id')}
+                  >
+                    <div className="flex items-center">
+                      ID
+                      {getCommissionSortIcon('id')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="min-w-[120px] cursor-pointer hover:bg-muted/50 select-none"
+                    onClick={() => handleCommissionSort('bookingId')}
+                  >
+                    <div className="flex items-center">
+                      Booking ID
+                      {getCommissionSortIcon('bookingId')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="min-w-[150px] cursor-pointer hover:bg-muted/50 select-none"
+                    onClick={() => handleCommissionSort('salesperson')}
+                  >
+                    <div className="flex items-center">
+                      Salesperson
+                      {getCommissionSortIcon('salesperson')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="min-w-[120px] cursor-pointer hover:bg-muted/50 select-none"
+                    onClick={() => handleCommissionSort('amount')}
+                  >
+                    <div className="flex items-center">
+                      Amount
+                      {getCommissionSortIcon('amount')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="min-w-[100px] cursor-pointer hover:bg-muted/50 select-none"
+                    onClick={() => handleCommissionSort('percentage')}
+                  >
+                    <div className="flex items-center">
+                      Percentage
+                      {getCommissionSortIcon('percentage')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="min-w-[100px] cursor-pointer hover:bg-muted/50 select-none"
+                    onClick={() => handleCommissionSort('status')}
+                  >
+                    <div className="flex items-center">
+                      Status
+                      {getCommissionSortIcon('status')}
+                    </div>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {commissionsList.length === 0 ? (
+                {sortedCommissions.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       No commissions found.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  commissionsList.map((commission) => (
+                  sortedCommissions.map((commission) => (
                     <TableRow key={commission.id}>
                       <TableCell className="font-medium">{commission.id}</TableCell>
                       <TableCell>
