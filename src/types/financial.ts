@@ -64,6 +64,8 @@ export interface Expense {
   updated_at: string
   is_overdue: boolean
   payment_status: PaymentStatus // Derived from payment_date and due_date
+  is_recurring?: boolean // Whether this expense is part of a recurring series
+  recurring_count?: number // Number of related recurring expenses
 }
 
 export interface FinancialAccount {

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle, Clock, CalendarCheck, CheckCircle, DollarSign } from 'lucide-react'
+import { Plus, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle, Clock, CalendarCheck, CheckCircle, DollarSign, Repeat } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import {
@@ -515,7 +515,16 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
                 ) : (
                   sortedExpenses.map((expense) => (
                     <TableRow key={expense.id}>
-                      <TableCell className="font-medium">{expense.person_name || '-'}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {expense.person_name || '-'}
+                          {expense.is_recurring && (
+                            <span title={`Recurring ${expense.recurrence} (${(expense.recurring_count || 0) + 1} total)`}>
+                              <Repeat className="h-4 w-4 text-blue-500" />
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline">
                           {getExpenseTypeLabel(expense.expense_type)}
