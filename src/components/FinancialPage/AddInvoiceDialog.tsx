@@ -38,12 +38,10 @@ interface Booking {
     name: string
     email: string
   }
-  pricing: {
-    amount: number
-    currency: string
-  }
+  totalAmount: number
+  currency: string
   status: string
-  createdAt: string
+  createdAt?: string
 }
 
 const AddInvoiceDialog: React.FC<AddInvoiceDialogProps> = ({
@@ -85,8 +83,8 @@ const AddInvoiceDialog: React.FC<AddInvoiceDialogProps> = ({
       setFormData({
         ...formData,
         bookingId: bookingId,
-        currency: (selectedBooking.pricing?.currency || 'CLP') as Currency,
-        amount: selectedBooking.pricing?.amount || 0
+        currency: (selectedBooking.currency || 'CLP') as Currency,
+        amount: selectedBooking.totalAmount || 0
       })
     }
   }
@@ -163,7 +161,7 @@ const AddInvoiceDialog: React.FC<AddInvoiceDialogProps> = ({
                         <div className="flex flex-col">
                           <span className="font-medium">{booking.customer?.name || 'Unknown Customer'}</span>
                           <span className="text-xs text-muted-foreground">
-                            #{booking.id?.slice(0, 8) || 'N/A'} • {booking.pricing?.currency || 'N/A'} {(booking.pricing?.amount || 0).toFixed(2)} • {booking.status || 'N/A'}
+                            #{booking.id?.slice(0, 8) || 'N/A'} • {booking.currency || 'N/A'} {(booking.totalAmount || 0).toFixed(2)} • {booking.status || 'N/A'}
                           </span>
                         </div>
                       </SelectItem>
