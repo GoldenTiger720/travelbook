@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,11 +31,17 @@ import {
   ArrowDown,
   Edit,
   DollarSign,
+  AlertCircle,
+  Calendar,
+  Clock,
+  CheckCircle2,
+  TrendingUp,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { useNavigate } from 'react-router-dom'
 import authService from '@/services/authService'
 import { EditPaymentStatusDialog } from './ReceivablesTab/index'
+import { usePaymentAccounts } from '@/lib/hooks/usePaymentAccounts'
 
 interface Receivable {
   id: number
@@ -52,6 +58,8 @@ interface Receivable {
 interface ReceivablesTabProps {
   receivables: Receivable[]
   formatCurrency: (amount: number, currency?: string) => string
+  convertCurrency: (amount: number, fromCurrency: string, toCurrency: string) => number
+  selectedCurrency: string
   loading: boolean
   onAddRecipe: () => void
 }
@@ -62,10 +70,14 @@ type SortOrder = 'asc' | 'desc' | null
 const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
   receivables,
   formatCurrency,
+  convertCurrency,
+  selectedCurrency,
   loading,
   onAddRecipe,
 }) => {
   const [searchTerm, setSearchTerm] = React.useState('')
+  const [statusFilter, setStatusFilter] = React.useState<string>('all')
+  const [methodFilter, setMethodFilter] = React.useState<string>('all')
   const [sortField, setSortField] = React.useState<SortField | null>(null)
   const [sortOrder, setSortOrder] = React.useState<SortOrder>(null)
   const [editStatusDialog, setEditStatusDialog] = React.useState<{ open: boolean, receivable: Receivable | null }>({
@@ -77,11 +89,62 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
   const navigate = useNavigate()
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
+  // Fetch payment accounts for filter dropdown
+  const { paymentAccounts } = usePaymentAccounts()
+
   // Get current user and check permissions
   const currentUser = authService.getCurrentUser()
   const canEditPaymentStatus = currentUser?.role === 'administrator' ||
     currentUser?.role === 'Finance' ||
     currentUser?.isSuperuser
+
+  // Get unique payment methods from receivables data
+  const uniquePaymentMethods = useMemo(() => {
+    const methods = new Set<string>()
+    receivables.forEach(r => {
+      if (r.method) methods.add(r.method)
+    })
+    return Array.from(methods).sort()
+  }, [receivables])
+
+  // Calculate financial summary metrics with currency conversion
+  const financialSummary = useMemo(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayStr = today.toISOString().split('T')[0]
+
+    let overdue = 0
+    let dueToday = 0
+    let due = 0 // Pending/upcoming
+    let received = 0
+    let total = 0
+
+    receivables.forEach(item => {
+      const rawAmount = Number(item.amount) || 0
+      // Convert amount from item's currency to selected currency
+      const amount = item.currency && item.currency !== selectedCurrency
+        ? convertCurrency(rawAmount, item.currency, selectedCurrency)
+        : rawAmount
+
+      total += amount
+
+      const itemDueDate = new Date(item.dueDate)
+      itemDueDate.setHours(0, 0, 0, 0)
+      const itemDueDateStr = item.dueDate?.split('T')[0] || item.dueDate
+
+      if (item.status === 'paid') {
+        received += amount
+      } else if (item.status === 'overdue' || (itemDueDate < today && item.status !== 'paid')) {
+        overdue += amount
+      } else if (itemDueDateStr === todayStr) {
+        dueToday += amount
+      } else if (item.status === 'pending' || item.status === 'partial') {
+        due += amount
+      }
+    })
+
+    return { overdue, dueToday, due, received, total }
+  }, [receivables, selectedCurrency, convertCurrency])
 
   // Handle sorting
   const handleSort = (field: SortField) => {
@@ -114,9 +177,18 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
   }
 
   // Filter and sort receivables
-  let filteredReceivables = receivables.filter(r =>
-    r.customerName.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  let filteredReceivables = receivables.filter(r => {
+    // Search filter
+    const matchesSearch = r.customerName.toLowerCase().includes(searchTerm.toLowerCase())
+
+    // Status filter
+    const matchesStatus = statusFilter === 'all' || r.status === statusFilter
+
+    // Payment method filter
+    const matchesMethod = methodFilter === 'all' || r.method === methodFilter
+
+    return matchesSearch && matchesStatus && matchesMethod
+  })
 
   // Apply sorting
   if (sortField && sortOrder) {
@@ -365,6 +437,70 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
   }
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Financial Summary Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <AlertCircle className="w-4 h-4 text-red-600" />
+              <span className="text-xs sm:text-sm font-medium text-red-700">Overdue</span>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-red-600">
+              {formatCurrency(financialSummary.overdue)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Calendar className="w-4 h-4 text-orange-600" />
+              <span className="text-xs sm:text-sm font-medium text-orange-700">Due Today</span>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-orange-600">
+              {formatCurrency(financialSummary.dueToday)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Clock className="w-4 h-4 text-yellow-600" />
+              <span className="text-xs sm:text-sm font-medium text-yellow-700">Due</span>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-yellow-600">
+              {formatCurrency(financialSummary.due)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <CheckCircle2 className="w-4 h-4 text-green-600" />
+              <span className="text-xs sm:text-sm font-medium text-green-700">Received</span>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-green-600">
+              {formatCurrency(financialSummary.received)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp className="w-4 h-4 text-blue-600" />
+              <span className="text-xs sm:text-sm font-medium text-blue-700">Total for Period</span>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-blue-600">
+              {formatCurrency(financialSummary.total)}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters and Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
@@ -376,15 +512,38 @@ const ReceivablesTab: React.FC<ReceivablesTabProps> = ({
               className="pl-10 w-48 sm:w-64 h-8"
             />
           </div>
-          <Select value="all">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-32 sm:w-40 h-8">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="partial">Partial</SelectItem>
               <SelectItem value="overdue">Overdue</SelectItem>
               <SelectItem value="paid">Paid</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={methodFilter} onValueChange={setMethodFilter}>
+            <SelectTrigger className="w-40 sm:w-48 h-8">
+              <SelectValue placeholder="Payment Method" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Payment Methods</SelectItem>
+              {/* Show unique methods from data */}
+              {uniquePaymentMethods.map(method => (
+                <SelectItem key={method} value={method}>
+                  {method}
+                </SelectItem>
+              ))}
+              {/* Also show payment accounts from settings if not already in data */}
+              {paymentAccounts
+                .filter(acc => !uniquePaymentMethods.includes(acc.accountName))
+                .map(account => (
+                  <SelectItem key={account.id} value={account.accountName}>
+                    {account.accountName}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>

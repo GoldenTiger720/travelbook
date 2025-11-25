@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import DashboardTab from '@/components/FinancialPage/DashboardTab'
@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
 import { apiCall, API_ENDPOINTS } from '@/config/api'
 import { useReceivables, useCreateRecipe } from '@/lib/hooks/useReceivables'
+import { useExchangeRates } from '@/lib/hooks/useExchangeRates'
 import type {
   FinancialDashboard,
   Expense,
@@ -44,6 +45,9 @@ const FinancialPage = () => {
   const [bookings, setBookings] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingBookings, setLoadingBookings] = useState(false)
+
+  // Exchange rates for currency conversion
+  const { convertCurrency } = useExchangeRates()
 
   // React Query for receivables with optimistic updates
   const { data: receivables = [], isLoading: loadingReceivables } = useReceivables(startDate, endDate)
@@ -231,9 +235,8 @@ const FinancialPage = () => {
     fetchDashboardData()
   }
 
-  // Currency formatter
-  const formatCurrency = (amount: number, currency?: string) => {
-    const curr = currency || selectedCurrency
+  // Currency formatter with exchange rate conversion
+  const formatCurrency = useCallback((amount: number, sourceCurrency?: string) => {
     const symbols: { [key: string]: string } = {
       'USD': '$',
       'EUR': '€',
@@ -241,8 +244,16 @@ const FinancialPage = () => {
       'BRL': 'R$',
       'ARS': '$'
     }
-    return `${symbols[curr] || curr} ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-  }
+
+    // If source currency is provided and different from selected currency, convert
+    let convertedAmount = amount
+    if (sourceCurrency && sourceCurrency !== selectedCurrency) {
+      convertedAmount = convertCurrency(amount, sourceCurrency, selectedCurrency)
+    }
+
+    const symbol = symbols[selectedCurrency] || selectedCurrency
+    return `${symbol} ${convertedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }, [selectedCurrency, convertCurrency])
 
   // Calculate totals for display
   const totals = dashboardData ? {
@@ -367,6 +378,8 @@ const FinancialPage = () => {
           <ReceivablesTab
             receivables={receivables}
             formatCurrency={formatCurrency}
+            convertCurrency={convertCurrency}
+            selectedCurrency={selectedCurrency}
             loading={loadingReceivables}
             onAddRecipe={() => setAddRecipeOpen(true)}
           />
