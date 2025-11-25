@@ -43,8 +43,10 @@ const FinancialPage = () => {
   const [payables, setPayables] = useState<Payables>({ expenses: [], commissions: [] })
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [bookings, setBookings] = useState<any[]>([])
+  const [users, setUsers] = useState<{ id: string; full_name: string }[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingBookings, setLoadingBookings] = useState(false)
+  const [loadingUsers, setLoadingUsers] = useState(false)
 
   // Exchange rates for currency conversion
   const { convertCurrency } = useExchangeRates()
@@ -127,10 +129,40 @@ const FinancialPage = () => {
     }
   }
 
+  // Fetch users (lazy load when expense dialog opens)
+  const fetchUsers = async () => {
+    if (users.length > 0) return // Already loaded
+
+    try {
+      setLoadingUsers(true)
+      const response = await apiCall('/api/users/', { method: 'GET' })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch users')
+      }
+
+      const result = await response.json()
+      const usersData = result.results || result || []
+      setUsers(usersData)
+    } catch (error) {
+      console.error('Error fetching users:', error)
+      setUsers([])
+    } finally {
+      setLoadingUsers(false)
+    }
+  }
+
   // Preload bookings on component mount (for instant recipe dialog loading)
   useEffect(() => {
     fetchBookings()
   }, [])
+
+  // Lazy load users when expense dialog opens
+  useEffect(() => {
+    if (addExpenseOpen && users.length === 0) {
+      fetchUsers()
+    }
+  }, [addExpenseOpen])
 
   // Load all data when date range or currency changes
   // Note: receivables are handled by React Query automatically
@@ -143,9 +175,18 @@ const FinancialPage = () => {
   // Handle add expense
   const handleAddExpense = async (expenseData: ExpenseFormData) => {
     try {
+      // Map frontend field names to backend field names
+      const backendData = {
+        ...expenseData,
+        person: expenseData.person_id || null, // Backend expects 'person' not 'person_id'
+        expense_type: expenseData.expense_type, // Keep expense_type for legacy support
+      }
+      // Remove frontend-only field
+      delete (backendData as any).person_id
+
       await apiCall(API_ENDPOINTS.FINANCIAL.EXPENSES, {
         method: 'POST',
-        body: JSON.stringify(expenseData)
+        body: JSON.stringify(backendData)
       })
       toast({
         title: 'Success',
@@ -390,6 +431,8 @@ const FinancialPage = () => {
             payables={payables}
             expenses={expenses}
             formatCurrency={formatCurrency}
+            convertCurrency={convertCurrency}
+            selectedCurrency={selectedCurrency}
             loading={loading}
             onAddExpense={() => setAddExpenseOpen(true)}
             onEditExpense={(expense) => {
@@ -416,6 +459,8 @@ const FinancialPage = () => {
         open={addExpenseOpen}
         onOpenChange={setAddExpenseOpen}
         onSave={handleAddExpense}
+        users={users}
+        loadingUsers={loadingUsers}
       />
 
       <EditExpenseDialog

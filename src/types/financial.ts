@@ -1,6 +1,6 @@
 // Financial Types and Interfaces
 
-export type ExpenseType = 'fixed' | 'variable'
+export type ExpenseType = 'fixed' | 'variable' | 'fc' | 'ivc' | 'dvc'
 
 export type ExpenseCategory =
   | 'salary'
@@ -59,6 +59,7 @@ export interface Expense {
   vendor_id_number?: string
   invoice_number?: string
   receipt_file?: string
+  attachment?: string
   department?: string
   notes?: string
   reference?: string
@@ -66,6 +67,8 @@ export interface Expense {
   approved_by?: string
   approved_by_name?: string
   approved_at?: string
+  person_id?: string
+  person_name?: string
   created_by?: string
   created_by_name?: string
   created_at: string
@@ -204,24 +207,27 @@ export interface ExpenseSummary {
 
 // Form data types for creating/updating
 export interface ExpenseFormData {
-  name: string
+  person_id?: string
   expense_type: ExpenseType
   category: ExpenseCategory
   description?: string
   amount: number
   currency: Currency
   payment_status: PaymentStatus
-  payment_method?: PaymentMethod
   payment_date?: string
   due_date: string
   recurrence?: Recurrence
+  attachment?: File
+  notes?: string
+  // Legacy fields kept for backward compatibility
+  name?: string
+  payment_method?: PaymentMethod
   recurrence_end_date?: string
   vendor?: string
   vendor_id_number?: string
   invoice_number?: string
   receipt_file?: File
   department?: string
-  notes?: string
   reference?: string
   requires_approval?: boolean
 }

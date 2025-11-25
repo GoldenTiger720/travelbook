@@ -1,8 +1,10 @@
-import React from 'react'
+import React, { useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus } from 'lucide-react'
+import { Plus, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle, Clock, CalendarCheck, CheckCircle, DollarSign } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import {
   Table,
   TableBody,
@@ -19,28 +21,207 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { MoreVertical } from 'lucide-react'
-import type { Payables, Expense, PayableExpense, PayableCommission } from '@/types/financial'
+import type { Payables, Expense } from '@/types/financial'
 
 interface PayablesTabProps {
   payables: Payables
   expenses: Expense[]
   formatCurrency: (amount: number, currency?: string) => string
+  convertCurrency: (amount: number, fromCurrency: string, toCurrency: string) => number
+  selectedCurrency: string
   loading: boolean
   onAddExpense: () => void
   onEditExpense: (expense: Expense) => void
 }
 
+type SortField = 'person_name' | 'expense_type' | 'category' | 'amount' | 'due_date' | 'payment_status'
+type SortDirection = 'asc' | 'desc' | null
+
 const PayablesTab: React.FC<PayablesTabProps> = ({
   payables,
   expenses,
   formatCurrency,
+  convertCurrency,
+  selectedCurrency,
   loading,
   onAddExpense,
   onEditExpense,
 }) => {
+  // Filter states
+  const [methodFilter, setMethodFilter] = useState<string>('all')
+  const [personFilter, setPersonFilter] = useState<string>('all')
+
+  // Sort state
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null)
+
   // Ensure expenses is always an array
   const expensesList = Array.isArray(expenses) ? expenses : []
   const commissionsList = Array.isArray(payables?.commissions) ? payables.commissions : []
+
+  // Derive unique persons from expenses data (no API call needed)
+  const uniquePersons = useMemo(() => {
+    const persons = new Map<string, string>()
+    expensesList.forEach(expense => {
+      if (expense.person_id && expense.person_name) {
+        persons.set(expense.person_id, expense.person_name)
+      }
+    })
+    return Array.from(persons.entries()).map(([id, name]) => ({ id, name }))
+  }, [expensesList])
+
+  // Derive unique payment methods from expenses data (no API call needed)
+  const uniquePaymentMethods = useMemo(() => {
+    const methods = new Set<string>()
+    expensesList.forEach(expense => {
+      if (expense.payment_method) {
+        methods.add(expense.payment_method)
+      }
+    })
+    return Array.from(methods)
+  }, [expensesList])
+
+  // Filter expenses
+  const filteredExpenses = useMemo(() => {
+    return expensesList.filter(expense => {
+      // Payment method filter
+      if (methodFilter !== 'all' && expense.payment_method !== methodFilter) {
+        return false
+      }
+      // Person filter
+      if (personFilter !== 'all' && expense.person_id !== personFilter) {
+        return false
+      }
+      return true
+    })
+  }, [expensesList, methodFilter, personFilter])
+
+  // Sort expenses
+  const sortedExpenses = useMemo(() => {
+    if (!sortField || !sortDirection) return filteredExpenses
+
+    return [...filteredExpenses].sort((a, b) => {
+      let aValue: any = a[sortField]
+      let bValue: any = b[sortField]
+
+      // Handle amount with currency conversion
+      if (sortField === 'amount') {
+        aValue = a.currency !== selectedCurrency
+          ? convertCurrency(a.amount, a.currency, selectedCurrency)
+          : a.amount
+        bValue = b.currency !== selectedCurrency
+          ? convertCurrency(b.amount, b.currency, selectedCurrency)
+          : b.amount
+      }
+
+      // Handle null/undefined values
+      if (aValue == null) aValue = ''
+      if (bValue == null) bValue = ''
+
+      // Compare
+      if (typeof aValue === 'string') {
+        const comparison = aValue.localeCompare(bValue)
+        return sortDirection === 'asc' ? comparison : -comparison
+      }
+
+      if (sortDirection === 'asc') {
+        return aValue > bValue ? 1 : -1
+      }
+      return aValue < bValue ? 1 : -1
+    })
+  }, [filteredExpenses, sortField, sortDirection, selectedCurrency, convertCurrency])
+
+  // Financial summary calculations
+  const financialSummary = useMemo(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    let overdue = 0
+    let dueToday = 0
+    let due = 0
+    let paid = 0
+    let total = 0
+
+    filteredExpenses.forEach(expense => {
+      const rawAmount = expense.amount
+      // Convert to selected currency if needed
+      const amount = expense.currency !== selectedCurrency
+        ? convertCurrency(rawAmount, expense.currency, selectedCurrency)
+        : rawAmount
+
+      total += amount
+
+      if (expense.payment_status === 'paid') {
+        paid += amount
+      } else if (expense.payment_status === 'overdue' || expense.is_overdue) {
+        overdue += amount
+      } else {
+        const dueDate = new Date(expense.due_date)
+        dueDate.setHours(0, 0, 0, 0)
+
+        if (dueDate.getTime() === today.getTime()) {
+          dueToday += amount
+        } else if (dueDate > today) {
+          due += amount
+        } else {
+          overdue += amount
+        }
+      }
+    })
+
+    return { overdue, dueToday, due, paid, total }
+  }, [filteredExpenses, selectedCurrency, convertCurrency])
+
+  // Handle sort
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // Cycle through: asc -> desc -> null
+      if (sortDirection === 'asc') {
+        setSortDirection('desc')
+      } else if (sortDirection === 'desc') {
+        setSortField(null)
+        setSortDirection(null)
+      }
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  // Get sort icon
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+    }
+    if (sortDirection === 'asc') {
+      return <ArrowUp className="ml-2 h-4 w-4" />
+    }
+    return <ArrowDown className="ml-2 h-4 w-4" />
+  }
+
+  // Get expense type label
+  const getExpenseTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      'fc': 'FC',
+      'ivc': 'IVC',
+      'dvc': 'DVC',
+      'fixed': 'Fixed',
+      'variable': 'Variable'
+    }
+    return labels[type] || type
+  }
+
+  // Currency symbol helper
+  const getCurrencySymbol = (currency: string) => {
+    const symbols: Record<string, string> = {
+      'USD': '$',
+      'EUR': '€',
+      'BRL': 'R$',
+      'ARS': '$',
+      'CLP': '$'
+    }
+    return symbols[currency] || currency
+  }
 
   if (loading) {
     return (
@@ -52,8 +233,120 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
       </div>
     )
   }
+
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Financial Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {/* Overdue */}
+        <Card className="bg-red-50 border-red-200">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-600" />
+              <span className="text-sm font-medium text-red-700">Overdue</span>
+            </div>
+            <p className="text-xl font-bold text-red-800 mt-2">
+              {getCurrencySymbol(selectedCurrency)} {financialSummary.overdue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Due Today */}
+        <Card className="bg-amber-50 border-amber-200">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-amber-600" />
+              <span className="text-sm font-medium text-amber-700">Due Today</span>
+            </div>
+            <p className="text-xl font-bold text-amber-800 mt-2">
+              {getCurrencySymbol(selectedCurrency)} {financialSummary.dueToday.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Due */}
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <CalendarCheck className="h-5 w-5 text-blue-600" />
+              <span className="text-sm font-medium text-blue-700">Due</span>
+            </div>
+            <p className="text-xl font-bold text-blue-800 mt-2">
+              {getCurrencySymbol(selectedCurrency)} {financialSummary.due.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Paid */}
+        <Card className="bg-green-50 border-green-200">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <span className="text-sm font-medium text-green-700">Paid</span>
+            </div>
+            <p className="text-xl font-bold text-green-800 mt-2">
+              {getCurrencySymbol(selectedCurrency)} {financialSummary.paid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Total */}
+        <Card className="bg-purple-50 border-purple-200">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-purple-600" />
+              <span className="text-sm font-medium text-purple-700">Total for Period</span>
+            </div>
+            <p className="text-xl font-bold text-purple-800 mt-2">
+              {getCurrencySymbol(selectedCurrency)} {financialSummary.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Payment Method Filter */}
+            <div className="space-y-2">
+              <Label>Payment Method</Label>
+              <Select value={methodFilter} onValueChange={setMethodFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All payment methods" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Payment Methods</SelectItem>
+                  {uniquePaymentMethods.map(method => (
+                    <SelectItem key={method} value={method}>
+                      {method}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Person Filter */}
+            <div className="space-y-2">
+              <Label>Person/User</Label>
+              <Select value={personFilter} onValueChange={setPersonFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All persons" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Persons</SelectItem>
+                  {uniquePersons.map(person => (
+                    <SelectItem key={person.id} value={person.id}>
+                      {person.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Expenses Section */}
       <Card>
         <CardHeader>
@@ -70,34 +363,86 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[150px]">Name</TableHead>
-                  <TableHead className="min-w-[100px]">Type</TableHead>
-                  <TableHead className="min-w-[120px]">Category</TableHead>
-                  <TableHead className="min-w-[120px]">Amount</TableHead>
-                  <TableHead className="min-w-[100px]">Due Date</TableHead>
-                  <TableHead className="min-w-[100px]">Status</TableHead>
+                  <TableHead
+                    className="min-w-[150px] cursor-pointer hover:bg-muted/50 select-none"
+                    onClick={() => handleSort('person_name')}
+                  >
+                    <div className="flex items-center">
+                      Person
+                      {getSortIcon('person_name')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="min-w-[100px] cursor-pointer hover:bg-muted/50 select-none"
+                    onClick={() => handleSort('expense_type')}
+                  >
+                    <div className="flex items-center">
+                      Type
+                      {getSortIcon('expense_type')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="min-w-[120px] cursor-pointer hover:bg-muted/50 select-none"
+                    onClick={() => handleSort('category')}
+                  >
+                    <div className="flex items-center">
+                      Category
+                      {getSortIcon('category')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="min-w-[120px] cursor-pointer hover:bg-muted/50 select-none"
+                    onClick={() => handleSort('amount')}
+                  >
+                    <div className="flex items-center">
+                      Amount
+                      {getSortIcon('amount')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="min-w-[100px] cursor-pointer hover:bg-muted/50 select-none"
+                    onClick={() => handleSort('due_date')}
+                  >
+                    <div className="flex items-center">
+                      Due Date
+                      {getSortIcon('due_date')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="min-w-[100px] cursor-pointer hover:bg-muted/50 select-none"
+                    onClick={() => handleSort('payment_status')}
+                  >
+                    <div className="flex items-center">
+                      Status
+                      {getSortIcon('payment_status')}
+                    </div>
+                  </TableHead>
                   <TableHead className="min-w-[80px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {expensesList.length === 0 ? (
+                {sortedExpenses.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       No expenses found. Click "Add Expense" to create one.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  expensesList.map((expense) => (
+                  sortedExpenses.map((expense) => (
                     <TableRow key={expense.id}>
-                      <TableCell className="font-medium">{expense.name}</TableCell>
-                      <TableCell className="capitalize">{expense.expense_type}</TableCell>
+                      <TableCell className="font-medium">{expense.person_name || expense.name || '-'}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {getExpenseTypeLabel(expense.expense_type)}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="capitalize">{expense.category.replace('-', ' ')}</TableCell>
                       <TableCell>{formatCurrency(expense.amount, expense.currency)}</TableCell>
                       <TableCell>{expense.due_date}</TableCell>
                       <TableCell>
                         <Badge variant={
                           expense.payment_status === 'paid' ? 'success' :
-                          expense.payment_status === 'overdue' ? 'destructive' :
+                          expense.payment_status === 'overdue' || expense.is_overdue ? 'destructive' :
                           expense.payment_status === 'cancelled' ? 'secondary' :
                           'default'
                         }>
