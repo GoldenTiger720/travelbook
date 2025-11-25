@@ -53,6 +53,8 @@ export interface Expense {
   currency: Currency
   due_date: string
   payment_date?: string
+  payment_account_id?: string
+  payment_account_name?: string
   recurrence: Recurrence
   attachment?: string
   notes?: string
@@ -202,6 +204,7 @@ export interface ExpenseFormData {
   currency: Currency
   due_date: string
   payment_date?: string
+  payment_account?: string
   recurrence?: Recurrence
   attachment?: File
   notes?: string

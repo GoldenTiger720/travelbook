@@ -28,6 +28,12 @@ interface User {
   full_name: string
 }
 
+interface PaymentAccount {
+  id: string
+  accountName: string
+  currency: string
+}
+
 interface PayablesTabProps {
   payables: Payables
   expenses: Expense[]
@@ -38,6 +44,7 @@ interface PayablesTabProps {
   onAddExpense: () => void
   onEditExpense: (expense: Expense) => void
   users?: User[]
+  paymentAccounts?: PaymentAccount[]
 }
 
 type ExpenseSortField = 'person_name' | 'expense_type' | 'category' | 'amount' | 'due_date' | 'payment_status'
@@ -54,9 +61,11 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
   onAddExpense,
   onEditExpense,
   users = [],
+  paymentAccounts = [],
 }) => {
   // Filter states
   const [personFilter, setPersonFilter] = useState<string>('all')
+  const [paymentAccountFilter, setPaymentAccountFilter] = useState<string>('all')
 
   // Expense sort state
   const [expenseSortField, setExpenseSortField] = useState<ExpenseSortField | null>(null)
@@ -92,9 +101,13 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
       if (personFilter !== 'all' && expense.person_id !== personFilter) {
         return false
       }
+      // Payment account filter
+      if (paymentAccountFilter !== 'all' && expense.payment_account_id !== paymentAccountFilter) {
+        return false
+      }
       return true
     })
-  }, [expensesList, personFilter])
+  }, [expensesList, personFilter, paymentAccountFilter])
 
   // Sort expenses
   const sortedExpenses = useMemo(() => {
@@ -104,14 +117,16 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
       let aValue: any = a[expenseSortField]
       let bValue: any = b[expenseSortField]
 
-      // Handle amount with currency conversion
+      // Handle amount with currency conversion - ensure numeric values
       if (expenseSortField === 'amount') {
+        const aAmount = typeof a.amount === 'string' ? parseFloat(a.amount) || 0 : Number(a.amount) || 0
+        const bAmount = typeof b.amount === 'string' ? parseFloat(b.amount) || 0 : Number(b.amount) || 0
         aValue = a.currency !== selectedCurrency
-          ? convertCurrency(a.amount, a.currency, selectedCurrency)
-          : a.amount
+          ? convertCurrency(aAmount, a.currency, selectedCurrency)
+          : aAmount
         bValue = b.currency !== selectedCurrency
-          ? convertCurrency(b.amount, b.currency, selectedCurrency)
-          : b.amount
+          ? convertCurrency(bAmount, b.currency, selectedCurrency)
+          : bAmount
       }
 
       // Handle null/undefined values
@@ -139,14 +154,16 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
       let aValue: any = a[commissionSortField]
       let bValue: any = b[commissionSortField]
 
-      // Handle amount with currency conversion
+      // Handle amount with currency conversion - ensure numeric values
       if (commissionSortField === 'amount') {
+        const aAmount = typeof a.amount === 'string' ? parseFloat(a.amount) || 0 : Number(a.amount) || 0
+        const bAmount = typeof b.amount === 'string' ? parseFloat(b.amount) || 0 : Number(b.amount) || 0
         aValue = a.currency !== selectedCurrency
-          ? convertCurrency(a.amount, a.currency, selectedCurrency)
-          : a.amount
+          ? convertCurrency(aAmount, a.currency, selectedCurrency)
+          : aAmount
         bValue = b.currency !== selectedCurrency
-          ? convertCurrency(b.amount, b.currency, selectedCurrency)
-          : b.amount
+          ? convertCurrency(bAmount, b.currency, selectedCurrency)
+          : bAmount
       }
 
       // Handle null/undefined values
@@ -178,7 +195,11 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
     let total = 0
 
     filteredExpenses.forEach(expense => {
-      const rawAmount = expense.amount
+      // Ensure rawAmount is a number (backend may return string)
+      const rawAmount = typeof expense.amount === 'string'
+        ? parseFloat(expense.amount) || 0
+        : Number(expense.amount) || 0
+
       // Convert to selected currency if needed
       const amount = expense.currency !== selectedCurrency
         ? convertCurrency(rawAmount, expense.currency, selectedCurrency)
@@ -382,6 +403,24 @@ const PayablesTab: React.FC<PayablesTabProps> = ({
                   {uniquePersons.map(person => (
                     <SelectItem key={person.id} value={person.id}>
                       {person.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Payment Account Filter */}
+            <div className="space-y-2">
+              <Label>Payment Account</Label>
+              <Select value={paymentAccountFilter} onValueChange={setPaymentAccountFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All payment accounts" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Payment Accounts</SelectItem>
+                  {paymentAccounts.map(account => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.accountName} ({account.currency})
                     </SelectItem>
                   ))}
                 </SelectContent>

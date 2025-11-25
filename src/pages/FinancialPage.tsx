@@ -18,13 +18,12 @@ import { cn } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
 import { apiCall, API_ENDPOINTS } from '@/config/api'
 import { useReceivables, useCreateRecipe } from '@/lib/hooks/useReceivables'
+import { useExpenses, usePayables, useCreateExpense, useUpdateExpense, useDeleteExpense } from '@/lib/hooks/useExpenses'
 import { useExchangeRates } from '@/lib/hooks/useExchangeRates'
 import type {
   FinancialDashboard,
   Expense,
-  ExpenseFormData,
-  Payables,
-  Currency
+  ExpenseFormData
 } from '@/types/financial'
 
 const FinancialPage = () => {
@@ -40,13 +39,13 @@ const FinancialPage = () => {
 
   // Data state
   const [dashboardData, setDashboardData] = useState<FinancialDashboard | null>(null)
-  const [payables, setPayables] = useState<Payables>({ expenses: [], commissions: [] })
-  const [expenses, setExpenses] = useState<Expense[]>([])
   const [bookings, setBookings] = useState<any[]>([])
   const [users, setUsers] = useState<{ id: string; full_name: string }[]>([])
+  const [paymentAccounts, setPaymentAccounts] = useState<{ id: string; accountName: string; currency: string }[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingBookings, setLoadingBookings] = useState(false)
   const [loadingUsers, setLoadingUsers] = useState(false)
+  const [loadingPaymentAccounts, setLoadingPaymentAccounts] = useState(false)
 
   // Exchange rates for currency conversion
   const { convertCurrency } = useExchangeRates()
@@ -54,6 +53,13 @@ const FinancialPage = () => {
   // React Query for receivables with optimistic updates
   const { data: receivables = [], isLoading: loadingReceivables } = useReceivables(startDate, endDate)
   const createRecipeMutation = useCreateRecipe(startDate, endDate, bookings)
+
+  // React Query for expenses and payables (no page refresh on currency change)
+  const { data: expenses = [], isLoading: loadingExpenses } = useExpenses(startDate, endDate)
+  const { data: payables = { expenses: [], commissions: [] }, isLoading: loadingPayables } = usePayables(startDate, endDate)
+  const createExpenseMutation = useCreateExpense(startDate, endDate)
+  const updateExpenseMutation = useUpdateExpense(startDate, endDate)
+  const deleteExpenseMutation = useDeleteExpense(startDate, endDate)
 
   // Dialog state
   const [addExpenseOpen, setAddExpenseOpen] = useState(false)
@@ -81,30 +87,6 @@ const FinancialPage = () => {
     }
   }
 
-
-  // Fetch payables
-  const fetchPayables = async () => {
-    try {
-      const params = `?startDate=${format(startDate, 'yyyy-MM-dd')}&endDate=${format(endDate, 'yyyy-MM-dd')}`
-      const response = await apiCall(API_ENDPOINTS.FINANCIAL.PAYABLES + params)
-      const data = await response.json()
-      setPayables(data)
-    } catch (error) {
-      console.error('Error fetching payables:', error)
-    }
-  }
-
-  // Fetch expenses
-  const fetchExpenses = async () => {
-    try {
-      const params = `?startDate=${format(startDate, 'yyyy-MM-dd')}&endDate=${format(endDate, 'yyyy-MM-dd')}`
-      const response = await apiCall(API_ENDPOINTS.FINANCIAL.EXPENSES + params)
-      const data = await response.json()
-      setExpenses(data)
-    } catch (error) {
-      console.error('Error fetching expenses:', error)
-    }
-  }
 
   // Fetch bookings (cached for recipe dialog)
   const fetchBookings = async () => {
@@ -152,88 +134,63 @@ const FinancialPage = () => {
     }
   }
 
-  // Preload bookings on component mount (for instant recipe dialog loading)
+  // Fetch payment accounts (lazy load when expense dialog opens)
+  const fetchPaymentAccounts = async () => {
+    if (paymentAccounts.length > 0) return // Already loaded
+
+    try {
+      setLoadingPaymentAccounts(true)
+      const response = await apiCall('/api/settings/system/payment-account/', { method: 'GET' })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch payment accounts')
+      }
+
+      const result = await response.json()
+      const accountsData = result.results || result || []
+      setPaymentAccounts(accountsData)
+    } catch (error) {
+      console.error('Error fetching payment accounts:', error)
+      setPaymentAccounts([])
+    } finally {
+      setLoadingPaymentAccounts(false)
+    }
+  }
+
+  // Preload bookings and payment accounts on component mount
   useEffect(() => {
     fetchBookings()
+    fetchPaymentAccounts()
   }, [])
 
-  // Lazy load users when expense dialog opens
+  // Lazy load users and payment accounts when expense dialog opens
   useEffect(() => {
-    if ((addExpenseOpen || editExpenseOpen) && users.length === 0) {
-      fetchUsers()
+    if (addExpenseOpen || editExpenseOpen) {
+      if (users.length === 0) {
+        fetchUsers()
+      }
+      if (paymentAccounts.length === 0) {
+        fetchPaymentAccounts()
+      }
     }
   }, [addExpenseOpen, editExpenseOpen])
 
-  // Load all data when date range or currency changes
-  // Note: receivables are handled by React Query automatically
+  // Load dashboard data when date range changes
+  // Note: receivables, expenses, and payables are handled by React Query automatically
   useEffect(() => {
     fetchDashboardData()
-    fetchPayables()
-    fetchExpenses()
-  }, [startDate, endDate, selectedCurrency])
+  }, [startDate, endDate])
 
-  // Handle add expense
+  // Handle add expense - uses React Query mutation
   const handleAddExpense = async (expenseData: ExpenseFormData) => {
     try {
-      // Check if there's an attachment file
-      const hasAttachment = expenseData.attachment instanceof File
-
-      let requestOptions: RequestInit
-
-      if (hasAttachment) {
-        // Use FormData for file upload
-        const formData = new FormData()
-
-        // Add all fields to FormData
-        if (expenseData.person_id) formData.append('person', expenseData.person_id)
-        formData.append('expense_type', expenseData.expense_type)
-        formData.append('category', expenseData.category)
-        formData.append('amount', String(expenseData.amount))
-        formData.append('currency', expenseData.currency)
-        formData.append('due_date', expenseData.due_date)
-        if (expenseData.payment_date) formData.append('payment_date', expenseData.payment_date)
-        if (expenseData.recurrence) formData.append('recurrence', expenseData.recurrence)
-        if (expenseData.description) formData.append('description', expenseData.description)
-        if (expenseData.notes) formData.append('notes', expenseData.notes)
-        // Add the file
-        formData.append('attachment', expenseData.attachment)
-
-        requestOptions = {
-          method: 'POST',
-          body: formData
-        }
-      } else {
-        // Use JSON for non-file requests
-        const backendData = {
-          person: expenseData.person_id || null,
-          expense_type: expenseData.expense_type,
-          category: expenseData.category,
-          amount: expenseData.amount,
-          currency: expenseData.currency,
-          due_date: expenseData.due_date,
-          payment_date: expenseData.payment_date || null,
-          recurrence: expenseData.recurrence || 'once',
-          description: expenseData.description || null,
-          notes: expenseData.notes || null,
-        }
-
-        requestOptions = {
-          method: 'POST',
-          body: JSON.stringify(backendData)
-        }
-      }
-
-      await apiCall(API_ENDPOINTS.FINANCIAL.EXPENSES, requestOptions)
+      await createExpenseMutation.mutateAsync(expenseData)
       toast({
         title: 'Success',
         description: 'Expense added successfully'
       })
-      // Refresh data
-      await Promise.all([
-        fetchDashboardData(),
-        fetchPayables(),
-        fetchExpenses()
-      ])
+      // Dashboard data needs manual refresh
+      fetchDashboardData()
     } catch (error) {
       console.error('Error adding expense:', error)
       toast({
@@ -245,68 +202,16 @@ const FinancialPage = () => {
     }
   }
 
-  // Handle edit expense
+  // Handle edit expense - uses React Query mutation
   const handleEditExpense = async (id: string, expenseData: ExpenseFormData) => {
     try {
-      // Check if there's an attachment file
-      const hasAttachment = expenseData.attachment instanceof File
-
-      let requestOptions: RequestInit
-
-      if (hasAttachment) {
-        // Use FormData for file upload
-        const formData = new FormData()
-
-        // Add all fields to FormData
-        if (expenseData.person_id) formData.append('person', expenseData.person_id)
-        formData.append('expense_type', expenseData.expense_type)
-        formData.append('category', expenseData.category)
-        formData.append('amount', String(expenseData.amount))
-        formData.append('currency', expenseData.currency)
-        formData.append('due_date', expenseData.due_date)
-        if (expenseData.payment_date) formData.append('payment_date', expenseData.payment_date)
-        if (expenseData.recurrence) formData.append('recurrence', expenseData.recurrence)
-        if (expenseData.description) formData.append('description', expenseData.description)
-        if (expenseData.notes) formData.append('notes', expenseData.notes)
-        // Add the file
-        formData.append('attachment', expenseData.attachment)
-
-        requestOptions = {
-          method: 'PUT',
-          body: formData
-        }
-      } else {
-        // Use JSON for non-file requests
-        const backendData = {
-          person: expenseData.person_id || null,
-          expense_type: expenseData.expense_type,
-          category: expenseData.category,
-          amount: expenseData.amount,
-          currency: expenseData.currency,
-          due_date: expenseData.due_date,
-          payment_date: expenseData.payment_date || null,
-          recurrence: expenseData.recurrence || 'once',
-          description: expenseData.description || null,
-          notes: expenseData.notes || null,
-        }
-
-        requestOptions = {
-          method: 'PUT',
-          body: JSON.stringify(backendData)
-        }
-      }
-
-      await apiCall(API_ENDPOINTS.FINANCIAL.EXPENSE(id), requestOptions)
+      await updateExpenseMutation.mutateAsync({ id, data: expenseData })
       toast({
         title: 'Success',
         description: 'Expense updated successfully'
       })
-      // Refresh data
-      await Promise.all([
-        fetchDashboardData(),
-        fetchPayables(),
-        fetchExpenses()
-      ])
+      // Dashboard data needs manual refresh
+      fetchDashboardData()
     } catch (error) {
       console.error('Error updating expense:', error)
       toast({
@@ -318,22 +223,16 @@ const FinancialPage = () => {
     }
   }
 
-  // Handle delete expense
+  // Handle delete expense - uses React Query mutation
   const handleDeleteExpense = async (id: string) => {
     try {
-      await apiCall(API_ENDPOINTS.FINANCIAL.EXPENSE(id), {
-        method: 'DELETE'
-      })
+      await deleteExpenseMutation.mutateAsync(id)
       toast({
         title: 'Success',
         description: 'Expense deleted successfully'
       })
-      // Refresh data
-      await Promise.all([
-        fetchDashboardData(),
-        fetchPayables(),
-        fetchExpenses()
-      ])
+      // Dashboard data needs manual refresh
+      fetchDashboardData()
     } catch (error) {
       console.error('Error deleting expense:', error)
       toast({
@@ -514,13 +413,14 @@ const FinancialPage = () => {
             formatCurrency={formatCurrency}
             convertCurrency={convertCurrency}
             selectedCurrency={selectedCurrency}
-            loading={loading}
+            loading={loadingExpenses || loadingPayables}
             onAddExpense={() => setAddExpenseOpen(true)}
             onEditExpense={(expense) => {
               setSelectedExpense(expense)
               setEditExpenseOpen(true)
             }}
             users={users}
+            paymentAccounts={paymentAccounts}
           />
         </TabsContent>
 
@@ -543,6 +443,8 @@ const FinancialPage = () => {
         onSave={handleAddExpense}
         users={users}
         loadingUsers={loadingUsers}
+        paymentAccounts={paymentAccounts}
+        loadingPaymentAccounts={loadingPaymentAccounts}
       />
 
       <EditExpenseDialog
@@ -553,6 +455,8 @@ const FinancialPage = () => {
         onDelete={handleDeleteExpense}
         users={users}
         loadingUsers={loadingUsers}
+        paymentAccounts={paymentAccounts}
+        loadingPaymentAccounts={loadingPaymentAccounts}
       />
 
       {/* Recipe Dialog */}

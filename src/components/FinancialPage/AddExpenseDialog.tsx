@@ -31,15 +31,23 @@ interface User {
   full_name: string
 }
 
+interface PaymentAccount {
+  id: string
+  accountName: string
+  currency: string
+}
+
 interface AddExpenseDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSave: (expense: ExpenseFormData) => Promise<void>
   users?: User[]
   loadingUsers?: boolean
+  paymentAccounts?: PaymentAccount[]
+  loadingPaymentAccounts?: boolean
 }
 
-export const AddExpenseDialog = ({ open, onOpenChange, onSave, users = [], loadingUsers = false }: AddExpenseDialogProps) => {
+export const AddExpenseDialog = ({ open, onOpenChange, onSave, users = [], loadingUsers = false, paymentAccounts = [], loadingPaymentAccounts = false }: AddExpenseDialogProps) => {
   const [loading, setLoading] = useState(false)
   const [dueDate, setDueDate] = useState<Date>()
   const [paymentDate, setPaymentDate] = useState<Date>()
@@ -337,6 +345,27 @@ export const AddExpenseDialog = ({ open, onOpenChange, onSave, users = [], loadi
                   {recurrences.map((rec) => (
                     <SelectItem key={rec.value} value={rec.value}>
                       {rec.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Payment Account */}
+            <div>
+              <Label htmlFor="payment_account">Payment Account</Label>
+              <Select
+                value={formData.payment_account || ''}
+                onValueChange={(value) => setFormData({ ...formData, payment_account: value || undefined })}
+                disabled={loadingPaymentAccounts}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingPaymentAccounts ? "Loading accounts..." : "Select payment account"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentAccounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.accountName} ({account.currency})
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -23,6 +23,12 @@ interface User {
   full_name: string
 }
 
+interface PaymentAccount {
+  id: string
+  accountName: string
+  currency: string
+}
+
 interface EditExpenseDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -31,9 +37,11 @@ interface EditExpenseDialogProps {
   onDelete: (id: string) => Promise<void>
   users?: User[]
   loadingUsers?: boolean
+  paymentAccounts?: PaymentAccount[]
+  loadingPaymentAccounts?: boolean
 }
 
-export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, onDelete, users = [], loadingUsers = false }: EditExpenseDialogProps) => {
+export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, onDelete, users = [], loadingUsers = false, paymentAccounts = [], loadingPaymentAccounts = false }: EditExpenseDialogProps) => {
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [dueDate, setDueDate] = useState<Date>()
@@ -63,6 +71,7 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, onDelet
         payment_date: expense.payment_date,
         recurrence: expense.recurrence,
         notes: expense.notes,
+        payment_account: expense.payment_account_id || undefined,
       })
       setDueDate(expense.due_date ? new Date(expense.due_date) : undefined)
       setPaymentDate(expense.payment_date ? new Date(expense.payment_date) : undefined)
@@ -322,6 +331,27 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, onDelet
                   {recurrences.map((rec) => (
                     <SelectItem key={rec.value} value={rec.value}>
                       {rec.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Payment Account */}
+            <div>
+              <Label htmlFor="payment_account">Payment Account</Label>
+              <Select
+                value={formData.payment_account || ''}
+                onValueChange={(value) => setFormData({ ...formData, payment_account: value || undefined })}
+                disabled={loadingPaymentAccounts}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingPaymentAccounts ? "Loading accounts..." : "Select payment account"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentAccounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.accountName} ({account.currency})
                     </SelectItem>
                   ))}
                 </SelectContent>
