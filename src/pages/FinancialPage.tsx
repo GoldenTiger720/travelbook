@@ -114,7 +114,7 @@ const FinancialPage = () => {
 
     try {
       setLoadingBookings(true)
-      const response = await apiCall('/api/reservations/', { method: 'GET' })
+      const response = await apiCall('/api/reservation/confirm/', { method: 'GET' })
 
       if (!response.ok) {
         throw new Error('Failed to fetch bookings')
