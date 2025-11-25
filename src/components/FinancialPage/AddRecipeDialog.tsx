@@ -16,7 +16,7 @@ import { usePaymentAccounts } from '@/lib/hooks/usePaymentAccounts'
 interface AddRecipeDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSave: (data: RecipeFormData) => Promise<void>
+  onSave: (data: RecipeFormData) => void
   bookings: Booking[]
   loadingBookings: boolean
 }
@@ -54,7 +54,6 @@ const AddRecipeDialog: React.FC<AddRecipeDialogProps> = ({
   bookings,
   loadingBookings
 }) => {
-  const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [paymentDate, setPaymentDate] = useState<Date>(new Date())
   const [dueDate, setDueDate] = useState<Date>(new Date())
@@ -104,42 +103,46 @@ const AddRecipeDialog: React.FC<AddRecipeDialogProps> = ({
     setFormData({ ...formData, attachment: file })
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
 
-    try {
-      await onSave({
-        ...formData,
-        paymentDate: format(paymentDate, 'yyyy-MM-dd'),
-        dueDate: format(dueDate, 'yyyy-MM-dd'),
-        attachment
-      })
-
-      // Reset form
-      setFormData({
-        bookingId: '',
-        paymentDate: format(new Date(), 'yyyy-MM-dd'),
-        dueDate: format(new Date(), 'yyyy-MM-dd'),
-        method: 'bank-transfer',
-        installment: 1,
-        amount: 0,
-        currency: 'CLP',
-        status: 'pending',
-        description: '',
-        notes: '',
-        attachment: null
-      })
-      setPaymentDate(new Date())
-      setDueDate(new Date())
-      setAttachment(null)
-      setSearchTerm('')
-      onOpenChange(false)
-    } catch (error) {
-      console.error('Error creating recipe:', error)
-    } finally {
-      setLoading(false)
+    // Validate required fields
+    if (!formData.bookingId) {
+      return
     }
+
+    // Close modal immediately
+    onOpenChange(false)
+
+    // Prepare data
+    const submitData = {
+      ...formData,
+      paymentDate: format(paymentDate, 'yyyy-MM-dd'),
+      dueDate: format(dueDate, 'yyyy-MM-dd'),
+      attachment
+    }
+
+    // Reset form immediately
+    setFormData({
+      bookingId: '',
+      paymentDate: format(new Date(), 'yyyy-MM-dd'),
+      dueDate: format(new Date(), 'yyyy-MM-dd'),
+      method: 'bank-transfer',
+      installment: 1,
+      amount: 0,
+      currency: 'CLP',
+      status: 'pending',
+      description: '',
+      notes: '',
+      attachment: null
+    })
+    setPaymentDate(new Date())
+    setDueDate(new Date())
+    setAttachment(null)
+    setSearchTerm('')
+
+    // Call onSave - mutation handles optimistic updates and SweetAlert
+    onSave(submitData)
   }
 
   return (
@@ -395,11 +398,11 @@ const AddRecipeDialog: React.FC<AddRecipeDialogProps> = ({
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Recipe'}
+            <Button type="submit">
+              Create Recipe
             </Button>
           </DialogFooter>
         </form>

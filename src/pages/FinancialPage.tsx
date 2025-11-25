@@ -17,11 +17,11 @@ import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
 import { apiCall, API_ENDPOINTS } from '@/config/api'
+import { useReceivables, useCreateRecipe } from '@/lib/hooks/useReceivables'
 import type {
   FinancialDashboard,
   Expense,
   ExpenseFormData,
-  Receivable,
   Payables,
   Currency
 } from '@/types/financial'
@@ -39,12 +39,15 @@ const FinancialPage = () => {
 
   // Data state
   const [dashboardData, setDashboardData] = useState<FinancialDashboard | null>(null)
-  const [receivables, setReceivables] = useState<Receivable[]>([])
   const [payables, setPayables] = useState<Payables>({ expenses: [], commissions: [] })
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [bookings, setBookings] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingBookings, setLoadingBookings] = useState(false)
+
+  // React Query for receivables with optimistic updates
+  const { data: receivables = [], isLoading: loadingReceivables } = useReceivables(startDate, endDate)
+  const createRecipeMutation = useCreateRecipe(startDate, endDate, bookings)
 
   // Dialog state
   const [addExpenseOpen, setAddExpenseOpen] = useState(false)
@@ -72,17 +75,6 @@ const FinancialPage = () => {
     }
   }
 
-  // Fetch receivables
-  const fetchReceivables = async () => {
-    try {
-      const params = `?startDate=${format(startDate, 'yyyy-MM-dd')}&endDate=${format(endDate, 'yyyy-MM-dd')}`
-      const response = await apiCall(API_ENDPOINTS.FINANCIAL.RECEIVABLES + params)
-      const data = await response.json()
-      setReceivables(data)
-    } catch (error) {
-      console.error('Error fetching receivables:', error)
-    }
-  }
 
   // Fetch payables
   const fetchPayables = async () => {
@@ -114,7 +106,7 @@ const FinancialPage = () => {
 
     try {
       setLoadingBookings(true)
-      const response = await apiCall('/api/reservation/confirm/', { method: 'GET' })
+      const response = await apiCall('/api/reservation/recipe-options/', { method: 'GET' })
 
       if (!response.ok) {
         throw new Error('Failed to fetch bookings')
@@ -137,9 +129,9 @@ const FinancialPage = () => {
   }, [])
 
   // Load all data when date range or currency changes
+  // Note: receivables are handled by React Query automatically
   useEffect(() => {
     fetchDashboardData()
-    fetchReceivables()
     fetchPayables()
     fetchExpenses()
   }, [startDate, endDate, selectedCurrency])
@@ -227,67 +219,16 @@ const FinancialPage = () => {
     }
   }
 
-  // Handle add recipe
+  // Handle add recipe - uses React Query mutation with optimistic updates
   const handleAddRecipe = async (recipeData: RecipeFormData) => {
-    try {
-      // Calculate installment amount
-      const installmentAmount = recipeData.amount / recipeData.installment
+    // Trigger the mutation - this will:
+    // 1. Immediately update the UI with optimistic data
+    // 2. Show SweetAlert on success/error
+    // 3. Refetch to sync with server
+    createRecipeMutation.mutate(recipeData)
 
-      // Create payments for each installment
-      for (let i = 0; i < recipeData.installment; i++) {
-        // Calculate due date for each installment (add months from the first due date)
-        const installmentDueDate = new Date(recipeData.dueDate)
-        installmentDueDate.setMonth(installmentDueDate.getMonth() + i)
-
-        const bookingPaymentData = {
-          date: recipeData.paymentDate,
-          due_date: format(installmentDueDate, 'yyyy-MM-dd'),
-          method: recipeData.method,
-          installment: i + 1,
-          total_installments: recipeData.installment,
-          amount_paid: installmentAmount,
-          status: recipeData.status,
-          description: recipeData.description || '',
-          notes: recipeData.notes || '',
-          copy_comments: true,
-          include_payment: true,
-          quote_comments: '',
-          send_purchase_order: false,
-          send_quotation_access: false
-        }
-
-        const response = await apiCall(`/api/bookings/${recipeData.bookingId}/payments/`, {
-          method: 'POST',
-          body: JSON.stringify(bookingPaymentData)
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.message || errorData.error || 'Failed to create recipe')
-        }
-      }
-
-      toast({
-        title: 'Success',
-        description: recipeData.installment > 1
-          ? `${recipeData.installment} installments created successfully`
-          : 'Recipe created successfully'
-      })
-
-      // Refresh data
-      await Promise.all([
-        fetchDashboardData(),
-        fetchReceivables()
-      ])
-    } catch (error: any) {
-      console.error('Error creating recipe:', error)
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to create recipe. Please check if the booking ID exists.',
-        variant: 'destructive'
-      })
-      throw error
-    }
+    // Also refresh dashboard data in background
+    fetchDashboardData()
   }
 
   // Currency formatter
@@ -426,7 +367,7 @@ const FinancialPage = () => {
           <ReceivablesTab
             receivables={receivables}
             formatCurrency={formatCurrency}
-            loading={loading}
+            loading={loadingReceivables}
             onAddRecipe={() => setAddRecipeOpen(true)}
           />
         </TabsContent>
