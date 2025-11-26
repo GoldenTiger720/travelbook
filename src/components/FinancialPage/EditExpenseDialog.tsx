@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -33,7 +34,7 @@ interface EditExpenseDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   expense: Expense | null
-  onSave: (id: string, expense: ExpenseFormData) => Promise<void>
+  onSave: (id: string, expense: ExpenseFormData, propagateSalary?: boolean) => Promise<void>
   users?: User[]
   loadingUsers?: boolean
   paymentAccounts?: PaymentAccount[]
@@ -45,6 +46,7 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, users =
   const [dueDate, setDueDate] = useState<Date>()
   const [paymentDate, setPaymentDate] = useState<Date>()
   const [attachment, setAttachment] = useState<File | null>(null)
+  const [propagateSalary, setPropagateSalary] = useState(false)
 
   const [formData, setFormData] = useState<ExpenseFormData>({
     person_id: '',
@@ -74,6 +76,7 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, users =
       setDueDate(expense.due_date ? new Date(expense.due_date) : undefined)
       setPaymentDate(expense.payment_date ? new Date(expense.payment_date) : undefined)
       setAttachment(null) // Reset attachment on new expense load
+      setPropagateSalary(false) // Reset propagate salary on new expense load
     }
   }, [expense])
 
@@ -83,12 +86,14 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, users =
 
     setLoading(true)
     try {
+      // For salary category, propagate to future months if checkbox is checked
+      const shouldPropagate = formData.category === 'salary' && propagateSalary
       await onSave(expense.id, {
         ...formData,
         due_date: dueDate ? format(dueDate, 'yyyy-MM-dd') : formData.due_date,
         payment_date: paymentDate ? format(paymentDate, 'yyyy-MM-dd') : undefined,
         attachment: attachment || undefined,
-      })
+      }, shouldPropagate)
       onOpenChange(false)
     } catch (error) {
       console.error('Error updating expense:', error)
@@ -320,6 +325,20 @@ export const EditExpenseDialog = ({ open, onOpenChange, expense, onSave, users =
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Propagate Salary - only shown for salary category */}
+            {formData.category === 'salary' && (
+              <div className="col-span-2 flex items-center space-x-2 p-3 bg-blue-50 rounded-md border border-blue-200">
+                <Checkbox
+                  id="propagate_salary"
+                  checked={propagateSalary}
+                  onCheckedChange={(checked) => setPropagateSalary(checked === true)}
+                />
+                <Label htmlFor="propagate_salary" className="text-sm font-normal cursor-pointer">
+                  Apply this salary to all future months for this person
+                </Label>
+              </div>
+            )}
 
             {/* Payment Account */}
             <div>

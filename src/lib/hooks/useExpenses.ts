@@ -91,7 +91,7 @@ const createExpense = async (expenseData: ExpenseFormData): Promise<Expense> => 
 }
 
 // Update expense API call
-const updateExpense = async ({ id, data }: { id: string; data: ExpenseFormData }): Promise<Expense> => {
+const updateExpense = async ({ id, data, propagateSalary }: { id: string; data: ExpenseFormData; propagateSalary?: boolean }): Promise<Expense> => {
   const hasAttachment = data.attachment instanceof File
 
   let requestOptions: RequestInit
@@ -110,6 +110,7 @@ const updateExpense = async ({ id, data }: { id: string; data: ExpenseFormData }
     if (data.notes) formData.append('notes', data.notes)
     if (data.payment_account) formData.append('payment_account', data.payment_account)
     formData.append('attachment', data.attachment)
+    if (propagateSalary) formData.append('propagate_salary', 'true')
 
     requestOptions = {
       method: 'PUT',
@@ -128,6 +129,7 @@ const updateExpense = async ({ id, data }: { id: string; data: ExpenseFormData }
       description: data.description || null,
       notes: data.notes || null,
       payment_account: data.payment_account || null,
+      propagate_salary: propagateSalary || false,
     }
 
     requestOptions = {

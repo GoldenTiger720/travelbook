@@ -216,12 +216,14 @@ const FinancialPage = () => {
   }
 
   // Handle edit expense - uses React Query mutation
-  const handleEditExpense = async (id: string, expenseData: ExpenseFormData) => {
+  const handleEditExpense = async (id: string, expenseData: ExpenseFormData, propagateSalary?: boolean) => {
     try {
-      await updateExpenseMutation.mutateAsync({ id, data: expenseData })
+      await updateExpenseMutation.mutateAsync({ id, data: expenseData, propagateSalary })
       toast({
         title: 'Success',
-        description: 'Expense updated successfully'
+        description: propagateSalary
+          ? 'Salary updated for this and all future months'
+          : 'Expense updated successfully'
       })
       // Dashboard data needs manual refresh
       fetchDashboardData()
