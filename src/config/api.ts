@@ -95,6 +95,8 @@ export const API_ENDPOINTS = {
     BANK_STATEMENT: '/api/financial/bank-statement/',
     TRANSFERS: '/api/financial/transfers/',
     TRANSFER: (id: string) => `/api/financial/transfers/${id}/`,
+    INCOME_STATEMENT: '/api/financial/reports/income-statement/',
+    CASH_FLOW: '/api/financial/reports/cash-flow/',
   },
   
   // Sales Commissions endpoints
