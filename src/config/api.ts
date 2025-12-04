@@ -118,6 +118,7 @@ export const API_ENDPOINTS = {
     CLOSINGS: '/api/commissions/closings/',
     CLOSING_DETAIL: (id: string) => `/api/commissions/closings/${id}/`,
     CLOSING_UNDO: (id: string) => `/api/commissions/closings/${id}/undo/`,
+    CLOSING_INVOICE: (id: string) => `/api/commissions/closings/${id}/invoice/`,
   },
   
   // Logistics endpoints

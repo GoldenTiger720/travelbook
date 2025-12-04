@@ -432,6 +432,48 @@ class CommissionService {
       throw error
     }
   }
+
+  async downloadInvoice(closingId: string): Promise<void> {
+    try {
+      const response = await apiCall(API_ENDPOINTS.COMMISSIONS.CLOSING_INVOICE(closingId), {
+        method: 'GET',
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to download invoice')
+      }
+
+      // Get the blob from response
+      const blob = await response.blob()
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+
+      // Extract filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get('Content-Disposition')
+      let filename = `invoice_${closingId}.pdf`
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].replace(/['"]/g, '')
+        }
+      }
+
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+
+      // Cleanup
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Error downloading invoice:', error)
+      throw error
+    }
+  }
 }
 
 export const commissionService = new CommissionService()

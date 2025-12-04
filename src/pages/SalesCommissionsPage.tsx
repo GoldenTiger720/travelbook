@@ -58,6 +58,7 @@ import {
   CloseOperatorPaymentsRequest
 } from '@/types/commission'
 import { useUsers } from '@/lib/hooks/useUsers'
+import { useCurrentUser } from '@/lib/hooks/useAuth'
 import { useToast } from '@/components/ui/use-toast'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -73,6 +74,8 @@ type TabType = 'open-salespeople' | 'closed-salespeople' | 'open-operators' | 'c
 const SalesCommissionsPage = () => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { data: currentUser } = useCurrentUser()
+  const isAdmin = currentUser?.isSuperuser || false
   const [activeTab, setActiveTab] = useState<TabType>('open-salespeople')
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
@@ -292,10 +295,15 @@ const SalesCommissionsPage = () => {
   }
 
   const selectAllItems = () => {
-    if (selectedItems.size === data.length) {
+    // Get only closable items (for operators, filter by canClose; for salespeople, all are closable)
+    const closableItems = isSalespeopleTab
+      ? data
+      : data.filter((item: any) => item.canClose !== false)
+
+    if (selectedItems.size === closableItems.length && closableItems.length > 0) {
       setSelectedItems(new Set())
     } else {
-      setSelectedItems(new Set(data.map((item: any) => item.id)))
+      setSelectedItems(new Set(closableItems.map((item: any) => item.id)))
     }
   }
 
@@ -363,6 +371,22 @@ const SalesCommissionsPage = () => {
   const confirmUndo = () => {
     if (selectedClosing && undoReason) {
       undoClosingMutation.mutate({ closingId: selectedClosing.id, reason: undoReason })
+    }
+  }
+
+  const handleDownloadInvoice = async (closingId: string) => {
+    try {
+      await commissionService.downloadInvoice(closingId)
+      toast({
+        title: 'Invoice Downloaded',
+        description: 'The invoice PDF has been downloaded successfully.',
+      })
+    } catch (error) {
+      toast({
+        title: 'Download Failed',
+        description: error instanceof Error ? error.message : 'Failed to download invoice',
+        variant: 'destructive',
+      })
     }
   }
 
@@ -667,6 +691,36 @@ const SalesCommissionsPage = () => {
                 </Select>
               </div>
 
+              <div>
+                <Label className="text-xs">Payment Status</Label>
+                <Select value={filters.paymentStatus || 'all'} onValueChange={(value) => handleFilterChange('paymentStatus', value === 'all' ? undefined : value)}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    {filterOptions.paymentStatuses.map((status: any) => (
+                      <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs">Reservation Status</Label>
+                <Select value={filters.reservationStatus || 'all'} onValueChange={(value) => handleFilterChange('reservationStatus', value === 'all' ? undefined : value)}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    {filterOptions.reservationStatuses.map((status: any) => (
+                      <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="flex items-end">
                 <Button
                   variant="outline"
@@ -791,10 +845,24 @@ const SalesCommissionsPage = () => {
                           >
                             {!isClosedTab && (
                               <TableCell onClick={(e) => e.stopPropagation()}>
-                                <Checkbox
-                                  checked={selectedItems.has(item.id)}
-                                  onCheckedChange={() => toggleItemSelection(item.id)}
-                                />
+                                {/* For operators, check canClose property; salespeople can always close */}
+                                {!isSalespeopleTab && item.canClose === false ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="flex items-center">
+                                        <Checkbox disabled checked={false} />
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      Cannot close: Logistic status must be Completed, No-Show, or Cancelled
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <Checkbox
+                                    checked={selectedItems.has(item.id)}
+                                    onCheckedChange={() => toggleItemSelection(item.id)}
+                                  />
+                                )}
                               </TableCell>
                             )}
                             <TableCell className="text-xs">
@@ -990,25 +1058,28 @@ const SalesCommissionsPage = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
+                            {isAdmin && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => handleUndoClosing(closing)}
+                                  >
+                                    <Undo2 className="w-3 h-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Undo Closing (Admin Only)</TooltipContent>
+                              </Tooltip>
+                            )}
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   className="h-6 w-6 p-0"
-                                  onClick={() => handleUndoClosing(closing)}
-                                >
-                                  <Undo2 className="w-3 h-3" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Undo Closing</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 w-6 p-0"
+                                  onClick={() => handleDownloadInvoice(closing.id)}
                                 >
                                   <Download className="w-3 h-3" />
                                 </Button>
@@ -1048,10 +1119,17 @@ const SalesCommissionsPage = () => {
               </div>
             </div>
 
-            <div className="text-xs text-muted-foreground">
-              <AlertTriangle className="w-4 h-4 inline mr-1 text-yellow-600" />
-              You can adjust individual amounts before closing. Click on any item to edit.
-            </div>
+            {isAdmin ? (
+              <div className="text-xs text-muted-foreground">
+                <AlertTriangle className="w-4 h-4 inline mr-1 text-yellow-600" />
+                You can adjust individual amounts before closing (admin only).
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground">
+                <Lock className="w-4 h-4 inline mr-1 text-gray-400" />
+                Only administrators can modify amounts before closing.
+              </div>
+            )}
 
             <div className="max-h-60 overflow-y-auto border rounded-lg">
               <Table>
@@ -1073,17 +1151,26 @@ const SalesCommissionsPage = () => {
                         }
                       </TableCell>
                       <TableCell className="text-xs text-right">
-                        <Input
-                          type="number"
-                          className="h-6 w-24 text-xs text-right"
-                          defaultValue={isSalespeopleTab ? item.commission?.amount : item.costAmount}
-                          onChange={(e) => {
-                            setAdjustments(prev => ({
-                              ...prev,
-                              [item.id]: { ...prev[item.id], amount: parseFloat(e.target.value) }
-                            }))
-                          }}
-                        />
+                        {isAdmin ? (
+                          <Input
+                            type="number"
+                            className="h-6 w-24 text-xs text-right"
+                            defaultValue={isSalespeopleTab ? item.commission?.amount : item.costAmount}
+                            onChange={(e) => {
+                              setAdjustments(prev => ({
+                                ...prev,
+                                [item.id]: { ...prev[item.id], amount: parseFloat(e.target.value) }
+                              }))
+                            }}
+                          />
+                        ) : (
+                          <span className="font-medium">
+                            {formatCompactCurrency(
+                              isSalespeopleTab ? item.commission?.amount : item.costAmount,
+                              'CLP'
+                            )}
+                          </span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
