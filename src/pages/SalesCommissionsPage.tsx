@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Table,
   TableBody,
@@ -15,12 +17,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { 
-  CalendarIcon, 
-  Search, 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  CalendarIcon,
+  Search,
   Filter,
   Download,
-  TrendingUp,
   DollarSign,
   Users,
   Calculator,
@@ -28,26 +37,50 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  Percent,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Lock,
+  Unlock,
+  FileText,
+  Undo2,
+  AlertTriangle,
+  Truck
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { commissionService } from '@/services/commissionService'
-import { Commission, CommissionFilters, CommissionSummary } from '@/types/commission'
+import {
+  Commission,
+  CommissionFilters,
+  OperatorPayment,
+  CommissionClosing,
+  CloseCommissionsRequest,
+  CloseOperatorPaymentsRequest
+} from '@/types/commission'
+import { useUsers } from '@/lib/hooks/useUsers'
 import { useToast } from '@/components/ui/use-toast'
-import { useCommissionUniqueValues, useFilteredCommissions, useCommissionSummary } from '@/hooks/useCommissions'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { Textarea } from '@/components/ui/textarea'
+
+type TabType = 'open-salespeople' | 'closed-salespeople' | 'open-operators' | 'closed-operators'
 
 const SalesCommissionsPage = () => {
   const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const [activeTab, setActiveTab] = useState<TabType>('open-salespeople')
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
+  const [showClosingDialog, setShowClosingDialog] = useState(false)
+  const [showUndoDialog, setShowUndoDialog] = useState(false)
+  const [selectedClosing, setSelectedClosing] = useState<CommissionClosing | null>(null)
+  const [undoReason, setUndoReason] = useState('')
+  const [adjustments, setAdjustments] = useState<Record<string, { amount?: number; percentage?: number; notes?: string }>>({})
 
   const [filters, setFilters] = useState<CommissionFilters>({
     dateType: 'sale',
@@ -62,28 +95,167 @@ const SalesCommissionsPage = () => {
     to: undefined
   })
 
-  // Construct filter criteria with date range
+  // Determine if we're on salespeople or operators tab
+  const isSalespeopleTab = activeTab === 'open-salespeople' || activeTab === 'closed-salespeople'
+  const isClosedTab = activeTab === 'closed-salespeople' || activeTab === 'closed-operators'
+
+  // Construct filter criteria with date range and closed status
   const filterCriteria = useMemo((): CommissionFilters => ({
     ...filters,
     startDate: dateRange.from,
-    endDate: dateRange.to
-  }), [filters, dateRange])
+    endDate: dateRange.to,
+    isClosed: isClosedTab
+  }), [filters, dateRange, isClosedTab])
 
-  // Fetch data using React Query hooks
-  const { data: uniqueValues, isLoading: isLoadingValues } = useCommissionUniqueValues()
-  const { data: filteredCommissions = [], isLoading: isLoadingCommissions } = useFilteredCommissions(filterCriteria)
-  const { data: summary, isLoading: isLoadingSummary } = useCommissionSummary(filterCriteria)
+  // Fetch extended unique values for filter dropdowns
+  const { data: uniqueValues } = useQuery({
+    queryKey: ['commissions', 'extended-unique-values'],
+    queryFn: () => commissionService.getExtendedUniqueValues(),
+    staleTime: 10 * 60 * 1000,
+  })
 
-  const loading = isLoadingCommissions || isLoadingValues
-  const filterOptions = uniqueValues || { salespersons: [], agencies: [], tours: [] }
-  
+  // Fetch users for salesperson/agency/operator dropdowns
+  const { data: users = [] } = useUsers()
+
+  // Filter users by role
+  const salespersonUsers = useMemo(() =>
+    users.filter(user => user.role === 'salesperson'),
+    [users]
+  )
+
+  const agencyUsers = useMemo(() =>
+    users.filter(user => user.role === 'agency'),
+    [users]
+  )
+
+  const operatorUsers = useMemo(() =>
+    users.filter(user => user.role === 'supplier'),
+    [users]
+  )
+
+  // Fetch commissions (for salespeople tabs)
+  const { data: commissions = [], isLoading: isLoadingCommissions } = useQuery({
+    queryKey: ['commissions', 'list', filterCriteria, isSalespeopleTab],
+    queryFn: () => commissionService.getFilteredCommissions(filterCriteria),
+    enabled: isSalespeopleTab,
+    staleTime: 2 * 60 * 1000,
+  })
+
+  // Fetch operator payments (for operators tabs)
+  const { data: operatorPayments = [], isLoading: isLoadingOperators } = useQuery({
+    queryKey: ['commissions', 'operators', filterCriteria, !isSalespeopleTab],
+    queryFn: () => commissionService.getOperatorPayments(filterCriteria),
+    enabled: !isSalespeopleTab,
+    staleTime: 2 * 60 * 1000,
+  })
+
+  // Fetch summary
+  const { data: summary } = useQuery({
+    queryKey: ['commissions', 'summary', filterCriteria, isSalespeopleTab],
+    queryFn: () => isSalespeopleTab
+      ? commissionService.getCommissionSummary()
+      : commissionService.getOperatorSummary(filterCriteria),
+    staleTime: 2 * 60 * 1000,
+  })
+
+  // Fetch closings for closed tabs
+  const { data: closings = [] } = useQuery({
+    queryKey: ['commissions', 'closings', activeTab],
+    queryFn: () => commissionService.getClosings(
+      activeTab === 'closed-salespeople' ? 'salesperson' :
+      activeTab === 'closed-operators' ? 'operator' : undefined
+    ),
+    enabled: isClosedTab,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  // Close commissions mutation
+  const closeCommissionsMutation = useMutation({
+    mutationFn: (request: CloseCommissionsRequest) => commissionService.closeCommissions(request),
+    onSuccess: (data) => {
+      toast({
+        title: 'Commissions Closed',
+        description: data.message,
+      })
+      queryClient.invalidateQueries({ queryKey: ['commissions'] })
+      setSelectedItems(new Set())
+      setShowClosingDialog(false)
+      setAdjustments({})
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      })
+    }
+  })
+
+  // Close operator payments mutation
+  const closeOperatorsMutation = useMutation({
+    mutationFn: (request: CloseOperatorPaymentsRequest) => commissionService.closeOperatorPayments(request),
+    onSuccess: (data) => {
+      toast({
+        title: 'Payments Closed',
+        description: data.message,
+      })
+      queryClient.invalidateQueries({ queryKey: ['commissions'] })
+      setSelectedItems(new Set())
+      setShowClosingDialog(false)
+      setAdjustments({})
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      })
+    }
+  })
+
+  // Undo closing mutation
+  const undoClosingMutation = useMutation({
+    mutationFn: ({ closingId, reason }: { closingId: string; reason: string }) =>
+      commissionService.undoClosing(closingId, reason),
+    onSuccess: (data) => {
+      toast({
+        title: 'Closing Undone',
+        description: data.message,
+      })
+      queryClient.invalidateQueries({ queryKey: ['commissions'] })
+      setShowUndoDialog(false)
+      setSelectedClosing(null)
+      setUndoReason('')
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      })
+    }
+  })
+
+  const loading = isSalespeopleTab ? isLoadingCommissions : isLoadingOperators
+  const data = isSalespeopleTab ? commissions : operatorPayments
+  const filterOptions = uniqueValues || {
+    salespersons: [],
+    agencies: [],
+    tours: [],
+    operators: [],
+    commissionStatuses: [],
+    logisticStatuses: [],
+    paymentStatuses: [],
+    reservationStatuses: []
+  }
+
   const handleFilterChange = (field: string, value: any) => {
     setFilters(prev => ({
       ...prev,
       [field]: value
     }))
   }
-  
+
   const clearFilters = () => {
     setFilters({
       dateType: 'sale',
@@ -106,17 +278,107 @@ const SalesCommissionsPage = () => {
       return newSet
     })
   }
-  
-  const getStatusBadge = (status: Commission['commission']['status']) => {
-    const variants: Record<Commission['commission']['status'], { className: string; label: string; icon: any }> = {
-      pending: { className: 'bg-yellow-100 text-yellow-800', label: 'Pend', icon: Clock },
-      approved: { className: 'bg-blue-100 text-blue-800', label: 'Appr', icon: CheckCircle },
-      paid: { className: 'bg-green-100 text-green-800', label: 'Paid', icon: CheckCircle },
-      cancelled: { className: 'bg-red-100 text-red-800', label: 'Canc', icon: XCircle }
+
+  const toggleItemSelection = (itemId: string) => {
+    setSelectedItems(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId)
+      } else {
+        newSet.add(itemId)
+      }
+      return newSet
+    })
+  }
+
+  const selectAllItems = () => {
+    if (selectedItems.size === data.length) {
+      setSelectedItems(new Set())
+    } else {
+      setSelectedItems(new Set(data.map((item: any) => item.id)))
     }
-    
-    const variant = variants[status]
-    const Icon = variant.icon
+  }
+
+  const getSelectedItemsData = () => {
+    if (isSalespeopleTab) {
+      return commissions.filter(c => selectedItems.has(c.id))
+    }
+    return operatorPayments.filter(p => selectedItems.has(p.id))
+  }
+
+  const handleCloseSelected = () => {
+    if (selectedItems.size === 0) {
+      toast({
+        title: 'No Items Selected',
+        description: 'Please select items to close',
+        variant: 'destructive',
+      })
+      return
+    }
+    setShowClosingDialog(true)
+  }
+
+  const confirmClose = () => {
+    const selectedData = getSelectedItemsData()
+
+    if (isSalespeopleTab) {
+      const selectedCommissions = selectedData as Commission[]
+      // Group by salesperson/agency
+      const recipientName = selectedCommissions[0]?.salesperson || selectedCommissions[0]?.externalAgency || 'Unknown'
+      const closingType = selectedCommissions[0]?.salesperson ? 'salesperson' : 'agency'
+
+      const request: CloseCommissionsRequest = {
+        commission_ids: Array.from(selectedItems),
+        closing_type: closingType,
+        recipient_name: recipientName,
+        period_start: dateRange.from?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+        period_end: dateRange.to?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+        currency: selectedCommissions[0]?.pricing?.currency || 'CLP',
+        adjustments: adjustments
+      }
+
+      closeCommissionsMutation.mutate(request)
+    } else {
+      const selectedPayments = selectedData as OperatorPayment[]
+      const operatorName = selectedPayments[0]?.operatorName || 'Unknown'
+
+      const request: CloseOperatorPaymentsRequest = {
+        payment_ids: Array.from(selectedItems),
+        operator_name: operatorName,
+        period_start: dateRange.from?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+        period_end: dateRange.to?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+        currency: selectedPayments[0]?.currency || 'CLP',
+        adjustments: adjustments
+      }
+
+      closeOperatorsMutation.mutate(request)
+    }
+  }
+
+  const handleUndoClosing = (closing: CommissionClosing) => {
+    setSelectedClosing(closing)
+    setShowUndoDialog(true)
+  }
+
+  const confirmUndo = () => {
+    if (selectedClosing && undoReason) {
+      undoClosingMutation.mutate({ closingId: selectedClosing.id, reason: undoReason })
+    }
+  }
+
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, { className: string; label: string }> = {
+      pending: { className: 'bg-yellow-100 text-yellow-800', label: 'Pending' },
+      approved: { className: 'bg-blue-100 text-blue-800', label: 'Approved' },
+      paid: { className: 'bg-green-100 text-green-800', label: 'Paid' },
+      cancelled: { className: 'bg-red-100 text-red-800', label: 'Cancelled' },
+      confirmed: { className: 'bg-blue-100 text-blue-800', label: 'Confirmed' },
+      reconfirmed: { className: 'bg-indigo-100 text-indigo-800', label: 'Reconfirmed' },
+      completed: { className: 'bg-green-100 text-green-800', label: 'Completed' },
+      'no-show': { className: 'bg-orange-100 text-orange-800', label: 'No Show' },
+    }
+
+    const variant = variants[status] || { className: 'bg-gray-100 text-gray-800', label: status }
     return (
       <Badge className={cn(variant.className, 'text-xs px-1 py-0')}>
         {variant.label}
@@ -132,490 +394,435 @@ const SalesCommissionsPage = () => {
       BRL: 'R$',
       ARS: '$'
     }
-    
-    // For large numbers, format more compactly
+
     if (amount >= 1000000) {
-      return `${symbols[currency]}${(amount / 1000000).toFixed(1)}M`
+      return `${symbols[currency] || ''}${(amount / 1000000).toFixed(1)}M`
     } else if (amount >= 10000) {
-      return `${symbols[currency]}${Math.round(amount / 1000)}k`
+      return `${symbols[currency] || ''}${Math.round(amount / 1000)}k`
     }
-    return `${symbols[currency]}${amount.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+    return `${symbols[currency] || ''}${amount.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
   }
-  
+
+  const calculateSelectedTotal = () => {
+    const selectedData = getSelectedItemsData()
+    if (isSalespeopleTab) {
+      return (selectedData as Commission[]).reduce((sum, c) => sum + c.commission.amount, 0)
+    }
+    return (selectedData as OperatorPayment[]).reduce((sum, p) => sum + p.costAmount, 0)
+  }
+
   const exportToCSV = () => {
-    const headers = [
-      'Reservation #',
-      'Sale Date',
-      'Operation Date',
-      'Tour',
-      'Client',
-      'Country',
-      'Salesperson',
-      'Agency',
-      'Adults',
-      'Children',
-      'Infants',
-      'Total PAX',
-      'Gross Total',
-      'Costs',
-      'Net Received',
-      'Commission %',
-      'Commission Amount',
-      'Currency',
-      'Status',
-      'Payment Date'
-    ]
-    
-    const rows = filteredCommissions.map(c => [
-      c.reservationNumber,
-      format(c.saleDate, 'dd/MM/yyyy'),
-      format(c.operationDate, 'dd/MM/yyyy'),
-      c.tour.name,
-      c.client.name,
-      c.client.country,
-      c.salesperson || '',
-      c.externalAgency || '',
-      c.passengers.adults,
-      c.passengers.children,
-      c.passengers.infants,
-      c.passengers.total,
-      c.pricing.grossTotal,
-      c.pricing.costs,
-      c.pricing.netReceived,
-      c.commission.percentage,
-      c.commission.amount,
-      c.pricing.currency,
-      c.commission.status,
-      c.commission.paymentDate ? format(c.commission.paymentDate, 'dd/MM/yyyy') : ''
-    ])
-    
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-    ].join('\n')
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `commissions_${format(new Date(), 'yyyyMMdd_HHmmss')}.csv`
-    a.click()
-    window.URL.revokeObjectURL(url)
-    
+    // Export logic based on current tab
     toast({
-      title: 'Export Successful',
-      description: `Exported ${filteredCommissions.length} commission records to CSV`
+      title: 'Export Started',
+      description: 'Your CSV file is being generated'
     })
   }
-  
-  const exportToExcel = () => {
-    const headers = [
-      'Reservation #',
-      'Sale Date',
-      'Operation Date', 
-      'Tour',
-      'Client',
-      'Salesperson/Agency',
-      'Passengers',
-      'Gross Total',
-      'Costs',
-      'Net Received',
-      'Commission %',
-      'Commission Amount',
-      'Status'
-    ]
-    
-    const rows = filteredCommissions.map(c => [
-      c.reservationNumber,
-      format(c.saleDate, 'dd/MM/yyyy'),
-      format(c.operationDate, 'dd/MM/yyyy'),
-      c.tour.name,
-      c.client.name,
-      c.salesperson || c.externalAgency || '-',
-      c.passengers.total,
-      commissionService.formatCurrency(c.pricing.grossTotal, c.pricing.currency),
-      commissionService.formatCurrency(c.pricing.costs, c.pricing.currency),
-      commissionService.formatCurrency(c.pricing.netReceived, c.pricing.currency),
-      `${c.commission.percentage}%`,
-      commissionService.formatCurrency(c.commission.amount, c.pricing.currency),
-      c.commission.status
-    ])
-    
-    const content = [
-      headers.join('\t'),
-      ...rows.map(row => row.join('\t'))
-    ].join('\n')
-    
-    const blob = new Blob([content], { type: 'application/vnd.ms-excel' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `commissions_${format(new Date(), 'yyyyMMdd_HHmmss')}.xls`
-    a.click()
-    window.URL.revokeObjectURL(url)
-    
-    toast({
-      title: 'Export Successful',
-      description: `Exported ${filteredCommissions.length} commission records to Excel`
-    })
-  }
-  
+
   return (
     <div className="space-y-3">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold">Sales Commissions</h1>
-          <p className="text-sm text-muted-foreground">Calculate and track sales commissions</p>
+          <p className="text-sm text-muted-foreground">Manage commissions and operator payments</p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          <Button 
-            onClick={exportToCSV} 
-            disabled={filteredCommissions.length === 0}
+          {!isClosedTab && selectedItems.size > 0 && (
+            <Button
+              onClick={handleCloseSelected}
+              size="sm"
+              className="flex-1 sm:flex-none"
+            >
+              <Lock className="w-3 h-3 mr-1" />
+              Close ({selectedItems.size})
+            </Button>
+          )}
+          <Button
+            onClick={exportToCSV}
+            disabled={data.length === 0}
             size="sm"
             variant="outline"
             className="flex-1 sm:flex-none"
           >
             <Download className="w-3 h-3 mr-1" />
-            CSV
-          </Button>
-          <Button 
-            onClick={exportToExcel} 
-            disabled={filteredCommissions.length === 0}
-            size="sm"
-            className="flex-1 sm:flex-none"
-          >
-            <FileSpreadsheet className="w-3 h-3 mr-1" />
-            Excel
+            Export
           </Button>
         </div>
       </div>
-      
-      {/* Filters */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-medium flex items-center gap-2">
-            <Filter className="w-4 h-4" />
-            Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {/* Date Range and Type */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div>
-              <Label className="text-xs">Date Type</Label>
-              <Select value={filters.dateType} onValueChange={(value) => handleFilterChange('dateType', value)}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sale">Sale Date</SelectItem>
-                  <SelectItem value="operation">Operation Date</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label className="text-xs">Start Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full h-8 justify-start text-left font-normal",
-                      !dateRange.from && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-1 h-3 w-3" />
-                    <span className="text-xs">
-                      {dateRange.from ? format(dateRange.from, "dd/MM") : "Select"}
-                    </span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dateRange.from}
-                    onSelect={(date) => setDateRange(prev => ({ ...prev, from: date }))}
-                    initialFocus
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => {
+        setActiveTab(v as TabType)
+        setSelectedItems(new Set())
+      }}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="open-salespeople" className="text-xs sm:text-sm">
+            <Unlock className="w-3 h-3 mr-1 hidden sm:inline" />
+            Open Salespeople
+          </TabsTrigger>
+          <TabsTrigger value="closed-salespeople" className="text-xs sm:text-sm">
+            <Lock className="w-3 h-3 mr-1 hidden sm:inline" />
+            Closed Salespeople
+          </TabsTrigger>
+          <TabsTrigger value="open-operators" className="text-xs sm:text-sm">
+            <Truck className="w-3 h-3 mr-1 hidden sm:inline" />
+            Open Operators
+          </TabsTrigger>
+          <TabsTrigger value="closed-operators" className="text-xs sm:text-sm">
+            <Lock className="w-3 h-3 mr-1 hidden sm:inline" />
+            Closed Operators
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Filters Card */}
+        <Card className="mt-3">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-medium flex items-center gap-2">
+              <Filter className="w-4 h-4" />
+              Filters
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* Row 1: Date filters */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div>
+                <Label className="text-xs">Date Type</Label>
+                <Select value={filters.dateType} onValueChange={(value) => handleFilterChange('dateType', value)}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sale">Sale Date</SelectItem>
+                    <SelectItem value="operation">Operation Date</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs">Start Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full h-8 justify-start text-left font-normal",
+                        !dateRange.from && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-1 h-3 w-3" />
+                      <span className="text-xs">
+                        {dateRange.from ? format(dateRange.from, "dd/MM/yyyy") : "Select"}
+                      </span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dateRange.from}
+                      onSelect={(date) => setDateRange(prev => ({ ...prev, from: date }))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div>
+                <Label className="text-xs">End Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full h-8 justify-start text-left font-normal",
+                        !dateRange.to && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-1 h-3 w-3" />
+                      <span className="text-xs">
+                        {dateRange.to ? format(dateRange.to, "dd/MM/yyyy") : "Select"}
+                      </span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dateRange.to}
+                      onSelect={(date) => setDateRange(prev => ({ ...prev, to: date }))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div>
+                <Label className="text-xs">Search</Label>
+                <div className="relative">
+                  <Search className="absolute left-2 top-2 h-3 w-3 text-muted-foreground" />
+                  <Input
+                    placeholder="Search..."
+                    className="pl-7 h-8 text-xs"
+                    value={filters.searchTerm}
+                    onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
                   />
-                </PopoverContent>
-              </Popover>
+                </div>
+              </div>
             </div>
-            
-            <div>
-              <Label className="text-xs">End Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full h-8 justify-start text-left font-normal",
-                      !dateRange.to && "text-muted-foreground"
+
+            {/* Row 2: Entity-specific filters */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+              <div>
+                <Label className="text-xs">Tour</Label>
+                <Select value={filters.tour || 'all'} onValueChange={(value) => handleFilterChange('tour', value === 'all' ? undefined : value)}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Tours</SelectItem>
+                    {filterOptions.tours.map((tour: any) => (
+                      <SelectItem key={tour.id} value={tour.id}>{tour.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {isSalespeopleTab ? (
+                <>
+                  <div>
+                    <Label className="text-xs">Salesperson</Label>
+                    <Select value={filters.salesperson || 'all'} onValueChange={(value) => handleFilterChange('salesperson', value === 'all' ? undefined : value)}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="All" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        {salespersonUsers.map((user) => (
+                          <SelectItem key={user.id} value={user.full_name}>{user.full_name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Agency</Label>
+                    <Select value={filters.externalAgency || 'all'} onValueChange={(value) => handleFilterChange('externalAgency', value === 'all' ? undefined : value)}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="All" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        {agencyUsers.map((user) => (
+                          <SelectItem key={user.id} value={user.full_name}>{user.full_name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <Label className="text-xs">Operator</Label>
+                    <Select value={filters.operator || 'all'} onValueChange={(value) => handleFilterChange('operator', value === 'all' ? undefined : value)}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="All" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        {operatorUsers.map((user) => (
+                          <SelectItem key={user.id} value={user.full_name}>{user.full_name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Logistic Status</Label>
+                    <Select value={filters.logisticStatus || 'all'} onValueChange={(value) => handleFilterChange('logisticStatus', value === 'all' ? undefined : value)}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="All" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        {filterOptions.logisticStatuses.map((status: any) => (
+                          <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+
+              <div>
+                <Label className="text-xs">Status</Label>
+                <Select value={filters.commissionStatus || 'all'} onValueChange={(value) => handleFilterChange('commissionStatus', value === 'all' ? undefined : value)}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    {filterOptions.commissionStatuses.map((status: any) => (
+                      <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-end">
+                <Button
+                  variant="outline"
+                  onClick={clearFilters}
+                  size="sm"
+                  className="w-full h-8 text-xs"
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Summary Cards */}
+        {summary && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+            <Card>
+              <CardContent className="p-2">
+                <div className="flex flex-col">
+                  <p className="text-xs text-muted-foreground">Count</p>
+                  <p className="text-sm font-bold">
+                    {isSalespeopleTab ? (summary as any).reservationCount : (summary as any).count}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-2">
+                <div className="flex flex-col">
+                  <p className="text-xs text-muted-foreground">Total</p>
+                  <p className="text-sm font-bold text-green-600">
+                    {formatCompactCurrency(
+                      isSalespeopleTab ? (summary as any).totalCommissions : (summary as any).totalAmount,
+                      'CLP'
                     )}
-                  >
-                    <CalendarIcon className="mr-1 h-3 w-3" />
-                    <span className="text-xs">
-                      {dateRange.to ? format(dateRange.to, "dd/MM") : "Select"}
-                    </span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dateRange.to}
-                    onSelect={(date) => setDateRange(prev => ({ ...prev, to: date }))}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            
-            <div>
-              <Label className="text-xs">Search</Label>
-              <div className="relative">
-                <Search className="absolute left-2 top-2 h-3 w-3 text-muted-foreground" />
-                <Input
-                  placeholder="Search..."
-                  className="pl-7 h-8 text-xs"
-                  value={filters.searchTerm}
-                  onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
-                />
-              </div>
-            </div>
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-2">
+                <div className="flex flex-col">
+                  <p className="text-xs text-muted-foreground">Pending</p>
+                  <p className="text-sm font-bold text-yellow-600">
+                    {formatCompactCurrency(
+                      isSalespeopleTab ? (summary as any).pendingCommissions : (summary as any).pendingAmount,
+                      'CLP'
+                    )}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-2">
+                <div className="flex flex-col">
+                  <p className="text-xs text-muted-foreground">Selected</p>
+                  <p className="text-sm font-bold text-blue-600">
+                    {formatCompactCurrency(calculateSelectedTotal(), 'CLP')}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-          
-          {/* Additional Filters */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
-            <div>
-              <Label className="text-xs">Tour</Label>
-              <Select value={filters.tour || 'all'} onValueChange={(value) => handleFilterChange('tour', value === 'all' ? undefined : value)}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="All" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Tours</SelectItem>
-                  {filterOptions.tours.map((tour: any) => (
-                    <SelectItem key={tour.id} value={tour.id}>{tour.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label className="text-xs">Salesperson</Label>
-              <Select value={filters.salesperson || 'all'} onValueChange={(value) => handleFilterChange('salesperson', value === 'all' ? undefined : value)}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="All" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  {filterOptions.salespersons.map((sp: string) => (
-                    <SelectItem key={sp} value={sp}>{sp}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label className="text-xs">Agency</Label>
-              <Select value={filters.externalAgency || 'all'} onValueChange={(value) => handleFilterChange('externalAgency', value === 'all' ? undefined : value)}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="All" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  {filterOptions.agencies.map((agency: string) => (
-                    <SelectItem key={agency} value={agency}>{agency}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label className="text-xs">Status</Label>
-              <Select value={filters.commissionStatus || 'all'} onValueChange={(value) => handleFilterChange('commissionStatus', value === 'all' ? undefined : value)}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="All" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="flex items-end">
-              <Button 
-                variant="outline" 
-                onClick={clearFilters}
-                size="sm"
-                className="w-full h-8 text-xs"
-              >
-                Clear
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Summary Cards */}
-      {summary && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+        )}
+
+        {/* Content for each tab */}
+        <TabsContent value={activeTab} className="mt-3">
           <Card>
-            <CardContent className="p-2">
-              <div className="flex flex-col">
-                <p className="text-xs text-muted-foreground">Count</p>
-                <p className="text-sm font-bold">{summary.reservationCount}</p>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-2">
-              <div className="flex flex-col">
-                <p className="text-xs text-muted-foreground">Sales</p>
-                <p className="text-sm font-bold">${(summary.totalSales / 1000).toFixed(0)}k</p>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-2">
-              <div className="flex flex-col">
-                <p className="text-xs text-muted-foreground">Costs</p>
-                <p className="text-sm font-bold">${(summary.totalCosts / 1000).toFixed(0)}k</p>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-2">
-              <div className="flex flex-col">
-                <p className="text-xs text-muted-foreground">Net</p>
-                <p className="text-sm font-bold">${(summary.totalNet / 1000).toFixed(0)}k</p>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-2">
-              <div className="flex flex-col">
-                <p className="text-xs text-muted-foreground">Rate</p>
-                <p className="text-sm font-bold">{summary.averageCommissionRate.toFixed(1)}%</p>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-2">
-              <div className="flex flex-col">
-                <p className="text-xs text-muted-foreground">Total</p>
-                <p className="text-sm font-bold text-green-600">
-                  ${(summary.totalCommissions / 1000).toFixed(0)}k
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-2">
-              <div className="flex flex-col">
-                <p className="text-xs text-muted-foreground">Pend</p>
-                <p className="text-sm font-bold text-yellow-600">
-                  ${(summary.pendingCommissions / 1000).toFixed(0)}k
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-2">
-              <div className="flex flex-col">
-                <p className="text-xs text-muted-foreground">Paid</p>
-                <p className="text-sm font-bold text-blue-600">
-                  ${(summary.paidCommissions / 1000).toFixed(0)}k
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-      
-      {/* Commission Details */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-medium flex items-center gap-2">
-            <Calculator className="w-4 h-4" />
-            Commission Details ({filteredCommissions.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="text-center py-6 text-xs">
-              Loading commission data...
-            </div>
-          ) : filteredCommissions.length === 0 ? (
-            <div className="text-center py-6 text-xs">
-              No commission records found
-            </div>
-          ) : (
-            <>
-              {/* Desktop Table - Hidden on mobile */}
-              <div className="hidden md:block">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-medium flex items-center gap-2">
+                <Calculator className="w-4 h-4" />
+                {isClosedTab ? 'Closed Items' : 'Open Items'} ({data.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {loading ? (
+                <div className="text-center py-6 text-xs">
+                  Loading data...
+                </div>
+              ) : data.length === 0 ? (
+                <div className="text-center py-6 text-xs">
+                  No records found
+                </div>
+              ) : (
                 <TooltipProvider>
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        {!isClosedTab && (
+                          <TableHead className="w-[40px]">
+                            <Checkbox
+                              checked={selectedItems.size === data.length && data.length > 0}
+                              onCheckedChange={selectAllItems}
+                            />
+                          </TableHead>
+                        )}
                         <TableHead className="w-[70px] text-xs">Date</TableHead>
                         <TableHead className="w-[90px] text-xs">Reservation</TableHead>
                         <TableHead className="w-[140px] text-xs">Tour</TableHead>
                         <TableHead className="w-[100px] text-xs">Client</TableHead>
-                        <TableHead className="w-[100px] text-xs">Sales</TableHead>
+                        <TableHead className="w-[100px] text-xs">
+                          {isSalespeopleTab ? 'Sales' : 'Operator'}
+                        </TableHead>
                         <TableHead className="w-[35px] text-center text-xs">PAX</TableHead>
-                        <TableHead className="w-[70px] text-right text-xs">Gross</TableHead>
-                        <TableHead className="w-[70px] text-right text-xs">Net</TableHead>
-                        <TableHead className="w-[35px] text-center text-xs">%</TableHead>
-                        <TableHead className="w-[80px] text-right text-xs">Comm</TableHead>
+                        <TableHead className="w-[80px] text-right text-xs">Amount</TableHead>
                         <TableHead className="w-[50px] text-xs">Status</TableHead>
+                        {isClosedTab && (
+                          <TableHead className="w-[80px] text-xs">Invoice</TableHead>
+                        )}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredCommissions.slice(0, 100).map((commission) => (
-                        <React.Fragment key={commission.id}>
-                          <TableRow 
+                      {data.slice(0, 100).map((item: any) => (
+                        <React.Fragment key={item.id}>
+                          <TableRow
                             className="cursor-pointer hover:bg-muted/50"
-                            onClick={() => toggleRowExpansion(commission.id)}
+                            onClick={() => toggleRowExpansion(item.id)}
                           >
+                            {!isClosedTab && (
+                              <TableCell onClick={(e) => e.stopPropagation()}>
+                                <Checkbox
+                                  checked={selectedItems.has(item.id)}
+                                  onCheckedChange={() => toggleItemSelection(item.id)}
+                                />
+                              </TableCell>
+                            )}
                             <TableCell className="text-xs">
                               <div className="text-xs">
-                                {format(commission.saleDate, 'dd/MM')}
+                                {format(item.saleDate, 'dd/MM')}
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                {format(commission.operationDate, 'dd/MM')}
+                                {format(item.operationDate, 'dd/MM')}
                               </div>
                             </TableCell>
                             <TableCell className="text-xs font-medium">
-                              {commission.reservationNumber.slice(-7)}
+                              {item.reservationNumber?.slice(-7)}
                             </TableCell>
                             <TableCell>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <div className="text-xs">
                                     <div className="truncate max-w-[130px] font-medium">
-                                      {commission.tour.name}
+                                      {item.tour?.name}
                                     </div>
                                     <div className="text-muted-foreground text-xs">
-                                      {commission.tour.code}
+                                      {item.tour?.code}
                                     </div>
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>{commission.tour.name}</p>
-                                  <p className="text-xs">{commission.tour.destination}</p>
+                                  <p>{item.tour?.name}</p>
+                                  <p className="text-xs">{item.tour?.destination}</p>
                                 </TooltipContent>
                               </Tooltip>
                             </TableCell>
@@ -624,69 +831,100 @@ const SalesCommissionsPage = () => {
                                 <TooltipTrigger asChild>
                                   <div className="text-xs">
                                     <div className="truncate max-w-[90px] font-medium">
-                                      {commission.client.name.split(' ')[0]}
+                                      {item.client?.name?.split(' ')[0]}
                                     </div>
                                     <div className="text-muted-foreground text-xs">
-                                      {commission.client.country}
+                                      {item.client?.country}
                                     </div>
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>{commission.client.name}</p>
-                                  <p className="text-xs">{commission.client.email}</p>
+                                  <p>{item.client?.name}</p>
+                                  <p className="text-xs">{item.client?.email}</p>
                                 </TooltipContent>
                               </Tooltip>
                             </TableCell>
                             <TableCell className="text-xs truncate max-w-[90px]">
-                              {commission.salesperson || commission.externalAgency || '-'}
+                              {isSalespeopleTab
+                                ? (item.salesperson || item.externalAgency || '-')
+                                : item.operatorName
+                              }
                             </TableCell>
                             <TableCell className="text-center text-xs font-medium">
-                              {commission.passengers.total}
-                            </TableCell>
-                            <TableCell className="text-right text-xs font-medium">
-                              {formatCompactCurrency(commission.pricing.grossTotal, commission.pricing.currency)}
-                            </TableCell>
-                            <TableCell className="text-right text-xs">
-                              {formatCompactCurrency(commission.pricing.netReceived, commission.pricing.currency)}
-                            </TableCell>
-                            <TableCell className="text-center text-xs font-medium">
-                              {commission.commission.percentage}
+                              {item.passengers?.total}
                             </TableCell>
                             <TableCell className="text-right text-xs font-bold text-green-600">
-                              {formatCompactCurrency(commission.commission.amount, commission.pricing.currency)}
+                              {formatCompactCurrency(
+                                isSalespeopleTab ? item.commission?.amount : item.costAmount,
+                                isSalespeopleTab ? item.pricing?.currency : item.currency
+                              )}
                             </TableCell>
                             <TableCell>
-                              {getStatusBadge(commission.commission.status)}
+                              {getStatusBadge(
+                                isSalespeopleTab
+                                  ? item.commission?.status
+                                  : (item.logisticStatus || item.status)
+                              )}
                             </TableCell>
+                            {isClosedTab && (
+                              <TableCell className="text-xs">
+                                {item.closingInfo?.invoiceNumber && (
+                                  <div className="flex items-center gap-1">
+                                    <FileText className="w-3 h-3" />
+                                    <span className="text-xs">{item.closingInfo.invoiceNumber}</span>
+                                  </div>
+                                )}
+                              </TableCell>
+                            )}
                           </TableRow>
-                          {expandedRows.has(commission.id) && (
+                          {expandedRows.has(item.id) && (
                             <TableRow>
-                              <TableCell colSpan={11} className="bg-muted/30 p-2">
+                              <TableCell colSpan={isClosedTab ? 10 : 9} className="bg-muted/30 p-2">
                                 <div className="grid grid-cols-3 gap-4 text-xs">
                                   <div>
                                     <p className="font-semibold mb-1">Passenger Details</p>
-                                    <p>Adults: {commission.passengers.adults}</p>
-                                    {commission.passengers.children > 0 && (
-                                      <p>Children: {commission.passengers.children}</p>
+                                    <p>Adults: {item.passengers?.adults}</p>
+                                    {item.passengers?.children > 0 && (
+                                      <p>Children: {item.passengers?.children}</p>
                                     )}
-                                    {commission.passengers.infants > 0 && (
-                                      <p>Infants: {commission.passengers.infants}</p>
+                                    {item.passengers?.infants > 0 && (
+                                      <p>Infants: {item.passengers?.infants}</p>
                                     )}
                                   </div>
                                   <div>
-                                    <p className="font-semibold mb-1">Financial Details</p>
-                                    <p>Gross: {commissionService.formatCurrency(commission.pricing.grossTotal, commission.pricing.currency)}</p>
-                                    <p>Costs: {commissionService.formatCurrency(commission.pricing.costs, commission.pricing.currency)}</p>
-                                    <p>Net: {commissionService.formatCurrency(commission.pricing.netReceived, commission.pricing.currency)}</p>
+                                    <p className="font-semibold mb-1">
+                                      {isSalespeopleTab ? 'Financial Details' : 'Payment Details'}
+                                    </p>
+                                    {isSalespeopleTab ? (
+                                      <>
+                                        <p>Gross: {commissionService.formatCurrency(item.pricing?.grossTotal, item.pricing?.currency)}</p>
+                                        <p>Costs: {commissionService.formatCurrency(item.pricing?.costs, item.pricing?.currency)}</p>
+                                        <p>Net: {commissionService.formatCurrency(item.pricing?.netReceived, item.pricing?.currency)}</p>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <p>Amount: {commissionService.formatCurrency(item.costAmount, item.currency)}</p>
+                                        <p>Operator: {item.operatorName}</p>
+                                        <p>Type: {item.operationType}</p>
+                                      </>
+                                    )}
                                   </div>
                                   <div>
-                                    <p className="font-semibold mb-1">Commission Info</p>
-                                    <p>Rate: {commission.commission.percentage}%</p>
-                                    <p>Amount: {commissionService.formatCurrency(commission.commission.amount, commission.pricing.currency)}</p>
-                                    {commission.commission.paymentDate && (
-                                      <p>Paid: {format(commission.commission.paymentDate, 'dd/MM/yyyy')}</p>
+                                    <p className="font-semibold mb-1">
+                                      {isSalespeopleTab ? 'Commission Info' : 'Status Info'}
+                                    </p>
+                                    {isSalespeopleTab ? (
+                                      <>
+                                        <p>Rate: {item.commission?.percentage}%</p>
+                                        <p>Amount: {commissionService.formatCurrency(item.commission?.amount, item.pricing?.currency)}</p>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <p>Logistic: {item.logisticStatus}</p>
+                                        <p>Can Close: {item.canClose ? 'Yes' : 'No'}</p>
+                                      </>
                                     )}
-                                    {commission.notes && <p>Note: {commission.notes}</p>}
+                                    {item.notes && <p>Note: {item.notes}</p>}
                                   </div>
                                 </div>
                               </TableCell>
@@ -697,146 +935,221 @@ const SalesCommissionsPage = () => {
                     </TableBody>
                   </Table>
                 </TooltipProvider>
-              </div>
+              )}
 
-              {/* Mobile Cards - Visible on mobile only */}
-              <div className="md:hidden space-y-2 p-2">
-                {filteredCommissions.slice(0, 100).map((commission) => (
-                  <Card key={commission.id} className="cursor-pointer hover:shadow-sm transition-shadow" onClick={() => toggleRowExpansion(commission.id)}>
-                    <CardContent className="p-3">
-                      <div className="space-y-2">
-                        {/* Header Row */}
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-semibold text-sm">{commission.reservationNumber.slice(-7)}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {format(commission.saleDate, 'dd/MM/yyyy')}
-                            </p>
+              {data.length > 100 && (
+                <div className="p-3 text-center text-xs text-muted-foreground border-t">
+                  Showing first 100 of {data.length} records
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Closings list for closed tabs */}
+          {isClosedTab && closings.length > 0 && (
+            <Card className="mt-3">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-medium flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Closing History
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Invoice #</TableHead>
+                      <TableHead className="text-xs">Recipient</TableHead>
+                      <TableHead className="text-xs">Period</TableHead>
+                      <TableHead className="text-xs">Items</TableHead>
+                      <TableHead className="text-xs text-right">Total</TableHead>
+                      <TableHead className="text-xs">Created</TableHead>
+                      <TableHead className="text-xs">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {closings.filter(c => c.isActive).map((closing) => (
+                      <TableRow key={closing.id}>
+                        <TableCell className="text-xs font-medium">
+                          {closing.invoiceNumber}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {closing.recipientName}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {closing.periodStart} - {closing.periodEnd}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {closing.itemCount}
+                        </TableCell>
+                        <TableCell className="text-xs text-right font-bold">
+                          {formatCompactCurrency(closing.totalAmount, closing.currency)}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {format(new Date(closing.createdAt), 'dd/MM/yyyy')}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => handleUndoClosing(closing)}
+                                >
+                                  <Undo2 className="w-3 h-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Undo Closing</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                >
+                                  <Download className="w-3 h-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Download Invoice</TooltipContent>
+                            </Tooltip>
                           </div>
-                          <div className="text-right">
-                            {getStatusBadge(commission.commission.status)}
-                          </div>
-                        </div>
-                        
-                        {/* Tour and Client */}
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div>
-                            <p className="font-medium truncate">{commission.tour.name}</p>
-                            <p className="text-muted-foreground">{commission.tour.code}</p>
-                          </div>
-                          <div>
-                            <p className="font-medium truncate">{commission.client.name}</p>
-                            <p className="text-muted-foreground">{commission.client.country}</p>
-                          </div>
-                        </div>
-                        
-                        {/* Financial Summary */}
-                        <div className="grid grid-cols-3 gap-2 text-xs border-t pt-2">
-                          <div>
-                            <p className="text-muted-foreground">PAX</p>
-                            <p className="font-semibold">{commission.passengers.total}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Gross</p>
-                            <p className="font-semibold">
-                              {formatCompactCurrency(commission.pricing.grossTotal, commission.pricing.currency)}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Commission</p>
-                            <p className="font-bold text-green-600">
-                              {formatCompactCurrency(commission.commission.amount, commission.pricing.currency)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">{commission.commission.percentage}%</p>
-                          </div>
-                        </div>
-                        
-                        {/* Salesperson/Agency */}
-                        {(commission.salesperson || commission.externalAgency) && (
-                          <div className="text-xs">
-                            <span className="text-muted-foreground">Sales: </span>
-                            <span className="font-medium">{commission.salesperson || commission.externalAgency}</span>
-                          </div>
-                        )}
-                        
-                        {/* Expand Icon */}
-                        <div className="flex justify-center pt-1">
-                          {expandedRows.has(commission.id) ? (
-                            <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                          ) : (
-                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                          )}
-                        </div>
-                        
-                        {/* Expanded Details */}
-                        {expandedRows.has(commission.id) && (
-                          <div className="border-t pt-2 mt-2 space-y-2 text-xs">
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <p className="font-semibold text-muted-foreground mb-1">Passengers</p>
-                                <p>Adults: {commission.passengers.adults}</p>
-                                {commission.passengers.children > 0 && (
-                                  <p>Children: {commission.passengers.children}</p>
-                                )}
-                                {commission.passengers.infants > 0 && (
-                                  <p>Infants: {commission.passengers.infants}</p>
-                                )}
-                              </div>
-                              <div>
-                                <p className="font-semibold text-muted-foreground mb-1">Dates</p>
-                                <p>Sale: {format(commission.saleDate, 'dd/MM/yyyy')}</p>
-                                <p>Operation: {format(commission.operationDate, 'dd/MM/yyyy')}</p>
-                                {commission.commission.paymentDate && (
-                                  <p>Payment: {format(commission.commission.paymentDate, 'dd/MM/yyyy')}</p>
-                                )}
-                              </div>
-                            </div>
-                            
-                            <div>
-                              <p className="font-semibold text-muted-foreground mb-1">Financial Breakdown</p>
-                              <div className="space-y-1">
-                                <div className="flex justify-between">
-                                  <span>Gross Total:</span>
-                                  <span>{commissionService.formatCurrency(commission.pricing.grossTotal, commission.pricing.currency)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Costs:</span>
-                                  <span>{commissionService.formatCurrency(commission.pricing.costs, commission.pricing.currency)}</span>
-                                </div>
-                                <div className="flex justify-between font-medium">
-                                  <span>Net Received:</span>
-                                  <span>{commissionService.formatCurrency(commission.pricing.netReceived, commission.pricing.currency)}</span>
-                                </div>
-                                <div className="flex justify-between font-bold text-green-600 border-t pt-1">
-                                  <span>Commission ({commission.commission.percentage}%):</span>
-                                  <span>{commissionService.formatCurrency(commission.commission.amount, commission.pricing.currency)}</span>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            {commission.notes && (
-                              <div>
-                                <p className="font-semibold text-muted-foreground mb-1">Notes</p>
-                                <p className="italic">{commission.notes}</p>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Closing Confirmation Dialog */}
+      <Dialog open={showClosingDialog} onOpenChange={setShowClosingDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Confirm Closing</DialogTitle>
+            <DialogDescription>
+              You are about to close {selectedItems.size} {isSalespeopleTab ? 'commission(s)' : 'operator payment(s)'}.
+              This will generate an invoice and create an entry in Accounts Payable.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-lg border p-3 bg-muted/50">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Total Amount:</span>
+                <span className="text-lg font-bold text-green-600">
+                  {formatCompactCurrency(calculateSelectedTotal(), 'CLP')}
+                </span>
               </div>
-            </>
-          )}
-          
-          {filteredCommissions.length > 100 && (
-            <div className="p-3 text-center text-xs text-muted-foreground border-t">
-              Showing first 100 of {filteredCommissions.length} records
             </div>
-          )}
-        </CardContent>
-      </Card>
+
+            <div className="text-xs text-muted-foreground">
+              <AlertTriangle className="w-4 h-4 inline mr-1 text-yellow-600" />
+              You can adjust individual amounts before closing. Click on any item to edit.
+            </div>
+
+            <div className="max-h-60 overflow-y-auto border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Reservation</TableHead>
+                    <TableHead className="text-xs">{isSalespeopleTab ? 'Salesperson' : 'Operator'}</TableHead>
+                    <TableHead className="text-xs text-right">Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {getSelectedItemsData().map((item: any) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="text-xs">{item.reservationNumber}</TableCell>
+                      <TableCell className="text-xs">
+                        {isSalespeopleTab
+                          ? (item.salesperson || item.externalAgency)
+                          : item.operatorName
+                        }
+                      </TableCell>
+                      <TableCell className="text-xs text-right">
+                        <Input
+                          type="number"
+                          className="h-6 w-24 text-xs text-right"
+                          defaultValue={isSalespeopleTab ? item.commission?.amount : item.costAmount}
+                          onChange={(e) => {
+                            setAdjustments(prev => ({
+                              ...prev,
+                              [item.id]: { ...prev[item.id], amount: parseFloat(e.target.value) }
+                            }))
+                          }}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowClosingDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmClose}
+              disabled={closeCommissionsMutation.isPending || closeOperatorsMutation.isPending}
+            >
+              {(closeCommissionsMutation.isPending || closeOperatorsMutation.isPending)
+                ? 'Processing...'
+                : 'Confirm Close'
+              }
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Undo Closing Dialog */}
+      <Dialog open={showUndoDialog} onOpenChange={setShowUndoDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Undo Closing</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to undo closing {selectedClosing?.invoiceNumber}?
+              This will reopen all {selectedClosing?.itemCount} items and delete the associated expense.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm">Reason for Undo (required)</Label>
+              <Textarea
+                placeholder="Enter reason for undoing this closing..."
+                value={undoReason}
+                onChange={(e) => setUndoReason(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowUndoDialog(false)
+              setSelectedClosing(null)
+              setUndoReason('')
+            }}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmUndo}
+              disabled={!undoReason || undoClosingMutation.isPending}
+            >
+              {undoClosingMutation.isPending ? 'Processing...' : 'Undo Closing'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -103,10 +103,21 @@ export const API_ENDPOINTS = {
   COMMISSIONS: {
     LIST: '/api/commissions/',
     UNIQUE_VALUES: '/api/commissions/unique-values/',
+    EXTENDED_UNIQUE_VALUES: '/api/commissions/extended-unique-values/',
     SUMMARY: '/api/commissions/summary/',
+    CLOSE: '/api/commissions/close/',
     GET: (id: string) => `/api/commissions/${id}/`,
     APPROVE: (id: string) => `/api/commissions/${id}/approve/`,
     PAY: (id: string) => `/api/commissions/${id}/pay/`,
+    // Operator payments
+    OPERATORS: '/api/commissions/operators/',
+    OPERATORS_UNIQUE_VALUES: '/api/commissions/operators/unique-values/',
+    OPERATORS_SUMMARY: '/api/commissions/operators/summary/',
+    OPERATORS_CLOSE: '/api/commissions/operators/close/',
+    // Closings
+    CLOSINGS: '/api/commissions/closings/',
+    CLOSING_DETAIL: (id: string) => `/api/commissions/closings/${id}/`,
+    CLOSING_UNDO: (id: string) => `/api/commissions/closings/${id}/undo/`,
   },
   
   // Logistics endpoints
