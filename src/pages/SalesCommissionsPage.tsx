@@ -75,7 +75,7 @@ const SalesCommissionsPage = () => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { data: currentUser } = useCurrentUser()
-  const isAdmin = currentUser?.isSuperuser || false
+  const isAdmin = currentUser?.isSuperuser || currentUser?.role === 'administrator'
   const [activeTab, setActiveTab] = useState<TabType>('open-salespeople')
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
@@ -430,9 +430,17 @@ const SalesCommissionsPage = () => {
   const calculateSelectedTotal = () => {
     const selectedData = getSelectedItemsData()
     if (isSalespeopleTab) {
-      return (selectedData as Commission[]).reduce((sum, c) => sum + c.commission.amount, 0)
+      return (selectedData as Commission[]).reduce((sum, c) => {
+        // Use adjusted amount if available, otherwise use original
+        const adjustedAmount = adjustments[c.id]?.amount
+        return sum + (adjustedAmount !== undefined ? adjustedAmount : c.commission.amount)
+      }, 0)
     }
-    return (selectedData as OperatorPayment[]).reduce((sum, p) => sum + p.costAmount, 0)
+    return (selectedData as OperatorPayment[]).reduce((sum, p) => {
+      // Use adjusted amount if available, otherwise use original
+      const adjustedAmount = adjustments[p.id]?.amount
+      return sum + (adjustedAmount !== undefined ? adjustedAmount : p.costAmount)
+    }, 0)
   }
 
   const exportToCSV = () => {
@@ -1157,9 +1165,10 @@ const SalesCommissionsPage = () => {
                             className="h-6 w-24 text-xs text-right"
                             defaultValue={isSalespeopleTab ? item.commission?.amount : item.costAmount}
                             onChange={(e) => {
+                              const value = parseFloat(e.target.value)
                               setAdjustments(prev => ({
                                 ...prev,
-                                [item.id]: { ...prev[item.id], amount: parseFloat(e.target.value) }
+                                [item.id]: { ...prev[item.id], amount: isNaN(value) ? 0 : value }
                               }))
                             }}
                           />
