@@ -143,10 +143,10 @@ const LogisticsOperationsPage = () => {
   const filterOptions = useMemo(() => {
     const options = reservationService.getFilterOptions()
     return {
-      operators: options.suppliers.map((u: any) => ({ id: u.id, name: u.fullName })),
-      guides: options.guides.map((u: any) => ({ id: u.id, name: u.fullName })),
-      drivers: options.drivers.map((u: any) => ({ id: u.id, name: u.fullName })),
-      tours: options.tours.map((t: any) => ({ id: t.id, name: t.name }))
+      operators: (options.suppliers || []).map((u: any) => ({ id: u.id, name: u.fullName })),
+      guides: (options.guides || []).map((u: any) => ({ id: u.id, name: u.fullName })),
+      drivers: (options.drivers || []).map((u: any) => ({ id: u.id, name: u.fullName })),
+      tours: (options.tours || []).map((t: any) => ({ id: t.id, name: t.name }))
     }
   }, [allReservations])
 
