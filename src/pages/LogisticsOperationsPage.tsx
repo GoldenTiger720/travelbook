@@ -143,7 +143,7 @@ const LogisticsOperationsPage = () => {
   const filterOptions = useMemo(() => {
     const options = reservationService.getFilterOptions()
     return {
-      operators: [], // To be populated from backend
+      operators: options.suppliers.map((u: any) => ({ id: u.id, name: u.fullName })),
       guides: options.guides.map((u: any) => ({ id: u.id, name: u.fullName })),
       drivers: options.drivers.map((u: any) => ({ id: u.id, name: u.fullName })),
       tours: options.tours.map((t: any) => ({ id: t.id, name: t.name }))
@@ -564,12 +564,6 @@ const LogisticsOperationsPage = () => {
             <SelectValue placeholder={`Select ${field}`} />
           </SelectTrigger>
           <SelectContent>
-            {field === 'operator' && (
-              <>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="own-operator">Own operator</SelectItem>
-              </>
-            )}
             {options
               .filter((opt: any) => {
                 // Filter out options with empty/invalid IDs or names

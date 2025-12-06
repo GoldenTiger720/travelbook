@@ -211,6 +211,7 @@ class ReservationService {
         salespersons: users.filter((u: any) => u.role === 'salesperson'),
         guides: users.filter((u: any) => u.role === 'guide' || u.role === 'assistant_guide'),
         drivers: users.filter((u: any) => u.role === 'driver'),
+        suppliers: users.filter((u: any) => u.role === 'supplier'),
         agencies: users.filter((u: any) => u.role === 'agency')
       }
     } catch (error) {
@@ -222,6 +223,7 @@ class ReservationService {
         salespersons: [],
         guides: [],
         drivers: [],
+        suppliers: [],
         agencies: []
       }
     }
