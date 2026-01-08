@@ -157,6 +157,9 @@ const BookQuotePage = () => {
   // Filter users with salesperson role
   const salesPersons = users.filter(user => user.role === 'salesperson' && user.status === 'Active')
 
+  // Filter users with supplier role for the Operator dropdown
+  const suppliers = users.filter(user => user.role === 'supplier')
+
   useEffect(() => {
     loadDestinationsSettings()
     loadUsersData()
@@ -909,6 +912,7 @@ const BookQuotePage = () => {
           editingTourId={editingTourId}
           currency={formData.currency}
           defaultHotel={formData.defaultHotel}
+          suppliers={suppliers}
           onDestinationChange={setSelectedDestination}
           onTourSelection={handleTourSelection}
           onTourFieldChange={handleTourFieldChange}

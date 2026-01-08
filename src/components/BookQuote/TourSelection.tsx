@@ -1,4 +1,4 @@
-import React, { useMemo } from "react"
+import React from "react"
 import { format } from "date-fns"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -27,7 +27,6 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Tour, TourBooking } from "@/types/tour"
-import { reservationService } from "@/services/reservationService"
 
 interface DestinationTour {
   id: string
@@ -72,6 +71,14 @@ interface CurrentTour {
   comments: string
 }
 
+interface Supplier {
+  id: string
+  full_name: string
+  email: string
+  phone: string
+  role: string
+}
+
 interface TourSelectionProps {
   destinations: Destination[]
   availableTours: (DestinationTour | Tour)[]
@@ -81,6 +88,7 @@ interface TourSelectionProps {
   editingTourId: string | null
   currency: string
   defaultHotel: string
+  suppliers?: Supplier[]
   onDestinationChange: (destination: string) => void
   onTourSelection: (tourId: string) => void
   onTourFieldChange: (field: string, value: string | number | Date | undefined) => void
@@ -101,6 +109,7 @@ const TourSelection: React.FC<TourSelectionProps> = ({
   editingTourId,
   currency,
   defaultHotel,
+  suppliers = [],
   onDestinationChange,
   onTourSelection,
   onTourFieldChange,
@@ -112,12 +121,6 @@ const TourSelection: React.FC<TourSelectionProps> = ({
   calculateGrandTotal
 }) => {
   const { t } = useLanguage()
-
-  // Get tour operators from the filter options
-  const tourOperators = useMemo(() => {
-    const filterOptions = reservationService.getFilterOptions()
-    return filterOptions.tourOperators || []
-  }, [])
 
   return (
     <>
@@ -204,9 +207,9 @@ const TourSelection: React.FC<TourSelectionProps> = ({
                       {t('quotes.ownOperation')}
                     </div>
                   </SelectItem>
-                  {tourOperators.map((operator: any) => (
-                    <SelectItem key={operator.id} value={operator.name}>
-                      {operator.name}
+                  {suppliers.map((supplier) => (
+                    <SelectItem key={supplier.id} value={supplier.full_name}>
+                      {supplier.full_name}
                     </SelectItem>
                   ))}
                 </SelectContent>
