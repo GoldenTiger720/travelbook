@@ -119,6 +119,15 @@ export const API_ENDPOINTS = {
     CLOSING_DETAIL: (id: string) => `/api/commissions/closings/${id}/`,
     CLOSING_UNDO: (id: string) => `/api/commissions/closings/${id}/undo/`,
     CLOSING_INVOICE: (id: string) => `/api/commissions/closings/${id}/invoice/`,
+    // Financial Forecast
+    FORECAST: '/api/commissions/forecast/',
+    // Closure Status
+    CLOSURE_STATUS: (bookingId: string) => `/api/commissions/closure-status/${bookingId}/`,
+    // Adjustment Requests
+    ADJUSTMENT_REQUEST: '/api/commissions/adjustments/request/',
+    ADJUSTMENT_PENDING: '/api/commissions/adjustments/pending/',
+    ADJUSTMENT_APPROVE: (id: string) => `/api/commissions/adjustments/${id}/approve/`,
+    ADJUSTMENT_REJECT: (id: string) => `/api/commissions/adjustments/${id}/reject/`,
   },
   
   // Logistics endpoints

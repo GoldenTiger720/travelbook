@@ -8,7 +8,12 @@ import {
   ExtendedUniqueValues,
   CloseCommissionsRequest,
   CloseOperatorPaymentsRequest,
-  ClosingResponse
+  ClosingResponse,
+  FinancialForecast,
+  ClosureStatus,
+  AdjustmentRequestPayload,
+  AdjustmentRequest,
+  PendingAdjustmentsResponse
 } from '@/types/commission'
 import { API_ENDPOINTS, apiCall } from '@/config/api'
 
@@ -471,6 +476,117 @@ class CommissionService {
       document.body.removeChild(a)
     } catch (error) {
       console.error('Error downloading invoice:', error)
+      throw error
+    }
+  }
+
+  // Financial Forecast methods
+  async getFinancialForecast(): Promise<FinancialForecast> {
+    try {
+      const response = await apiCall(API_ENDPOINTS.COMMISSIONS.FORECAST, {
+        method: 'GET',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch financial forecast')
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching financial forecast:', error)
+      throw error
+    }
+  }
+
+  // Closure Status methods
+  async checkClosureStatus(bookingId: string): Promise<ClosureStatus> {
+    try {
+      const response = await apiCall(API_ENDPOINTS.COMMISSIONS.CLOSURE_STATUS(bookingId), {
+        method: 'GET',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to check closure status')
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error checking closure status:', error)
+      throw error
+    }
+  }
+
+  // Adjustment Request methods
+  async requestAdjustment(payload: AdjustmentRequestPayload): Promise<{ message: string; request_id: string; status: string }> {
+    try {
+      const response = await apiCall(API_ENDPOINTS.COMMISSIONS.ADJUSTMENT_REQUEST, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to submit adjustment request')
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error submitting adjustment request:', error)
+      throw error
+    }
+  }
+
+  async getPendingAdjustments(status: string = 'pending'): Promise<PendingAdjustmentsResponse> {
+    try {
+      const endpoint = `${API_ENDPOINTS.COMMISSIONS.ADJUSTMENT_PENDING}?status=${status}`
+      const response = await apiCall(endpoint, {
+        method: 'GET',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch pending adjustments')
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching pending adjustments:', error)
+      throw error
+    }
+  }
+
+  async approveAdjustment(adjustmentId: string): Promise<{ message: string; adjustment_amount: number; result_id: string }> {
+    try {
+      const response = await apiCall(API_ENDPOINTS.COMMISSIONS.ADJUSTMENT_APPROVE(adjustmentId), {
+        method: 'POST',
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to approve adjustment')
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error approving adjustment:', error)
+      throw error
+    }
+  }
+
+  async rejectAdjustment(adjustmentId: string, reason: string): Promise<{ message: string; reason: string }> {
+    try {
+      const response = await apiCall(API_ENDPOINTS.COMMISSIONS.ADJUSTMENT_REJECT(adjustmentId), {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to reject adjustment')
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error rejecting adjustment:', error)
       throw error
     }
   }

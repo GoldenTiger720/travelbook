@@ -30,21 +30,20 @@ import {
   Search,
   Filter,
   Download,
-  DollarSign,
-  Users,
   Calculator,
-  FileSpreadsheet,
-  CheckCircle,
-  Clock,
-  XCircle,
   ChevronDown,
   ChevronUp,
   Lock,
   Unlock,
   FileText,
-  Undo2,
   AlertTriangle,
-  Truck
+  Truck,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Clock,
+  CheckCircle,
+  XCircle
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
@@ -52,10 +51,14 @@ import { commissionService } from '@/services/commissionService'
 import {
   Commission,
   CommissionFilters,
+  CommissionSummary,
   OperatorPayment,
+  OperatorSummary,
   CommissionClosing,
   CloseCommissionsRequest,
-  CloseOperatorPaymentsRequest
+  CloseOperatorPaymentsRequest,
+  FinancialForecast,
+  AdjustmentRequest
 } from '@/types/commission'
 import { useUsers } from '@/lib/hooks/useUsers'
 import { useCurrentUser } from '@/lib/hooks/useAuth'
@@ -78,6 +81,8 @@ const SalesCommissionsPage = () => {
   const isAdmin = currentUser?.isSuperuser || currentUser?.role === 'administrator'
   const [activeTab, setActiveTab] = useState<TabType>('open-salespeople')
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
+  const [expandedClosings, setExpandedClosings] = useState<Set<string>>(new Set())
+  const [closingItems, setClosingItems] = useState<Record<string, (Commission | OperatorPayment)[]>>({})
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
   const [showClosingDialog, setShowClosingDialog] = useState(false)
   const [showUndoDialog, setShowUndoDialog] = useState(false)
@@ -153,7 +158,7 @@ const SalesCommissionsPage = () => {
   })
 
   // Fetch summary
-  const { data: summary } = useQuery({
+  const { data: summary } = useQuery<CommissionSummary | OperatorSummary>({
     queryKey: ['commissions', 'summary', filterCriteria, isSalespeopleTab],
     queryFn: () => isSalespeopleTab
       ? commissionService.getCommissionSummary()
@@ -170,6 +175,60 @@ const SalesCommissionsPage = () => {
     ),
     enabled: isClosedTab,
     staleTime: 5 * 60 * 1000,
+  })
+
+  // Fetch financial forecast
+  const { data: forecast } = useQuery<FinancialForecast>({
+    queryKey: ['commissions', 'forecast'],
+    queryFn: () => commissionService.getFinancialForecast(),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  // Fetch pending adjustments (admin only)
+  const { data: pendingAdjustments } = useQuery({
+    queryKey: ['commissions', 'adjustments', 'pending'],
+    queryFn: () => commissionService.getPendingAdjustments('pending'),
+    enabled: isAdmin,
+    staleTime: 2 * 60 * 1000,
+  })
+
+  // Approve adjustment mutation
+  const approveAdjustmentMutation = useMutation({
+    mutationFn: (adjustmentId: string) => commissionService.approveAdjustment(adjustmentId),
+    onSuccess: (data) => {
+      toast({
+        title: 'Adjustment Approved',
+        description: data.message,
+      })
+      queryClient.invalidateQueries({ queryKey: ['commissions'] })
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      })
+    }
+  })
+
+  // Reject adjustment mutation
+  const rejectAdjustmentMutation = useMutation({
+    mutationFn: ({ adjustmentId, reason }: { adjustmentId: string; reason: string }) =>
+      commissionService.rejectAdjustment(adjustmentId, reason),
+    onSuccess: () => {
+      toast({
+        title: 'Adjustment Rejected',
+        description: 'The adjustment request has been rejected.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['commissions'] })
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      })
+    }
   })
 
   // Close commissions mutation
@@ -252,6 +311,7 @@ const SalesCommissionsPage = () => {
     reservationStatuses: []
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleFilterChange = (field: string, value: any) => {
     setFilters(prev => ({
       ...prev,
@@ -282,6 +342,36 @@ const SalesCommissionsPage = () => {
     })
   }
 
+  const toggleClosingExpansion = async (closingId: string) => {
+    setExpandedClosings(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(closingId)) {
+        newSet.delete(closingId)
+      } else {
+        newSet.add(closingId)
+      }
+      return newSet
+    })
+
+    // Fetch items for this closing if not already loaded
+    if (!closingItems[closingId] && !expandedClosings.has(closingId)) {
+      try {
+        const detail = await commissionService.getClosingDetail(closingId)
+        setClosingItems(prev => ({
+          ...prev,
+          [closingId]: detail.items || []
+        }))
+      } catch (error) {
+        console.error('Failed to fetch closing items:', error)
+        toast({
+          title: 'Error',
+          description: 'Failed to load invoice items',
+          variant: 'destructive',
+        })
+      }
+    }
+  }
+
   const toggleItemSelection = (itemId: string) => {
     setSelectedItems(prev => {
       const newSet = new Set(prev)
@@ -298,11 +388,13 @@ const SalesCommissionsPage = () => {
     // Get only closable items (for operators, filter by canClose; for salespeople, all are closable)
     const closableItems = isSalespeopleTab
       ? data
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       : data.filter((item: any) => item.canClose !== false)
 
     if (selectedItems.size === closableItems.length && closableItems.length > 0) {
       setSelectedItems(new Set())
     } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setSelectedItems(new Set(closableItems.map((item: any) => item.id)))
     }
   }
@@ -483,6 +575,186 @@ const SalesCommissionsPage = () => {
         </div>
       </div>
 
+      {/* Financial Forecast Card */}
+      {forecast && (
+        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium flex items-center gap-2">
+              <Calculator className="w-4 h-4" />
+              Financial Forecast
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Expected Income */}
+              <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                <div className="p-2 bg-green-100 dark:bg-green-900 rounded-full">
+                  <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Expected Payments (Commissions)</p>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {forecast.expected_income.length > 0 ? (
+                      forecast.expected_income.map((item, idx) => (
+                        <span key={idx} className="text-sm font-semibold text-green-600 dark:text-green-400">
+                          {formatCompactCurrency(item.amount, item.currency)} ({item.count})
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-sm text-muted-foreground">No open commissions</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Forecast Liabilities */}
+              <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                <div className="p-2 bg-red-100 dark:bg-red-900 rounded-full">
+                  <TrendingDown className="w-5 h-5 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Forecast Liabilities (Operators)</p>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {forecast.forecast_liabilities.length > 0 ? (
+                      forecast.forecast_liabilities.map((item, idx) => (
+                        <span key={idx} className="text-sm font-semibold text-red-600 dark:text-red-400">
+                          {formatCompactCurrency(item.amount, item.currency)} ({item.count})
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-sm text-muted-foreground">No open payments</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Net Forecast */}
+              <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-full">
+                  <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Net Payable</p>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {forecast.net_forecast.length > 0 ? (
+                      forecast.net_forecast.map((item, idx) => (
+                        <span key={idx} className={cn(
+                          "text-sm font-semibold",
+                          item.amount >= 0 ? "text-blue-600 dark:text-blue-400" : "text-orange-600 dark:text-orange-400"
+                        )}>
+                          {formatCompactCurrency(Math.abs(item.amount), item.currency)}
+                          {item.amount < 0 && " (receivable)"}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-sm text-muted-foreground">No forecast data</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Pending Adjustments Card (Admin Only) */}
+      {isAdmin && pendingAdjustments && pendingAdjustments.adjustments.length > 0 && (
+        <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium flex items-center gap-2 text-amber-800 dark:text-amber-200">
+              <AlertTriangle className="w-4 h-4" />
+              Pending Adjustment Requests ({pendingAdjustments.total})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {pendingAdjustments.adjustments.slice(0, 5).map((adjustment: AdjustmentRequest) => (
+                <div key={adjustment.id} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <Badge className={cn(
+                        "text-xs",
+                        adjustment.adjustment_type === 'increase' ? "bg-green-100 text-green-800" :
+                        adjustment.adjustment_type === 'reduction' ? "bg-orange-100 text-orange-800" :
+                        "bg-red-100 text-red-800"
+                      )}>
+                        {adjustment.adjustment_type}
+                      </Badge>
+                      <span className="text-sm font-medium">
+                        {adjustment.item_type === 'commission' ? 'Commission' : 'Operator Payment'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {adjustment.customer_name} - Requested by {adjustment.requested_by}
+                    </p>
+                    <p className="text-xs mt-1">
+                      <span className="text-muted-foreground">Original:</span>{' '}
+                      <span className="line-through">{formatCompactCurrency(adjustment.original_amount, 'CLP')}</span>
+                      {' → '}
+                      <span className="font-medium">{formatCompactCurrency(adjustment.new_amount, 'CLP')}</span>
+                      {' '}
+                      <span className={cn(
+                        "text-xs",
+                        adjustment.adjustment_amount >= 0 ? "text-green-600" : "text-red-600"
+                      )}>
+                        ({adjustment.adjustment_amount >= 0 ? '+' : ''}{formatCompactCurrency(adjustment.adjustment_amount, 'CLP')})
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 italic">
+                      Reason: {adjustment.reason}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 ml-4">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            onClick={() => approveAdjustmentMutation.mutate(adjustment.id)}
+                            disabled={approveAdjustmentMutation.isPending}
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Approve</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => {
+                              const reason = prompt('Please provide a reason for rejection:')
+                              if (reason) {
+                                rejectAdjustmentMutation.mutate({ adjustmentId: adjustment.id, reason })
+                              }
+                            }}
+                            disabled={rejectAdjustmentMutation.isPending}
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Reject</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </div>
+              ))}
+              {pendingAdjustments.total > 5 && (
+                <p className="text-xs text-center text-muted-foreground pt-2">
+                  And {pendingAdjustments.total - 5} more...
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => {
         setActiveTab(v as TabType)
@@ -611,6 +883,7 @@ const SalesCommissionsPage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Tours</SelectItem>
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {filterOptions.tours.map((tour: any) => (
                       <SelectItem key={tour.id} value={tour.id}>{tour.name}</SelectItem>
                     ))}
@@ -675,6 +948,7 @@ const SalesCommissionsPage = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All</SelectItem>
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                         {filterOptions.logisticStatuses.map((status: any) => (
                           <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
                         ))}
@@ -692,6 +966,7 @@ const SalesCommissionsPage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All</SelectItem>
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {filterOptions.commissionStatuses.map((status: any) => (
                       <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
                     ))}
@@ -707,6 +982,7 @@ const SalesCommissionsPage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All</SelectItem>
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {filterOptions.paymentStatuses.map((status: any) => (
                       <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
                     ))}
@@ -722,6 +998,7 @@ const SalesCommissionsPage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All</SelectItem>
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {filterOptions.reservationStatuses.map((status: any) => (
                       <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
                     ))}
@@ -751,6 +1028,7 @@ const SalesCommissionsPage = () => {
                 <div className="flex flex-col">
                   <p className="text-xs text-muted-foreground">Count</p>
                   <p className="text-sm font-bold">
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {isSalespeopleTab ? (summary as any).reservationCount : (summary as any).count}
                   </p>
                 </div>
@@ -763,6 +1041,7 @@ const SalesCommissionsPage = () => {
                   <p className="text-xs text-muted-foreground">Total</p>
                   <p className="text-sm font-bold text-green-600">
                     {formatCompactCurrency(
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       isSalespeopleTab ? (summary as any).totalCommissions : (summary as any).totalAmount,
                       'CLP'
                     )}
@@ -777,6 +1056,7 @@ const SalesCommissionsPage = () => {
                   <p className="text-xs text-muted-foreground">Pending</p>
                   <p className="text-sm font-bold text-yellow-600">
                     {formatCompactCurrency(
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       isSalespeopleTab ? (summary as any).pendingCommissions : (summary as any).pendingAmount,
                       'CLP'
                     )}
@@ -800,58 +1080,55 @@ const SalesCommissionsPage = () => {
 
         {/* Content for each tab */}
         <TabsContent value={activeTab} className="mt-3">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-medium flex items-center gap-2">
-                <Calculator className="w-4 h-4" />
-                {isClosedTab ? 'Closed Items' : 'Open Items'} ({data.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {loading ? (
-                <div className="text-center py-6 text-xs">
-                  Loading data...
-                </div>
-              ) : data.length === 0 ? (
-                <div className="text-center py-6 text-xs">
-                  No records found
-                </div>
-              ) : (
-                <TooltipProvider>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        {!isClosedTab && (
+          {/* Open tabs: Show items table */}
+          {!isClosedTab && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-medium flex items-center gap-2">
+                  <Calculator className="w-4 h-4" />
+                  Open Items ({data.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {loading ? (
+                  <div className="text-center py-6 text-xs">
+                    Loading data...
+                  </div>
+                ) : data.length === 0 ? (
+                  <div className="text-center py-6 text-xs">
+                    No records found
+                  </div>
+                ) : (
+                  <TooltipProvider>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
                           <TableHead className="w-[40px]">
                             <Checkbox
                               checked={selectedItems.size === data.length && data.length > 0}
                               onCheckedChange={selectAllItems}
                             />
                           </TableHead>
-                        )}
-                        <TableHead className="w-[70px] text-xs">Date</TableHead>
-                        <TableHead className="w-[90px] text-xs">Reservation</TableHead>
-                        <TableHead className="w-[140px] text-xs">Tour</TableHead>
-                        <TableHead className="w-[100px] text-xs">Client</TableHead>
-                        <TableHead className="w-[100px] text-xs">
-                          {isSalespeopleTab ? 'Sales' : 'Operator'}
-                        </TableHead>
-                        <TableHead className="w-[35px] text-center text-xs">PAX</TableHead>
-                        <TableHead className="w-[80px] text-right text-xs">Amount</TableHead>
-                        <TableHead className="w-[50px] text-xs">Status</TableHead>
-                        {isClosedTab && (
-                          <TableHead className="w-[80px] text-xs">Invoice</TableHead>
-                        )}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                          <TableHead className="w-[70px] text-xs">Date</TableHead>
+                          <TableHead className="w-[90px] text-xs">Reservation</TableHead>
+                          <TableHead className="w-[140px] text-xs">Tour</TableHead>
+                          <TableHead className="w-[100px] text-xs">Client</TableHead>
+                          <TableHead className="w-[100px] text-xs">
+                            {isSalespeopleTab ? 'Sales' : 'Operator'}
+                          </TableHead>
+                          <TableHead className="w-[35px] text-center text-xs">PAX</TableHead>
+                          <TableHead className="w-[80px] text-right text-xs">Amount</TableHead>
+                          <TableHead className="w-[50px] text-xs">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                       {data.slice(0, 100).map((item: any) => (
-                        <React.Fragment key={item.id}>
-                          <TableRow
-                            className="cursor-pointer hover:bg-muted/50"
-                            onClick={() => toggleRowExpansion(item.id)}
-                          >
-                            {!isClosedTab && (
+                          <React.Fragment key={item.id}>
+                            <TableRow
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => toggleRowExpansion(item.id)}
+                            >
                               <TableCell onClick={(e) => e.stopPropagation()}>
                                 {/* For operators, check canClose property; salespeople can always close */}
                                 {!isSalespeopleTab && item.canClose === false ? (
@@ -872,234 +1149,323 @@ const SalesCommissionsPage = () => {
                                   />
                                 )}
                               </TableCell>
-                            )}
-                            <TableCell className="text-xs">
-                              <div className="text-xs">
-                                {format(item.saleDate, 'dd/MM')}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {format(item.operationDate, 'dd/MM')}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-xs font-medium">
-                              {item.reservationNumber?.slice(-7)}
-                            </TableCell>
-                            <TableCell>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="text-xs">
-                                    <div className="truncate max-w-[130px] font-medium">
-                                      {item.tour?.name}
-                                    </div>
-                                    <div className="text-muted-foreground text-xs">
-                                      {item.tour?.code}
-                                    </div>
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{item.tour?.name}</p>
-                                  <p className="text-xs">{item.tour?.destination}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TableCell>
-                            <TableCell>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="text-xs">
-                                    <div className="truncate max-w-[90px] font-medium">
-                                      {item.client?.name?.split(' ')[0]}
-                                    </div>
-                                    <div className="text-muted-foreground text-xs">
-                                      {item.client?.country}
-                                    </div>
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{item.client?.name}</p>
-                                  <p className="text-xs">{item.client?.email}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TableCell>
-                            <TableCell className="text-xs truncate max-w-[90px]">
-                              {isSalespeopleTab
-                                ? (item.salesperson || item.externalAgency || '-')
-                                : item.operatorName
-                              }
-                            </TableCell>
-                            <TableCell className="text-center text-xs font-medium">
-                              {item.passengers?.total}
-                            </TableCell>
-                            <TableCell className="text-right text-xs font-bold text-green-600">
-                              {formatCompactCurrency(
-                                isSalespeopleTab ? item.commission?.amount : item.costAmount,
-                                isSalespeopleTab ? item.pricing?.currency : item.currency
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {getStatusBadge(
-                                isSalespeopleTab
-                                  ? item.commission?.status
-                                  : (item.logisticStatus || item.status)
-                              )}
-                            </TableCell>
-                            {isClosedTab && (
                               <TableCell className="text-xs">
-                                {item.closingInfo?.invoiceNumber && (
-                                  <div className="flex items-center gap-1">
-                                    <FileText className="w-3 h-3" />
-                                    <span className="text-xs">{item.closingInfo.invoiceNumber}</span>
-                                  </div>
-                                )}
-                              </TableCell>
-                            )}
-                          </TableRow>
-                          {expandedRows.has(item.id) && (
-                            <TableRow>
-                              <TableCell colSpan={isClosedTab ? 10 : 9} className="bg-muted/30 p-2">
-                                <div className="grid grid-cols-3 gap-4 text-xs">
-                                  <div>
-                                    <p className="font-semibold mb-1">Passenger Details</p>
-                                    <p>Adults: {item.passengers?.adults}</p>
-                                    {item.passengers?.children > 0 && (
-                                      <p>Children: {item.passengers?.children}</p>
-                                    )}
-                                    {item.passengers?.infants > 0 && (
-                                      <p>Infants: {item.passengers?.infants}</p>
-                                    )}
-                                  </div>
-                                  <div>
-                                    <p className="font-semibold mb-1">
-                                      {isSalespeopleTab ? 'Financial Details' : 'Payment Details'}
-                                    </p>
-                                    {isSalespeopleTab ? (
-                                      <>
-                                        <p>Gross: {commissionService.formatCurrency(item.pricing?.grossTotal, item.pricing?.currency)}</p>
-                                        <p>Costs: {commissionService.formatCurrency(item.pricing?.costs, item.pricing?.currency)}</p>
-                                        <p>Net: {commissionService.formatCurrency(item.pricing?.netReceived, item.pricing?.currency)}</p>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <p>Amount: {commissionService.formatCurrency(item.costAmount, item.currency)}</p>
-                                        <p>Operator: {item.operatorName}</p>
-                                        <p>Type: {item.operationType}</p>
-                                      </>
-                                    )}
-                                  </div>
-                                  <div>
-                                    <p className="font-semibold mb-1">
-                                      {isSalespeopleTab ? 'Commission Info' : 'Status Info'}
-                                    </p>
-                                    {isSalespeopleTab ? (
-                                      <>
-                                        <p>Rate: {item.commission?.percentage}%</p>
-                                        <p>Amount: {commissionService.formatCurrency(item.commission?.amount, item.pricing?.currency)}</p>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <p>Logistic: {item.logisticStatus}</p>
-                                        <p>Can Close: {item.canClose ? 'Yes' : 'No'}</p>
-                                      </>
-                                    )}
-                                    {item.notes && <p>Note: {item.notes}</p>}
-                                  </div>
+                                <div className="text-xs">
+                                  {format(item.saleDate, 'dd/MM')}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {format(item.operationDate, 'dd/MM')}
                                 </div>
                               </TableCell>
+                              <TableCell className="text-xs font-medium">
+                                {item.reservationNumber?.slice(-7)}
+                              </TableCell>
+                              <TableCell>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="text-xs">
+                                      <div className="truncate max-w-[130px] font-medium">
+                                        {item.tour?.name}
+                                      </div>
+                                      <div className="text-muted-foreground text-xs">
+                                        {item.tour?.code}
+                                      </div>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{item.tour?.name}</p>
+                                    <p className="text-xs">{item.tour?.destination}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TableCell>
+                              <TableCell>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="text-xs">
+                                      <div className="truncate max-w-[90px] font-medium">
+                                        {item.client?.name?.split(' ')[0]}
+                                      </div>
+                                      <div className="text-muted-foreground text-xs">
+                                        {item.client?.country}
+                                      </div>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{item.client?.name}</p>
+                                    <p className="text-xs">{item.client?.email}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TableCell>
+                              <TableCell className="text-xs truncate max-w-[90px]">
+                                {isSalespeopleTab
+                                  ? (item.salesperson || item.externalAgency || '-')
+                                  : item.operatorName
+                                }
+                              </TableCell>
+                              <TableCell className="text-center text-xs font-medium">
+                                {item.passengers?.total}
+                              </TableCell>
+                              <TableCell className="text-right text-xs font-bold text-green-600">
+                                {formatCompactCurrency(
+                                  isSalespeopleTab ? item.commission?.amount : item.costAmount,
+                                  isSalespeopleTab ? item.pricing?.currency : item.currency
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {getStatusBadge(
+                                  isSalespeopleTab
+                                    ? item.commission?.status
+                                    : (item.logisticStatus || item.status)
+                                )}
+                              </TableCell>
                             </TableRow>
-                          )}
-                        </React.Fragment>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TooltipProvider>
-              )}
+                            {expandedRows.has(item.id) && (
+                              <TableRow>
+                                <TableCell colSpan={9} className="bg-muted/30 p-2">
+                                  <div className="grid grid-cols-3 gap-4 text-xs">
+                                    <div>
+                                      <p className="font-semibold mb-1">Passenger Details</p>
+                                      <p>Adults: {item.passengers?.adults}</p>
+                                      {item.passengers?.children > 0 && (
+                                        <p>Children: {item.passengers?.children}</p>
+                                      )}
+                                      {item.passengers?.infants > 0 && (
+                                        <p>Infants: {item.passengers?.infants}</p>
+                                      )}
+                                    </div>
+                                    <div>
+                                      <p className="font-semibold mb-1">
+                                        {isSalespeopleTab ? 'Financial Details' : 'Payment Details'}
+                                      </p>
+                                      {isSalespeopleTab ? (
+                                        <>
+                                          <p>Gross: {commissionService.formatCurrency(item.pricing?.grossTotal, item.pricing?.currency)}</p>
+                                          <p>Costs: {commissionService.formatCurrency(item.pricing?.costs, item.pricing?.currency)}</p>
+                                          <p>Net: {commissionService.formatCurrency(item.pricing?.netReceived, item.pricing?.currency)}</p>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <p>Amount: {commissionService.formatCurrency(item.costAmount, item.currency)}</p>
+                                          <p>Operator: {item.operatorName}</p>
+                                          <p>Type: {item.operationType}</p>
+                                        </>
+                                      )}
+                                    </div>
+                                    <div>
+                                      <p className="font-semibold mb-1">
+                                        {isSalespeopleTab ? 'Commission Info' : 'Status Info'}
+                                      </p>
+                                      {isSalespeopleTab ? (
+                                        <>
+                                          <p>Rate: {item.commission?.percentage}%</p>
+                                          <p>Amount: {commissionService.formatCurrency(item.commission?.amount, item.pricing?.currency)}</p>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <p>Logistic: {item.logisticStatus}</p>
+                                          <p>Can Close: {item.canClose ? 'Yes' : 'No'}</p>
+                                        </>
+                                      )}
+                                      {item.notes && <p>Note: {item.notes}</p>}
+                                    </div>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TooltipProvider>
+                )}
 
-              {data.length > 100 && (
-                <div className="p-3 text-center text-xs text-muted-foreground border-t">
-                  Showing first 100 of {data.length} records
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                {data.length > 100 && (
+                  <div className="p-3 text-center text-xs text-muted-foreground border-t">
+                    Showing first 100 of {data.length} records
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Closings list for closed tabs */}
-          {isClosedTab && closings.length > 0 && (
-            <Card className="mt-3">
+          {/* Closed tabs: Show invoices (closings) with expandable items */}
+          {isClosedTab && (
+            <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-medium flex items-center gap-2">
                   <FileText className="w-4 h-4" />
-                  Closing History
+                  Closed Invoices ({closings.filter(c => c.isActive).length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs">Invoice #</TableHead>
-                      <TableHead className="text-xs">Recipient</TableHead>
-                      <TableHead className="text-xs">Period</TableHead>
-                      <TableHead className="text-xs">Items</TableHead>
-                      <TableHead className="text-xs text-right">Total</TableHead>
-                      <TableHead className="text-xs">Created</TableHead>
-                      <TableHead className="text-xs">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {closings.filter(c => c.isActive).map((closing) => (
-                      <TableRow key={closing.id}>
-                        <TableCell className="text-xs font-medium">
-                          {closing.invoiceNumber}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          {closing.recipientName}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          {closing.periodStart} - {closing.periodEnd}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          {closing.itemCount}
-                        </TableCell>
-                        <TableCell className="text-xs text-right font-bold">
-                          {formatCompactCurrency(closing.totalAmount, closing.currency)}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          {format(new Date(closing.createdAt), 'dd/MM/yyyy')}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            {isAdmin && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 w-6 p-0"
-                                    onClick={() => handleUndoClosing(closing)}
-                                  >
-                                    <Undo2 className="w-3 h-3" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Undo Closing (Admin Only)</TooltipContent>
-                              </Tooltip>
-                            )}
-                            <Tooltip>
-                              <TooltipTrigger asChild>
+                {loading ? (
+                  <div className="text-center py-6 text-xs">
+                    Loading data...
+                  </div>
+                ) : closings.filter(c => c.isActive).length === 0 ? (
+                  <div className="text-center py-6 text-xs">
+                    No closed invoices found
+                  </div>
+                ) : (
+                  <TooltipProvider>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[40px]"></TableHead>
+                          <TableHead className="text-xs">Invoice #</TableHead>
+                          <TableHead className="text-xs">Recipient</TableHead>
+                          <TableHead className="text-xs">Period</TableHead>
+                          <TableHead className="text-xs text-center">Items</TableHead>
+                          <TableHead className="text-xs text-right">Total</TableHead>
+                          <TableHead className="text-xs">Created</TableHead>
+                          <TableHead className="text-xs">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {closings.filter(c => c.isActive).map((closing) => (
+                          <React.Fragment key={closing.id}>
+                            <TableRow className="hover:bg-muted/50">
+                              <TableCell>
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   className="h-6 w-6 p-0"
-                                  onClick={() => handleDownloadInvoice(closing.id)}
+                                  onClick={() => toggleClosingExpansion(closing.id)}
                                 >
-                                  <Download className="w-3 h-3" />
+                                  {expandedClosings.has(closing.id) ? (
+                                    <ChevronUp className="w-4 h-4" />
+                                  ) : (
+                                    <ChevronDown className="w-4 h-4" />
+                                  )}
                                 </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Download Invoice</TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                              </TableCell>
+                              <TableCell className="text-xs font-medium">
+                                {closing.invoiceNumber}
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                {closing.recipientName}
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                {closing.periodStart} - {closing.periodEnd}
+                              </TableCell>
+                              <TableCell className="text-xs text-center">
+                                {closing.itemCount}
+                              </TableCell>
+                              <TableCell className="text-xs text-right font-bold text-green-600">
+                                {formatCompactCurrency(closing.totalAmount, closing.currency)}
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                {format(new Date(closing.createdAt), 'dd/MM/yyyy')}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 w-6 p-0"
+                                        onClick={() => handleDownloadInvoice(closing.id)}
+                                      >
+                                        <Download className="w-3 h-3" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Download Invoice</TooltipContent>
+                                  </Tooltip>
+                                  {isAdmin && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-6 w-6 p-0"
+                                          onClick={() => handleUndoClosing(closing)}
+                                        >
+                                          <Unlock className="w-3 h-3" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Reopen (Admin Only)</TooltipContent>
+                                    </Tooltip>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                            {/* Expanded items for this closing */}
+                            {expandedClosings.has(closing.id) && (
+                              <TableRow>
+                                <TableCell colSpan={8} className="bg-muted/30 p-0">
+                                  {!closingItems[closing.id] ? (
+                                    <div className="text-center py-4 text-xs text-muted-foreground">
+                                      Loading items...
+                                    </div>
+                                  ) : closingItems[closing.id].length === 0 ? (
+                                    <div className="text-center py-4 text-xs text-muted-foreground">
+                                      No items found
+                                    </div>
+                                  ) : (
+                                    <div className="p-2">
+                                      <Table>
+                                        <TableHeader>
+                                          <TableRow className="bg-muted/50">
+                                            <TableHead className="text-xs py-2">Reservation</TableHead>
+                                            <TableHead className="text-xs py-2">Tour</TableHead>
+                                            <TableHead className="text-xs py-2">Client</TableHead>
+                                            <TableHead className="text-xs py-2 text-center">PAX</TableHead>
+                                            <TableHead className="text-xs py-2 text-right">Amount</TableHead>
+                                            <TableHead className="text-xs py-2">Status</TableHead>
+                                          </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                          {closingItems[closing.id].map((item: any) => (
+                                            <TableRow key={item.id} className="hover:bg-muted/20">
+                                              <TableCell className="text-xs py-2">
+                                                <div className="font-medium">{item.reservationNumber?.slice(-7) || item.reservation_number?.slice(-7)}</div>
+                                                <div className="text-muted-foreground">
+                                                  {format(new Date(item.operationDate || item.operation_date), 'dd/MM/yy')}
+                                                </div>
+                                              </TableCell>
+                                              <TableCell className="text-xs py-2">
+                                                <div className="truncate max-w-[120px]">{item.tour?.name}</div>
+                                                <div className="text-muted-foreground">{item.tour?.code}</div>
+                                              </TableCell>
+                                              <TableCell className="text-xs py-2">
+                                                <div className="truncate max-w-[100px]">{item.client?.name}</div>
+                                                <div className="text-muted-foreground">{item.client?.country}</div>
+                                              </TableCell>
+                                              <TableCell className="text-xs py-2 text-center">
+                                                {item.passengers?.total}
+                                              </TableCell>
+                                              <TableCell className="text-xs py-2 text-right font-medium text-green-600">
+                                                {formatCompactCurrency(
+                                                  isSalespeopleTab
+                                                    ? (item.commission?.amount || 0)
+                                                    : (item.costAmount || item.cost_amount || 0),
+                                                  closing.currency
+                                                )}
+                                              </TableCell>
+                                              <TableCell className="text-xs py-2">
+                                                {getStatusBadge(
+                                                  isSalespeopleTab
+                                                    ? item.commission?.status
+                                                    : (item.logisticStatus || item.logistic_status || item.status)
+                                                )}
+                                              </TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    </div>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TooltipProvider>
+                )}
               </CardContent>
             </Card>
           )}
@@ -1149,6 +1515,7 @@ const SalesCommissionsPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   {getSelectedItemsData().map((item: any) => (
                     <TableRow key={item.id}>
                       <TableCell className="text-xs">{item.reservationNumber}</TableCell>

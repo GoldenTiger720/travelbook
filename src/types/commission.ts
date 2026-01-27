@@ -180,3 +180,78 @@ export interface ClosingResponse {
   expense_id: string
   message: string
 }
+
+// Financial Forecast Types
+export interface ForecastItem {
+  currency: string
+  amount: number
+  count: number
+}
+
+export interface NetForecastItem {
+  currency: string
+  amount: number
+}
+
+export interface FinancialForecast {
+  expected_income: ForecastItem[]
+  forecast_liabilities: ForecastItem[]
+  net_forecast: NetForecastItem[]
+  total_open_commissions: number
+  total_open_payments: number
+}
+
+// Closure Status Types
+export interface ClosedItemInfo {
+  id: string
+  invoiceNumber: string
+  closedAt: string | null
+  amount: number
+}
+
+export interface ClosureStatus {
+  has_closed_items: boolean
+  commission_locked: boolean
+  commission_lock_reason: string | null
+  closed_commission_count: number
+  closed_payment_count: number
+  requires_admin_approval: boolean
+  closed_items: {
+    commissions: ClosedItemInfo[]
+    payments: ClosedItemInfo[]
+  }
+}
+
+// Adjustment Request Types
+export interface AdjustmentRequestPayload {
+  item_type: 'commission' | 'operator_payment'
+  item_id: string
+  adjustment_type: 'reduction' | 'cancellation' | 'increase'
+  new_amount: number
+  reason: string
+}
+
+export interface AdjustmentRequest {
+  id: string
+  item_type: 'commission' | 'operator_payment'
+  adjustment_type: 'reduction' | 'cancellation' | 'increase'
+  original_amount: number
+  new_amount: number
+  adjustment_amount: number
+  reason: string
+  status: 'pending' | 'approved' | 'rejected'
+  requested_by: string
+  requested_at: string
+  reviewed_by: string | null
+  reviewed_at: string | null
+  rejection_reason: string | null
+  booking_id: string
+  customer_name: string
+  amount?: number
+  invoice_number?: string
+}
+
+export interface PendingAdjustmentsResponse {
+  adjustments: AdjustmentRequest[]
+  total: number
+}
